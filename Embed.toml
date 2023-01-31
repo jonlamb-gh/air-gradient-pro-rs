@@ -20,7 +20,7 @@ halt_afterwards = false
 
 [default.general]
 # The chip name of the chip to be debugged.
-chip = "STM32F411CEUx"
+chip = "STM32F429ZITx"
 # A list of chip descriptions to be loaded during runtime.
 chip_descriptions = []
 # The default log level to be used. Possible values are one of:
@@ -34,6 +34,3 @@ connect_under_reset = false
 enabled = false
 # The connection string in host:port format wher the GDB server will open a socket.
 gdb_connection_string = "127.0.0.1:1337"
-
-[default.rtt]
-enabled = false

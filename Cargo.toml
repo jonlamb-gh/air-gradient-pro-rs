@@ -14,19 +14,24 @@ panic-rtt-target = { version = "0.1", features = ["cortex-m"] }
 rtt-target = { version = "0.3", features = ["cortex-m"] }
 rtt-logger = "0.2"
 log = "0.4"
+modular-bitfield = "0.11"
+ieee802_3_miim = "0.8"
 
 [dependencies.stm32f4xx-hal]
 version = "0.14"
-features = ["rt", "stm32f411", "rtic"]
+features = ["rt", "stm32f429", "rtic"]
 
-[dependencies.enc28j60]
-git = "https://github.com/jonlamb-gh/enc28j60.git"
-branch = "fix-lints"
-
+# TODO
+[dependencies.stm32-eth]
+#"https://github.com/jonlamb-gh/stm32-eth.git"
+#branch = "updated-deps-and-prs"
+git = "https://github.com/stm32-rs/stm32-eth.git"
+rev = "b0131e7b65822b89a81bb23c67bbae83e1d88e9e"
+default-features = false
+features = ["stm32f429", "smoltcp-phy"]
 
 [dependencies.smoltcp]
-git = "https://github.com/smoltcp-rs/smoltcp.git"
-rev = "98deb41ee531498c7117d87b34b28b18c63366c4"
+version = "0.8"
 default-features = false
 features = [
     "medium-ethernet",
@@ -40,6 +45,6 @@ features = [
 ]
 
 [profile.release]
-codegen-units = 1
-debug = true
-lto = true
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
