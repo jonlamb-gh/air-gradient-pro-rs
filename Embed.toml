@@ -1,0 +1,39 @@
+[default.probe]
+# The protocol to be used for communicating with the target.
+protocol = "Swd"
+
+[default.flashing]
+# Whether or not the target should be flashed.
+enabled = true
+# Whether or not bytes erased but not rewritten with data from the ELF
+# should be restored with their contents before erasing.
+restore_unwritten_bytes = false
+# Triggers a full chip erase instead of a page by page erase.
+do_chip_erase = false
+
+[default.reset]
+# Whether or not the target should be reset.
+# When flashing is enabled as well, the target will be reset after flashing.
+enabled = true
+# Whether or not the target should be halted after reset.
+halt_afterwards = false
+
+[default.general]
+# The chip name of the chip to be debugged.
+chip = "STM32F411CEUx"
+# A list of chip descriptions to be loaded during runtime.
+chip_descriptions = []
+# The default log level to be used. Possible values are one of:
+#   "OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
+log_level = "WARN"
+# Use this flag to assert the nreset & ntrst pins during attaching the probe to the chip.
+connect_under_reset = false
+
+[default.gdb]
+# Whether or not a GDB server should be opened after flashing.
+enabled = false
+# The connection string in host:port format wher the GDB server will open a socket.
+gdb_connection_string = "127.0.0.1:1337"
+
+[default.rtt]
+enabled = false
