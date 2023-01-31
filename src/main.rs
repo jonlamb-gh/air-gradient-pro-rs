@@ -1,4 +1,5 @@
-#![deny(warnings, clippy::all)]
+//#![deny(warnings, clippy::all)]
+// TODO
 #![forbid(unsafe_code)]
 #![no_main]
 #![no_std]
@@ -45,7 +46,9 @@ mod app {
     type MdcPin = PC1<AF11>;
 
     const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
-    const SRC_IP: [u8; 4] = [192, 168, 1, 39];
+    // TODO - for renode stuff
+    const SRC_IP: [u8; 4] = [192, 0, 2, 29];
+    //const SRC_IP: [u8; 4] = [192, 168, 1, 39];
     const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
     const UDP_PORT: u16 = 12345;
 
@@ -235,8 +238,6 @@ mod app {
                 led_r,
                 link_led,
                 phy,
-                //mdio_pin,
-                //mdc_pin,
                 net_clock_timer,
                 net_link_check_timer,
                 net_poll_timer,

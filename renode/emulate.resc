@@ -1,0 +1,56 @@
+:name: TODO
+:description: TODO
+
+#$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
+$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
+$name?="air-gradient-pro-rs"
+$tap?="qemu-tap"
+
+using sysbus
+
+mach create $name
+machine LoadPlatformDescription @renode/nucleo_f429zi.repl
+
+cpu PerformanceInMips 125
+
+#showAnalyzer sysbus.uart4
+
+#logLevel -1 ethernet
+
+emulation CreateSwitch "switch"
+connector Connect sysbus.ethernet switch
+#emulation CreateTap $tap "tap"
+#connector Connect host.tap switch
+
+### Set random board UNIQUE ID ###
+python "import _random"
+python "rand = _random.Random()"
+
+$id1 = `python "print rand.getrandbits(32)"`
+$id2 = `python "print rand.getrandbits(32)"`
+$id3 = `python "print rand.getrandbits(32)"`
+macro reset
+"""
+    sysbus LoadELF $bin
+
+    sysbus WriteDoubleWord 0x1FFF7A10 $id1
+    sysbus WriteDoubleWord 0x1FFF7A14 $id2
+    sysbus WriteDoubleWord 0x1FFF7A18 $id3
+"""
+
+runMacro $reset
+
+# needed?
+switch Start
+#host.tap Start
+
+# TODO - probably try this: https://github.com/renode/renode/issues/290
+
+# https://github.com/renode/renode/issues/237
+allowPrivates true
+ethernet packetSent true
+
+start
+
+# Start the GDB server
+#machine StartGdbServer 3333

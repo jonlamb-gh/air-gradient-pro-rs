@@ -1,0 +1,17 @@
+using "platforms/cpus/stm32f429.repl"
+
+ledGreen: Miscellaneous.LED @ gpioPortB 0
+ledBlue: Miscellaneous.LED @ gpioPortB 7
+ledRed: Miscellaneous.LED @ gpioPortB 14
+
+gpioPortB:
+    0 -> ledGreen@0
+    7 -> ledBlue@0
+    14 -> ledRed@0
+
+phy: Network.EthernetPhysicalLayer @ ethernet 0
+    Id1: 0x0007
+    Id2: 0xC0F1
+    BasicStatus: 0xFE2D
+    AutoNegotiationAdvertisement: 0x00A1
+    AutoNegotiationLinkPartnerBasePageAbility: 0x001
