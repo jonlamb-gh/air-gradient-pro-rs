@@ -1,10 +1,3 @@
-// TODO - this is bad, should probably dedicate a task to this, put a bbq producer in here
-// instead
-//
-// will need if I add a console
-
-// TODO - feature flag serial vs rtt
-
 use core::fmt::Write as FmtWrite;
 use core::{cell::RefCell, mem::MaybeUninit};
 use cortex_m::interrupt::{self, Mutex};

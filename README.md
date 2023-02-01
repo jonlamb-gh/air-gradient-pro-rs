@@ -11,6 +11,7 @@ TODO
   - log-usart3
   - panic-usart3 (switch to abort instead of loop'n
   - panic-rtt
+* Consider making a serial out task for mux'ing, MPSC queue, console and log impl would use it
 * Test harness things
   - https://crates.io/crates/substance-framework
   - https://os.phil-opp.com/testing/

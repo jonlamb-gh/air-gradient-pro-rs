@@ -1,4 +1,5 @@
-// TODO - once log impl is moved to a task, consider forging USART3 here
+// TODO - abort, once Tx is moved to a task
+// forge USART3 and do write manually
 
 use core::{
     panic::PanicInfo,
