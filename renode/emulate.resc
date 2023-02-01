@@ -53,5 +53,8 @@ ethernet packetSent true
 
 start
 
+allowPrivates true
+ethernet packetSent true
+
 # Start the GDB server
 #machine StartGdbServer 3333

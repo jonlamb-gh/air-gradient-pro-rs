@@ -8,6 +8,10 @@ mod logger;
 mod panic_handler;
 mod phy;
 
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
     use crate::net_clock::NetClock;
@@ -42,6 +46,8 @@ mod app {
     type MdioPin = PA2<AF11>;
     type MdcPin = PC1<AF11>;
 
+    // TODO - use env vars + gen build-time for these configs
+    // or put them in a flash section for configs
     const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
     const SRC_IP: [u8; 4] = [192, 168, 1, 39];
     // TODO - for renode stuff: 192.0.2.29
@@ -126,6 +132,20 @@ mod app {
             .tx(log_tx_pin, 115_200.bps(), &clocks)
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
+
+        info!("############################################################");
+        info!(
+            "{} {} ({})",
+            crate::built_info::PKG_NAME,
+            crate::built_info::PKG_VERSION,
+            crate::built_info::PROFILE
+        );
+        info!("Build date: {}", crate::built_info::BUILT_TIME_UTC);
+        info!("{}", crate::built_info::RUSTC_VERSION);
+        if let Some(gc) = crate::built_info::GIT_COMMIT_HASH {
+            info!("git commit: {}", gc);
+        }
+        info!("############################################################");
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);

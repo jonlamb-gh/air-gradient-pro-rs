@@ -3,6 +3,7 @@ name = "air-gradient-pro-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Jon Lamb"]
+build = "build.rs"
 
 [dependencies]
 cortex-m = "0.7"
@@ -35,6 +36,10 @@ features = [
     #"log",
     #"verbose"
 ]
+
+[build-dependencies.built]
+version = "0.5"
+features = ["git2", "chrono"]
 
 [profile.release]
 codegen-units = 1 # better optimizations
