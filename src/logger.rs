@@ -29,8 +29,8 @@ pub(crate) unsafe fn init_logging(tx: Tx<USART3>) {
 }
 
 impl log::Log for Logger<USART3> {
-    fn enabled(&self, _metadata: &Metadata) -> bool {
-        true
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= log::max_level()
     }
 
     fn log(&self, record: &Record) {

@@ -1,3 +1,5 @@
+// TODO - once log impl is moved to a task, consider forging USART3 here
+
 use core::{
     panic::PanicInfo,
     sync::atomic::{compiler_fence, Ordering::SeqCst},
