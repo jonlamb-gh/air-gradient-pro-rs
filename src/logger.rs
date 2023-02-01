@@ -1,5 +1,7 @@
 // TODO - this is bad, should probably dedicate a task to this, put a bbq producer in here
 // instead
+//
+// will need if I add a console
 
 // TODO - feature flag serial vs rtt
 
@@ -15,8 +17,9 @@ use stm32f4xx_hal::{
 
 type Inner<T> = Mutex<RefCell<Tx<T>>>;
 pub struct Logger<T: Instance>(Inner<T>);
+pub type LoggerUsart3 = MaybeUninit<Logger<USART3>>;
 
-static mut LOGGER: MaybeUninit<Logger<USART3>> = MaybeUninit::uninit();
+static mut LOGGER: LoggerUsart3 = LoggerUsart3::uninit();
 
 pub(crate) unsafe fn init_logging(tx: Tx<USART3>) {
     LOGGER.write(Logger(Mutex::new(RefCell::new(tx))));
@@ -25,8 +28,6 @@ pub(crate) unsafe fn init_logging(tx: Tx<USART3>) {
         .unwrap();
 }
 
-// TODO
-//impl<T: Instance + Sync + Send> log::Log for Logger<T> {
 impl log::Log for Logger<USART3> {
     fn enabled(&self, _metadata: &Metadata) -> bool {
         true

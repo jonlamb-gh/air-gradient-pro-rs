@@ -474,8 +474,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stm32-eth"
-version = "0.3.0"
-source = "git+https://github.com/stm32-rs/stm32-eth.git?rev=b0131e7b65822b89a81bb23c67bbae83e1d88e9e#b0131e7b65822b89a81bb23c67bbae83e1d88e9e"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28b579b364d9cc7def38c13b19edfd085aaa020cdf7dd8561031c31768b4ac1b"
 dependencies = [
  "aligned",
  "cortex-m",

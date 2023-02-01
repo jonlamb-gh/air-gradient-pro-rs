@@ -9,8 +9,14 @@ TODO
 * add features for, compile_error! for conflicts
   - log-rtt
   - log-usart3
-  - panic-usart3
+  - panic-usart3 (switch to abort instead of loop'n
   - panic-rtt
+* Test harness things
+  - https://crates.io/crates/substance-framework
+  - https://os.phil-opp.com/testing/
+  - https://interrupt.memfault.com/blog/test-automation-renode
+  - https://github.com/memfault/interrupt-renode-test-automation/blob/master/renode-config.resc
+* console: https://github.com/rust-embedded-community/menu
 
 
 PHY's in here, and touchscreen too

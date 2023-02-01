@@ -4,9 +4,6 @@
 #![no_main]
 #![no_std]
 
-//use panic_abort as _; // panic handler
-//use panic_rtt_target as _; // panic handler
-
 mod logger;
 mod panic_handler;
 mod phy;
@@ -37,8 +34,6 @@ mod app {
         timer::counter::{CounterHz, CounterUs},
         timer::{Event, MonoTimerUs},
     };
-    //use rtt_logger::RTTLogger;
-    //use rtt_target::rtt_init_print;
 
     type LedGreenPin = PB0<Output<PushPull>>;
     type LedBluePin = PB7<Output<PushPull>>;
@@ -60,8 +55,6 @@ mod app {
     const RX_DESC_RING_SIZE: usize = 16;
     const TX_DESC_RING_SIZE: usize = 8;
 
-    //static mut LOGGER: Logger<USART3> = Logger::new();
-    //static LOGGER: RTTLogger = RTTLogger::new(log::LevelFilter::Trace);
     static NET_CLOCK: NetClock = NetClock::new();
 
     #[shared]
@@ -104,12 +97,6 @@ mod app {
         socket_tx_metadata: [UdpPacketMetadata; 1] = [UdpPacketMetadata::EMPTY; 1],
     ])]
     fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
-        //rtt_init_print!();
-        /*
-        log::set_logger(&LOGGER)
-            .map(|()| log::set_max_level(log::LevelFilter::Trace))
-            .unwrap();
-        */
         info!("Starting");
 
         // Set up the system clock
@@ -131,6 +118,7 @@ mod app {
         led_r.set_low();
 
         // Setup logging impl via USART3, Rx on PD9, Tx on PD8
+        // This is also the virtual com port on the nucleo boards: stty -F /dev/ttyACM0 115200
         let log_tx_pin = gpiod.pd8.into_alternate();
         let log_tx = ctx
             .device
@@ -185,6 +173,7 @@ mod app {
             cortex_m::asm::delay(100000);
         }
 
+        link_led.set_high();
         info!("Setup: link up");
 
         if let Some(speed) = phy.speed().map(|s| match s {
