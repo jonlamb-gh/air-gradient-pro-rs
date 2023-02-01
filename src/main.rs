@@ -1,12 +1,14 @@
 //#![deny(warnings, clippy::all)]
 // TODO
-#![forbid(unsafe_code)]
+//#![forbid(unsafe_code)]
 #![no_main]
 #![no_std]
 
 //use panic_abort as _; // panic handler
-use panic_rtt_target as _; // panic handler
+//use panic_rtt_target as _; // panic handler
 
+mod logger;
+mod panic_handler;
 mod phy;
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
@@ -15,8 +17,6 @@ mod app {
     use crate::phy::EthernetPhy;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
-    use rtt_logger::RTTLogger;
-    use rtt_target::rtt_init_print;
     use smoltcp::{
         iface::{
             Interface, InterfaceBuilder, Neighbor, NeighborCache, Route, Routes, SocketHandle,
@@ -37,6 +37,8 @@ mod app {
         timer::counter::{CounterHz, CounterUs},
         timer::{Event, MonoTimerUs},
     };
+    //use rtt_logger::RTTLogger;
+    //use rtt_target::rtt_init_print;
 
     type LedGreenPin = PB0<Output<PushPull>>;
     type LedBluePin = PB7<Output<PushPull>>;
@@ -46,9 +48,9 @@ mod app {
     type MdcPin = PC1<AF11>;
 
     const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
-    // TODO - for renode stuff
-    const SRC_IP: [u8; 4] = [192, 0, 2, 29];
-    //const SRC_IP: [u8; 4] = [192, 168, 1, 39];
+    const SRC_IP: [u8; 4] = [192, 168, 1, 39];
+    // TODO - for renode stuff: 192.0.2.29
+    //const SRC_IP: [u8; 4] = [192, 0, 2, 29];
     const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
     const UDP_PORT: u16 = 12345;
 
@@ -58,7 +60,8 @@ mod app {
     const RX_DESC_RING_SIZE: usize = 16;
     const TX_DESC_RING_SIZE: usize = 8;
 
-    static LOGGER: RTTLogger = RTTLogger::new(log::LevelFilter::Trace);
+    //static mut LOGGER: Logger<USART3> = Logger::new();
+    //static LOGGER: RTTLogger = RTTLogger::new(log::LevelFilter::Trace);
     static NET_CLOCK: NetClock = NetClock::new();
 
     #[shared]
@@ -101,11 +104,12 @@ mod app {
         socket_tx_metadata: [UdpPacketMetadata; 1] = [UdpPacketMetadata::EMPTY; 1],
     ])]
     fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
-        rtt_init_print!();
+        //rtt_init_print!();
+        /*
         log::set_logger(&LOGGER)
             .map(|()| log::set_max_level(log::LevelFilter::Trace))
             .unwrap();
-
+        */
         info!("Starting");
 
         // Set up the system clock
@@ -116,6 +120,7 @@ mod app {
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
         let gpioc = ctx.device.GPIOC.split();
+        let gpiod = ctx.device.GPIOD.split();
         let gpiog = ctx.device.GPIOG.split();
 
         let mut link_led = gpiob.pb0.into_push_pull_output();
@@ -124,6 +129,15 @@ mod app {
         link_led.set_low();
         led_b.set_low();
         led_r.set_low();
+
+        // Setup logging impl via USART3, Rx on PD9, Tx on PD8
+        let log_tx_pin = gpiod.pd8.into_alternate();
+        let log_tx = ctx
+            .device
+            .USART3
+            .tx(log_tx_pin, 115_200.bps(), &clocks)
+            .unwrap();
+        unsafe { crate::logger::init_logging(log_tx) };
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);

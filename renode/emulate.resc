@@ -1,10 +1,10 @@
 :name: TODO
 :description: TODO
 
-#$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
-$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
+$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
+#$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
 $name?="air-gradient-pro-rs"
-$tap?="qemu-tap"
+$tap?="renode-tap0"
 
 using sysbus
 
@@ -13,7 +13,7 @@ machine LoadPlatformDescription @renode/nucleo_f429zi.repl
 
 cpu PerformanceInMips 125
 
-#showAnalyzer sysbus.uart4
+showAnalyzer sysbus.usart3
 
 #logLevel -1 ethernet
 
@@ -41,11 +41,12 @@ macro reset
 runMacro $reset
 
 # needed?
-switch Start
+#switch Start
 #host.tap Start
 
 # TODO - probably try this: https://github.com/renode/renode/issues/290
-
+# https://github.com/renode/renode/issues/237
+#
 # https://github.com/renode/renode/issues/237
 allowPrivates true
 ethernet packetSent true

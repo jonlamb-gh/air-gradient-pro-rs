@@ -6,6 +6,11 @@ TODO
 * try out renode emulation for tests
   - can also emulate the peripherals in Rust: https://antmicro.com/blog/2021/07/rust-peripheral-support-in-renode/
   - https://github.com/antmicro/renode-rust-example
+* add features for, compile_error! for conflicts
+  - log-rtt
+  - log-usart3
+  - panic-usart3
+  - panic-rtt
 
 
 PHY's in here, and touchscreen too
@@ -16,3 +21,10 @@ renode renode/emulate.resc
 
 gdb-multiarch target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
 ```
+
+
+https://www.st.com/en/evaluation-tools/nucleo-f429zi.html
+
+https://os.mbed.com/platforms/ST-Nucleo-F429ZI/
+
+USART3 is virtual comm, D8-tx, D9-rx
