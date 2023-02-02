@@ -5,8 +5,8 @@
 #![no_std]
 
 mod logger;
+mod net;
 mod panic_handler;
-mod phy;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -14,20 +14,17 @@ pub mod built_info {
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
+    use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::net_clock::NetClock;
-    use crate::phy::EthernetPhy;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
-        iface::{
-            Interface, InterfaceBuilder, Neighbor, NeighborCache, Route, Routes, SocketHandle,
-            SocketStorage,
-        },
-        socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer},
-        wire::{EthernetAddress, IpAddress, IpCidr, Ipv4Address, Ipv4Cidr},
+        iface::{Interface, InterfaceBuilder, NeighborCache, Routes, SocketHandle},
+        socket::{UdpSocket, UdpSocketBuffer},
+        wire::{EthernetAddress, Ipv4Address, Ipv4Cidr},
     };
     use stm32_eth::{
-        dma::{EthernetDMA, RxRingEntry, TxRingEntry},
+        dma::EthernetDMA,
         mac::{EthernetMACWithMii, Speed},
         EthPins,
     };
@@ -56,10 +53,10 @@ mod app {
     const UDP_PORT: u16 = 12345;
 
     const SOCKET_BUFFER_SIZE: usize = 256;
-    const NEIGHBOR_CACHE_SIZE: usize = 16;
-    const ROUTING_TABLE_SIZE: usize = 16;
-    const RX_DESC_RING_SIZE: usize = 16;
-    const TX_DESC_RING_SIZE: usize = 8;
+    const NEIGHBOR_CACHE_LEN: usize = 16;
+    const ROUTING_TABLE_LEN: usize = 16;
+    const RX_RING_LEN: usize = 16;
+    const TX_RING_LEN: usize = 8;
 
     static NET_CLOCK: NetClock = NetClock::new();
 
@@ -85,22 +82,11 @@ mod app {
     #[monotonic(binds = TIM2, default = true)]
     type MicrosecMono = MonoTimerUs<pac::TIM2>;
 
-    const RX_DESC_INIT: RxRingEntry = RxRingEntry::new();
-    const TX_DESC_INIT: TxRingEntry = TxRingEntry::new();
-
-    // TODO - move the network storage things into a type to clean this up: struct NetworkStorage
     #[init(local = [
-        rx_ring: [RxRingEntry; RX_DESC_RING_SIZE] = [RX_DESC_INIT; RX_DESC_RING_SIZE],
-        tx_ring: [TxRingEntry; TX_DESC_RING_SIZE] = [TX_DESC_INIT; TX_DESC_RING_SIZE],
-        neighbor_storage: [Option<(IpAddress, Neighbor)>; NEIGHBOR_CACHE_SIZE] = [None; NEIGHBOR_CACHE_SIZE],
-        ip_addrs: [IpCidr; 1] = [IpCidr::Ipv4(SRC_IP_CIDR); 1],
-        routes_storage: [Option<(IpCidr, Route)>; ROUTING_TABLE_SIZE] = [None; ROUTING_TABLE_SIZE],
-        sockets: [SocketStorage<'static>; 1] = [SocketStorage::EMPTY; 1],
+        eth_dma_storage: EthernetDmaStorage<RX_RING_LEN, TX_RING_LEN> = EthernetDmaStorage::new(),
+        net_storage: NetworkStorage<NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, 1> = NetworkStorage::new(SRC_IP_CIDR),
+        udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_SIZE> = UdpSocketStorage::new(),
         eth_dma: core::mem::MaybeUninit<EthernetDMA<'static, 'static>> = core::mem::MaybeUninit::uninit(),
-        socket_rx_buffer: [u8; SOCKET_BUFFER_SIZE] = [0; SOCKET_BUFFER_SIZE],
-        socket_rx_metadata: [UdpPacketMetadata; 1] = [UdpPacketMetadata::EMPTY; 1],
-        socket_tx_buffer: [u8; SOCKET_BUFFER_SIZE] = [0; SOCKET_BUFFER_SIZE],
-        socket_tx_metadata: [UdpPacketMetadata; 1] = [UdpPacketMetadata::EMPTY; 1],
     ])]
     fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
         info!("Starting");
@@ -168,8 +154,8 @@ mod app {
 
         let stm32_eth::Parts { dma, mac } = stm32_eth::new_with_mii(
             eth_periph_parts.into(),
-            &mut ctx.local.rx_ring[..],
-            &mut ctx.local.tx_ring[..],
+            &mut ctx.local.eth_dma_storage.rx_ring[..],
+            &mut ctx.local.eth_dma_storage.tx_ring[..],
             clocks,
             eth_pins,
             mdio_pin,
@@ -213,22 +199,22 @@ mod app {
         info!("Setup: TCP/IP");
         let mac = EthernetAddress::from_bytes(&SRC_MAC);
         info!("IP: {} MAC: {}", SRC_IP_CIDR.address(), mac);
-        let neighbor_cache = NeighborCache::new(&mut ctx.local.neighbor_storage[..]);
-        let routes = Routes::new(&mut ctx.local.routes_storage[..]);
-        let mut eth_iface = InterfaceBuilder::new(eth_dma, &mut ctx.local.sockets[..])
+        let neighbor_cache = NeighborCache::new(&mut ctx.local.net_storage.neighbor_storage[..]);
+        let routes = Routes::new(&mut ctx.local.net_storage.routes_storage[..]);
+        let mut eth_iface = InterfaceBuilder::new(eth_dma, &mut ctx.local.net_storage.sockets[..])
             .hardware_addr(mac.into())
-            .ip_addrs(&mut ctx.local.ip_addrs[..])
+            .ip_addrs(&mut ctx.local.net_storage.ip_addrs[..])
             .neighbor_cache(neighbor_cache)
             .routes(routes)
             .finalize();
 
         let udp_rx_buf = UdpSocketBuffer::new(
-            &mut ctx.local.socket_rx_metadata[..],
-            &mut ctx.local.socket_rx_buffer[..],
+            &mut ctx.local.udp_socket_storage.rx_metadata[..],
+            &mut ctx.local.udp_socket_storage.rx_buffer[..],
         );
         let udp_tx_buf = UdpSocketBuffer::new(
-            &mut ctx.local.socket_tx_metadata[..],
-            &mut ctx.local.socket_tx_buffer[..],
+            &mut ctx.local.udp_socket_storage.tx_metadata[..],
+            &mut ctx.local.udp_socket_storage.tx_buffer[..],
         );
         let udp_socket = UdpSocket::new(udp_rx_buf, udp_tx_buf);
         let udp_handle = eth_iface.add_socket(udp_socket);
