@@ -5,6 +5,16 @@ edition = "2021"
 authors = ["Jon Lamb"]
 build = "build.rs"
 
+[[bin]]
+name = "air-gradient-pro"
+path = "src/main.rs"
+#test = false
+
+#[[bin]]
+#name = "test-runner"
+#path = "src/test_runner.rs"
+#test = true
+
 [dependencies]
 cortex-m = "0.7"
 cortex-m-rt = "0.7"

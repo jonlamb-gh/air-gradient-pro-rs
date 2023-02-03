@@ -1,4 +1,4 @@
-use core::fmt::Write as FmtWrite;
+use core::fmt::{self, Write as FmtWrite};
 use core::{cell::RefCell, mem::MaybeUninit};
 use cortex_m::interrupt::{self, Mutex};
 use log::{Metadata, Record};
@@ -19,6 +19,10 @@ pub(crate) unsafe fn init_logging(tx: Tx<USART3>) {
     log::set_logger(&*LOGGER.as_ptr())
         .map(|()| log::set_max_level(log::LevelFilter::Trace))
         .unwrap();
+}
+
+pub(crate) unsafe fn get_logger() -> &'static mut dyn fmt::Write {
+    &mut *LOGGER.as_mut_ptr()
 }
 
 impl log::Log for Logger<USART3> {
@@ -44,6 +48,15 @@ impl log::Log for Logger<USART3> {
         interrupt::free(|cs| {
             self.0.borrow(cs).borrow_mut().bflush().ok();
         });
+    }
+}
+
+impl fmt::Write for Logger<USART3> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        interrupt::free(|cs| {
+            self.0.borrow(cs).borrow_mut().bwrite_all(s.as_bytes()).ok();
+        });
+        Ok(())
     }
 }
 

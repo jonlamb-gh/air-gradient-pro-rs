@@ -34,3 +34,16 @@ where
         self.drv.set_datetime(dt)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn simple_test() {
+        assert_eq!(1, 1);
+    }
+
+    #[test_case]
+    fn simple_test2() {
+        assert_eq!(1, 2);
+    }
+}

@@ -2,7 +2,8 @@
 :description: TODO
 
 #$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
-$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
+#$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
+$bin?=@target/thumbv7em-none-eabihf/debug/deps/air_gradient_pro-699399786c675c1a
 $name?="air-gradient-pro-rs"
 $tap?="renode-tap0"
 

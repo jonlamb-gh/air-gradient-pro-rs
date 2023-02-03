@@ -35,6 +35,10 @@ PHY's in here, and touchscreen too
 https://github.com/renode/renode/blob/master/platforms/boards/stm32f7_discovery-bb.repl
 
 ```
+cargo +nightly test --no-run
+```
+
+```
 sudo ./renode/setup-network.sh
 
 cargo build && ~/repos/forks/renode/renode renode/emulate.resc 
