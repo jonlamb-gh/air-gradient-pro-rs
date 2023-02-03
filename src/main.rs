@@ -7,6 +7,7 @@
 mod logger;
 mod net;
 mod panic_handler;
+mod rtc;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -16,7 +17,8 @@ pub mod built_info {
 mod app {
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::net_clock::NetClock;
-    use ds323x::{ic::DS3231, interface::I2cInterface, DateTimeAccess, Ds323x, NaiveDate};
+    use crate::rtc::Rtc;
+    use ds323x::NaiveDate;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -30,12 +32,8 @@ mod app {
         EthPins,
     };
     use stm32f4xx_hal::{
-        gpio::{
-            OpenDrain, Output, PushPull, Speed as GpioSpeed, AF11, AF4, PA2, PB0, PB14, PB7, PB8,
-            PB9, PC1,
-        },
-        i2c::I2c,
-        pac::{self, I2C1, TIM3, TIM4, TIM5},
+        gpio::{Output, PushPull, Speed as GpioSpeed, AF11, PA2, PB0, PB14, PB7, PC1},
+        pac::{self, TIM3, TIM4, TIM5},
         prelude::*,
         timer::counter::{CounterHz, CounterUs},
         timer::{Event, MonoTimerUs},
@@ -78,14 +76,15 @@ mod app {
     struct Local {
         led_b: LedBluePin,
         led_r: LedRedPin,
+
         link_led: LedGreenPin,
         phy: EthernetPhy<EthernetMACWithMii<MdioPin, MdcPin>>,
+
         net_clock_timer: CounterUs<TIM3>,
         net_link_check_timer: CounterHz<TIM4>,
         net_poll_timer: CounterHz<TIM5>,
 
-        // TODO
-        rtc: Ds323x<I2cInterface<I2c<I2C1, (PB8<AF4<OpenDrain>>, PB9<AF4<OpenDrain>>)>>, DS3231>,
+        rtc: Rtc,
     }
 
     #[monotonic(binds = TIM2, default = true)]
@@ -149,14 +148,7 @@ mod app {
         let sda = gpiob.pb9.into_alternate().set_open_drain();
         let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
         info!("Setup: DS3231 RTC");
-        // TODO make a wrapper struct with settings
-        let mut rtc = ds323x::Ds323x::new_ds3231(i2c1);
-        rtc.disable().unwrap(); // TODO - just for testing, don't actually do this
-        rtc.disable_32khz_output().unwrap();
-        rtc.disable_alarm1_interrupts().unwrap();
-        rtc.disable_alarm2_interrupts().unwrap();
-        rtc.disable_square_wave().unwrap();
-        rtc.enable().unwrap();
+        let mut rtc = Rtc::new(i2c1).unwrap();
         info!("RTC: get datetime"); // TODO
         let dt = rtc.datetime().unwrap();
         info!("RTC: dt = {dt}"); // TODO
@@ -285,8 +277,6 @@ mod app {
                 net_clock_timer,
                 net_link_check_timer,
                 net_poll_timer,
-
-                // TODO
                 rtc,
             },
             init::Monotonics(mono),

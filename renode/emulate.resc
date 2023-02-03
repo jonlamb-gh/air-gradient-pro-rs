@@ -31,7 +31,7 @@ connector Connect sysbus.ethernet switch
 emulation CreateTap $tap "tap"
 connector Connect host.tap switch
 
-### Set random board UNIQUE ID ###
+# Set random board UNIQUE ID
 python "import _random"
 python "rand = _random.Random()"
 
