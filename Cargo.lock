@@ -767,7 +767,6 @@ checksum = "ee34c1e1bfc7e9206cc0fb8030a90129b4e319ab53856249bb27642cab914fb3"
 dependencies = [
  "bitflags",
  "byteorder",
- "log",
  "managed",
 ]
 
@@ -801,7 +800,6 @@ dependencies = [
  "aligned",
  "cortex-m",
  "ieee802_3_miim",
- "log",
  "smoltcp",
  "stm32f4",
  "stm32f4xx-hal",

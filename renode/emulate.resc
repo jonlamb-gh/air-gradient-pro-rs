@@ -9,10 +9,10 @@ $tap?="renode-tap0"
 using sysbus
 
 mach create $name
-#machine LoadPlatformDescription @renode/nucleo_f429zi.repl
 machine LoadPlatformDescription @renode/dev_board.repl
 
-cpu PerformanceInMips 125
+# Virtual time ~= real time, default is 120
+cpu PerformanceInMips 1
 
 showAnalyzer sysbus.usart3
 
@@ -24,6 +24,8 @@ logLevel 3 ethernet.phy
 #logLevel -1 i2c1
 logLevel -1 i2c1.ds3231
 
+# See https://github.com/renode/renode/issues/290 for more info
+# Make to sure to run the ./renode/setup-network.sh script first
 emulation CreateSwitch "switch"
 connector Connect sysbus.ethernet switch
 emulation CreateTap $tap "tap"
@@ -47,31 +49,20 @@ macro reset
 
 runMacro $reset
 
-# needed?
-#switch Start
-#host.tap Start
-
-# These have to be run manually in the console to work
-# TODO - probably try this: https://github.com/renode/renode/issues/290
-# https://github.com/renode/renode/issues/237
-#
-# https://github.com/renode/renode/issues/237
-allowPrivates true
-ethernet packetSent true
-ethernet MAC "02:00:05:06:07:08"
-
 # Start the GDB server
 #machine StartGdbServer 3333
-
-# Virtual time ~= real time
-cpu PerformanceInMips 1
 
 # wireshark
 #emulation LogEthernetTraffic
 
 start
 
-# again?
+# Need to do this after init
+echo "*******************************************"
+echo "Doing workaround for https://github.com/renode/renode/issues/237"
+sleep 3
 allowPrivates true
 ethernet packetSent true
 ethernet MAC "02:00:05:06:07:08"
+allowPrivates false
+echo "*******************************************"

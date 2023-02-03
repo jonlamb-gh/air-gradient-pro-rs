@@ -35,6 +35,14 @@ PHY's in here, and touchscreen too
 https://github.com/renode/renode/blob/master/platforms/boards/stm32f7_discovery-bb.repl
 
 ```
+sudo ./renode/setup-network.sh
+
+cargo build && ~/repos/forks/renode/renode renode/emulate.resc 
+
+```
+
+
+```
 renode renode/emulate.resc
 
 gdb-multiarch target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs

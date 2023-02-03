@@ -22,7 +22,7 @@ features = ["rt", "stm32f429", "rtic"]
 [dependencies.stm32-eth]
 version = "0.4"
 default-features = false
-features = ["stm32f429", "smoltcp-phy", "log"]
+features = ["stm32f429", "smoltcp-phy"]
 
 [dependencies.smoltcp]
 version = "0.8"
@@ -34,8 +34,8 @@ features = [
     "socket-icmp",
     "socket-udp",
     "socket-tcp",
-    "log",
-    "verbose"
+    #"log",
+    #"verbose"
 ]
 
 [build-dependencies.built]

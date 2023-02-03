@@ -50,6 +50,7 @@ mod app {
 
     // TODO - use env vars + gen build-time for these configs
     // or put them in a flash section for configs
+    // use renode script to setup flash config as needed
     const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
     //const SRC_IP: [u8; 4] = [192, 168, 1, 39];
     // TODO - for renode stuff: 192.0.2.29 02:00:05:06:07:08
@@ -304,6 +305,7 @@ mod app {
             socket.bind(UDP_PORT).unwrap();
             led_b.set_high();
         }
+
         let mut endpoint = None;
         if let Ok((data, remote)) = socket.recv() {
             led_r.toggle();
