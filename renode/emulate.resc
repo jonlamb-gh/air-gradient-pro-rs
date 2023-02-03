@@ -26,8 +26,8 @@ logLevel -1 i2c1.ds3231
 
 emulation CreateSwitch "switch"
 connector Connect sysbus.ethernet switch
-#emulation CreateTap $tap "tap"
-#connector Connect host.tap switch
+emulation CreateTap $tap "tap"
+connector Connect host.tap switch
 
 ### Set random board UNIQUE ID ###
 python "import _random"
@@ -51,12 +51,14 @@ runMacro $reset
 #switch Start
 #host.tap Start
 
+# These have to be run manually in the console to work
 # TODO - probably try this: https://github.com/renode/renode/issues/290
 # https://github.com/renode/renode/issues/237
 #
 # https://github.com/renode/renode/issues/237
 allowPrivates true
 ethernet packetSent true
+ethernet MAC "02:00:05:06:07:08"
 
 # Start the GDB server
 #machine StartGdbServer 3333
@@ -64,7 +66,12 @@ ethernet packetSent true
 # Virtual time ~= real time
 cpu PerformanceInMips 1
 
+# wireshark
+#emulation LogEthernetTraffic
+
 start
 
+# again?
 allowPrivates true
 ethernet packetSent true
+ethernet MAC "02:00:05:06:07:08"

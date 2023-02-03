@@ -16,7 +16,7 @@ pub mod built_info {
 mod app {
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::net_clock::NetClock;
-    use ds323x::{ic::DS3231, interface::I2cInterface, DateTimeAccess, Ds323x, NaiveDate, Rtcc};
+    use ds323x::{ic::DS3231, interface::I2cInterface, DateTimeAccess, Ds323x, NaiveDate};
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -51,9 +51,9 @@ mod app {
     // TODO - use env vars + gen build-time for these configs
     // or put them in a flash section for configs
     const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
-    const SRC_IP: [u8; 4] = [192, 168, 1, 39];
-    // TODO - for renode stuff: 192.0.2.29
-    //const SRC_IP: [u8; 4] = [192, 0, 2, 29];
+    //const SRC_IP: [u8; 4] = [192, 168, 1, 39];
+    // TODO - for renode stuff: 192.0.2.29 02:00:05:06:07:08
+    const SRC_IP: [u8; 4] = [192, 0, 2, 29];
     const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
     const UDP_PORT: u16 = 12345;
 
