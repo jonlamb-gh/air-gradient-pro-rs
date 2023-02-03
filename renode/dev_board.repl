@@ -1,0 +1,3 @@
+using "renode/nucleo_f429zi.repl"
+
+ds3231 : Sensors.DS3231 @ i2c1 0x68

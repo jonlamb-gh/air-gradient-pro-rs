@@ -13,6 +13,7 @@ cortex-m-rtic = "1.1"
 log = "0.4"
 modular-bitfield = "0.11"
 ieee802_3_miim = "0.8"
+ds323x = "0.5"
 
 [dependencies.stm32f4xx-hal]
 version = "0.14"

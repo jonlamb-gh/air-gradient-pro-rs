@@ -1,8 +1,11 @@
 using "platforms/cpus/stm32f429.repl"
 
-ledGreen: Miscellaneous.LED @ gpioPortB 0
-ledBlue: Miscellaneous.LED @ gpioPortB 7
-ledRed: Miscellaneous.LED @ gpioPortB 14
+// TODO - see this example
+// https://github.com/bitcraze/renode/blob/crazyflie/platforms/boards/cf2.repl
+
+ledGreen: Miscellaneous.LED @ gpioPortB
+ledBlue: Miscellaneous.LED @ gpioPortB
+ledRed: Miscellaneous.LED @ gpioPortB
 
 gpioPortB:
     0 -> ledGreen@0

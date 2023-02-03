@@ -1,5 +1,8 @@
 # air-gradient-pro-rs
 
+NOTE: this isn't a real thing yet, just a place for hacking around in renode
+
+
 TODO
 * update my fork of stm32-eth
   - see https://github.com/stm32-rs/stm32-eth/pulls (filter modes PR is WIP)
@@ -9,6 +12,7 @@ TODO
   - https://renode.readthedocs.io/en/latest/tutorials/zephyr-ptp-testing.html#running-the-test
   - https://github.com/renode/renode-infrastructure/tree/master/src/Emulator/Peripherals/Peripherals/Sensors
   - https://github.com/renode/renode/blob/master/tests/platforms/QuarkC1000/QuarkC1000.robot (network tests)
+  - more examples (log/auto-exit): https://www.bitcraze.io/2021/04/successful-emulation/
 * add features for, compile_error! for conflicts
   - log-rtt
   - log-usart3

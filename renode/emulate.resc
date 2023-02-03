@@ -1,21 +1,28 @@
 :name: TODO
 :description: TODO
 
-$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
-#$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
+#$bin?=@target/thumbv7em-none-eabihf/release/air-gradient-pro-rs
+$bin?=@target/thumbv7em-none-eabihf/debug/air-gradient-pro-rs
 $name?="air-gradient-pro-rs"
 $tap?="renode-tap0"
 
 using sysbus
 
 mach create $name
-machine LoadPlatformDescription @renode/nucleo_f429zi.repl
+#machine LoadPlatformDescription @renode/nucleo_f429zi.repl
+machine LoadPlatformDescription @renode/dev_board.repl
 
 cpu PerformanceInMips 125
 
 showAnalyzer sysbus.usart3
 
+# Turn ethernet logs down, lots of WARNING's about missing PTP register
 #logLevel -1 ethernet
+logLevel 3 ethernet
+logLevel 3 ethernet.phy
+
+#logLevel -1 i2c1
+logLevel -1 i2c1.ds3231
 
 emulation CreateSwitch "switch"
 connector Connect sysbus.ethernet switch
@@ -51,10 +58,13 @@ runMacro $reset
 allowPrivates true
 ethernet packetSent true
 
+# Start the GDB server
+#machine StartGdbServer 3333
+
+# Virtual time ~= real time
+cpu PerformanceInMips 1
+
 start
 
 allowPrivates true
 ethernet packetSent true
-
-# Start the GDB server
-#machine StartGdbServer 3333

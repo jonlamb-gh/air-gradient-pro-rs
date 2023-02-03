@@ -16,6 +16,7 @@ pub mod built_info {
 mod app {
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::net_clock::NetClock;
+    use ds323x::{ic::DS3231, interface::I2cInterface, DateTimeAccess, Ds323x, NaiveDate, Rtcc};
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -29,8 +30,12 @@ mod app {
         EthPins,
     };
     use stm32f4xx_hal::{
-        gpio::{Output, PushPull, Speed as GpioSpeed, AF11, PA2, PB0, PB14, PB7, PC1},
-        pac::{self, TIM3, TIM4, TIM5},
+        gpio::{
+            OpenDrain, Output, PushPull, Speed as GpioSpeed, AF11, AF4, PA2, PB0, PB14, PB7, PB8,
+            PB9, PC1,
+        },
+        i2c::I2c,
+        pac::{self, I2C1, TIM3, TIM4, TIM5},
         prelude::*,
         timer::counter::{CounterHz, CounterUs},
         timer::{Event, MonoTimerUs},
@@ -77,6 +82,9 @@ mod app {
         net_clock_timer: CounterUs<TIM3>,
         net_link_check_timer: CounterHz<TIM4>,
         net_poll_timer: CounterHz<TIM5>,
+
+        // TODO
+        rtc: Ds323x<I2cInterface<I2c<I2C1, (PB8<AF4<OpenDrain>>, PB9<AF4<OpenDrain>>)>>, DS3231>,
     }
 
     #[monotonic(binds = TIM2, default = true)]
@@ -132,6 +140,32 @@ mod app {
             info!("git commit: {}", gc);
         }
         info!("############################################################");
+
+        // DS3231 RTC on I2C1
+        // TODO - does it have an on-board pull-up?
+        info!("Setup: I2C1");
+        let scl = gpiob.pb8.into_alternate().set_open_drain();
+        let sda = gpiob.pb9.into_alternate().set_open_drain();
+        let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
+        info!("Setup: DS3231 RTC");
+        // TODO make a wrapper struct with settings
+        let mut rtc = ds323x::Ds323x::new_ds3231(i2c1);
+        rtc.disable().unwrap(); // TODO - just for testing, don't actually do this
+        rtc.disable_32khz_output().unwrap();
+        rtc.disable_alarm1_interrupts().unwrap();
+        rtc.disable_alarm2_interrupts().unwrap();
+        rtc.disable_square_wave().unwrap();
+        rtc.enable().unwrap();
+        info!("RTC: get datetime"); // TODO
+        let dt = rtc.datetime().unwrap();
+        info!("RTC: dt = {dt}"); // TODO
+        let new_dt = NaiveDate::from_ymd_opt(2020, 5, 1)
+            .unwrap()
+            .and_hms_opt(19, 59, 58)
+            .unwrap();
+        info!("RTC: sett datetime = {new_dt}"); // TODO
+        rtc.set_datetime(&new_dt).unwrap();
+        info!("RTC: DONE"); // TODO
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);
@@ -231,7 +265,7 @@ mod app {
 
         info!("Setup: net poll timer");
         let mut net_poll_timer = ctx.device.TIM5.counter_hz(&clocks);
-        net_poll_timer.start(20.Hz()).unwrap();
+        net_poll_timer.start(25.Hz()).unwrap();
         net_poll_timer.listen(Event::Update);
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
@@ -250,6 +284,9 @@ mod app {
                 net_clock_timer,
                 net_link_check_timer,
                 net_poll_timer,
+
+                // TODO
+                rtc,
             },
             init::Monotonics(mono),
         )
@@ -285,20 +322,26 @@ mod app {
         NET_CLOCK.inc_from_interrupt();
     }
 
-    #[task(binds=TIM4, local = [link_led, phy, net_link_check_timer], priority = 3)]
+    #[task(binds=TIM4, local = [link_led, phy, net_link_check_timer, rtc], priority = 3)]
     fn on_net_link_check_timer(ctx: on_net_link_check_timer::Context) {
         let link_led = ctx.local.link_led;
         let phy = ctx.local.phy;
         let timer = ctx.local.net_link_check_timer;
+        let rtc = ctx.local.rtc;
 
         let _ = timer.wait();
 
         // Poll link status
-        if phy.phy_link_up() {
+        let link_status = if phy.phy_link_up() {
             link_led.set_high();
+            true
         } else {
             link_led.set_low();
-        }
+            false
+        };
+
+        let dt = rtc.datetime().unwrap();
+        info!("link={}, dt={}", link_status, dt);
     }
 
     #[task(binds=TIM5, local = [net_poll_timer], priority = 1)]

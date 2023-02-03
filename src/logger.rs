@@ -32,7 +32,7 @@ impl log::Log for Logger<USART3> {
                 writeln!(
                     self.0.borrow(cs).borrow_mut(),
                     "[{}] {}",
-                    record.level(),
+                    level_marker(record.level()),
                     record.args()
                 )
                 .ok();
@@ -44,5 +44,16 @@ impl log::Log for Logger<USART3> {
         interrupt::free(|cs| {
             self.0.borrow(cs).borrow_mut().bflush().ok();
         });
+    }
+}
+
+const fn level_marker(level: log::Level) -> &'static str {
+    use log::Level::*;
+    match level {
+        Error => "E",
+        Warn => "W",
+        Info => "I",
+        Debug => "D",
+        Trace => "T",
     }
 }
