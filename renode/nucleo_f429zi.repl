@@ -1,8 +1,5 @@
 using "platforms/cpus/stm32f429.repl"
 
-// TODO - see this example
-// https://github.com/bitcraze/renode/blob/crazyflie/platforms/boards/cf2.repl
-
 ledGreen: Miscellaneous.LED @ gpioPortB
 ledBlue: Miscellaneous.LED @ gpioPortB
 ledRed: Miscellaneous.LED @ gpioPortB
@@ -18,3 +15,5 @@ phy: Network.EthernetPhysicalLayer @ ethernet 0
     BasicStatus: 0xFE2D
     AutoNegotiationAdvertisement: 0x00A1
     AutoNegotiationLinkPartnerBasePageAbility: 0x001
+    // SSR
+    VendorSpecific15: 0x101C

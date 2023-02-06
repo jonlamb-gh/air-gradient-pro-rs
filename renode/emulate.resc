@@ -16,13 +16,16 @@ cpu PerformanceInMips 1
 
 showAnalyzer sysbus.usart3
 
+# Silence WARNINGs
+#logLevel 3
+
 # Turn ethernet logs down, lots of WARNING's about missing PTP register
 #logLevel -1 ethernet
 logLevel 3 ethernet
 logLevel 3 ethernet.phy
 
 #logLevel -1 i2c1
-logLevel -1 i2c1.ds3231
+#logLevel -1 i2c1.ds3231
 
 # See https://github.com/renode/renode/issues/290 for more info
 # Make to sure to run the ./renode/setup-network.sh script first
