@@ -7,7 +7,7 @@ build = "build.rs"
 
 [[bin]]
 name = "air-gradient-pro"
-path = "src/main.rs"
+path = "src/entry.rs"
 
 [dependencies]
 cortex-m = "0.7"
