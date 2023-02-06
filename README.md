@@ -26,7 +26,7 @@ sudo ./renode/setup-network.sh
 cargo run
 
 # also works
-cargo +nightly test
+RENODE_OPTS="--hide-monitor" cargo +nightly test
 ```
 
 https://www.st.com/en/evaluation-tools/nucleo-f429zi.html
@@ -44,6 +44,7 @@ https://github.com/olikraus/u8g2
 
 SHT31
 https://crates.io/crates/sht3x
+https://www.mouser.com/datasheet/2/682/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital-971521.pdf
 
 senseAir S8
 https://github.com/Finomnis/AirQualitySensor/tree/main/firmware_rust/AirQualitySensor

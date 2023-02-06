@@ -1,4 +1,3 @@
-use core::fmt::Write;
 use cortex_m::Peripherals as CorePeripherals;
 use stm32f4xx_hal::{pac::Peripherals, prelude::*, rcc::Clocks};
 

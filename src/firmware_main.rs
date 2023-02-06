@@ -44,6 +44,7 @@ mod app {
     const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
     const UDP_PORT: u16 = 12345;
 
+    // TODO move consts to config.rs so tests can use them
     const SOCKET_BUFFER_SIZE: usize = 256;
     const NEIGHBOR_CACHE_LEN: usize = 16;
     const ROUTING_TABLE_LEN: usize = 16;

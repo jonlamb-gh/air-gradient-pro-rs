@@ -103,3 +103,66 @@ impl<M: Miim> EthernetPhy<M> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::net::EthernetDmaStorage;
+    use crate::test_runner::TestResources;
+    use stm32_eth::EthPins;
+    use stm32f4xx_hal::{gpio::Speed as GpioSpeed, prelude::*};
+
+    // TODO use configs
+    const RX_RING_LEN: usize = 16;
+    const TX_RING_LEN: usize = 8;
+
+    #[test_case]
+    fn eth_phy_smoke_test(res: TestResources) {
+        let gpioa = res.dp.GPIOA.split();
+        let gpiob = res.dp.GPIOB.split();
+        let gpioc = res.dp.GPIOC.split();
+        let gpiog = res.dp.GPIOG.split();
+
+        let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);
+        let mdc_pin = gpioc.pc1.into_alternate().speed(GpioSpeed::VeryHigh);
+
+        let eth_pins = EthPins {
+            ref_clk: gpioa.pa1,
+            crs: gpioa.pa7,
+            tx_en: gpiog.pg11,
+            tx_d0: gpiog.pg13,
+            tx_d1: gpiob.pb13,
+            rx_d0: gpioc.pc4,
+            rx_d1: gpioc.pc5,
+        };
+        let eth_periph_parts = (
+            res.dp.ETHERNET_MAC,
+            res.dp.ETHERNET_MMC,
+            res.dp.ETHERNET_DMA,
+        );
+
+        let mut storage: EthernetDmaStorage<RX_RING_LEN, TX_RING_LEN> = EthernetDmaStorage::new();
+
+        let stm32_eth::Parts { dma: _, mac } = stm32_eth::new_with_mii(
+            eth_periph_parts.into(),
+            &mut storage.rx_ring[..],
+            &mut storage.tx_ring[..],
+            res.clocks,
+            eth_pins,
+            mdio_pin,
+            mdc_pin,
+        )
+        .unwrap();
+
+        let mut phy = if let Ok(phy) = EthernetPhy::from_miim(mac, 0) {
+            phy
+        } else {
+            panic!("EthernetPhy::from_miim failed");
+        };
+        phy.phy_init();
+        let _ = phy.ident_string();
+        let _link_up = phy.phy_link_up();
+        let _speed = phy.speed().unwrap();
+        let _ = phy.release();
+    }
+}
