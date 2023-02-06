@@ -1,18 +1,28 @@
 use core::fmt::Write;
-use stm32f4xx_hal::prelude::*;
+use cortex_m::Peripherals as CorePeripherals;
+use stm32f4xx_hal::{pac::Peripherals, prelude::*, rcc::Clocks};
+
+/// SAFETY:
+/// * Don't mess with the clocks, USART3, or PD8
+/// * TODO...
+pub struct TestResources {
+    pub dp: Peripherals,
+    pub cp: CorePeripherals,
+    pub clocks: Clocks,
+}
 
 pub trait Testable {
-    fn run(&self) -> ();
+    fn run(&self, res: TestResources) -> ();
 }
 
 impl<T> Testable for T
 where
-    T: Fn(),
+    T: Fn(TestResources),
 {
-    fn run(&self) {
+    fn run(&self, res: TestResources) {
         let w = unsafe { crate::logger::get_logger() };
         write!(w, "{}...\t", core::any::type_name::<T>()).unwrap();
-        self();
+        self(res);
         writeln!(w, "[ok]").unwrap();
     }
 }
@@ -23,9 +33,6 @@ pub extern "C" fn main() -> ! {
     loop {}
 }
 
-// TODO - maybe use another serial port instead of the one for Log...
-// need to update panic handler too or don't include it here
-// could impl fmt::Write on the global logger instance too
 pub(crate) fn test_runner(tests: &[&dyn Testable]) {
     let dp = stm32f4xx_hal::pac::Peripherals::take().unwrap();
 
@@ -41,8 +48,16 @@ pub(crate) fn test_runner(tests: &[&dyn Testable]) {
     unsafe { crate::logger::init_logging(log_tx) };
 
     let w = unsafe { crate::logger::get_logger() };
-    writeln!(w, "Running {} tests", tests.len()).unwrap();
+    writeln!(w, "running {} tests", tests.len()).unwrap();
     for test in tests {
-        test.run();
+        let res = unsafe {
+            TestResources {
+                dp: Peripherals::steal(),
+                cp: CorePeripherals::steal(),
+                clocks: clocks.clone(),
+            }
+        };
+        test.run(res);
     }
+    writeln!(w, "test result: ok. {} passed; 0 failed", tests.len()).unwrap();
 }

@@ -37,13 +37,24 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[test_case]
-    fn simple_test() {
-        assert_eq!(1, 1);
-    }
+    use super::*;
+    use crate::test_runner::TestResources;
+    use ds323x::NaiveDate;
+    use stm32f4xx_hal::prelude::*;
 
     #[test_case]
-    fn simple_test2() {
-        assert_eq!(1, 2);
+    fn roundtrip_datetime(res: TestResources) {
+        let gpiob = res.dp.GPIOB.split();
+        let scl = gpiob.pb8.into_alternate().set_open_drain();
+        let sda = gpiob.pb9.into_alternate().set_open_drain();
+        let i2c1 = res.dp.I2C1.i2c((scl, sda), 100.kHz(), &res.clocks);
+        let mut rtc = Rtc::new(i2c1).unwrap();
+        let new_dt = NaiveDate::from_ymd_opt(2020, 5, 1)
+            .unwrap()
+            .and_hms_opt(19, 59, 30)
+            .unwrap();
+        rtc.set_datetime(&new_dt).unwrap();
+        let now = rtc.datetime().unwrap();
+        assert!(now >= new_dt);
     }
 }

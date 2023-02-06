@@ -7,7 +7,6 @@ mod app {
     use crate::firmware_main::net_clock::NetClock;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
-    use ds323x::NaiveDate;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -137,17 +136,7 @@ mod app {
         let sda = gpiob.pb9.into_alternate().set_open_drain();
         let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
         info!("Setup: DS3231 RTC");
-        let mut rtc = Rtc::new(i2c1).unwrap();
-        info!("RTC: get datetime"); // TODO
-        let dt = rtc.datetime().unwrap();
-        info!("RTC: dt = {dt}"); // TODO
-        let new_dt = NaiveDate::from_ymd_opt(2020, 5, 1)
-            .unwrap()
-            .and_hms_opt(19, 59, 58)
-            .unwrap();
-        info!("RTC: sett datetime = {new_dt}"); // TODO
-        rtc.set_datetime(&new_dt).unwrap();
-        info!("RTC: DONE"); // TODO
+        let rtc = Rtc::new(i2c1).unwrap();
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);
