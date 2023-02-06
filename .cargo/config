@@ -1,7 +1,6 @@
 [target.thumbv7em-none-eabihf]
 #runner = 'probe-run --chip stm32f429zit'
-# TODO - need to set the bin var... use python to do it?
-runner = '~/repos/forks/renode/renode renode/emulate.resc'
+runner = "renode/cargo-runner.sh"
 rustflags = [
     "-C", "linker=flip-link",
     "-C", "link-arg=-Tlink.x",
