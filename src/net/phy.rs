@@ -163,6 +163,7 @@ mod tests {
         let _ = phy.ident_string();
         let _link_up = phy.phy_link_up();
         let _speed = phy.speed().unwrap();
+
         let _ = phy.release();
     }
 }

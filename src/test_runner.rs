@@ -3,6 +3,7 @@ use stm32f4xx_hal::{pac::Peripherals, prelude::*, rcc::Clocks};
 
 /// SAFETY:
 /// * Don't mess with the clocks, USART3, or PD8
+/// * Unit tests should do cleanup/de-init if needed
 /// * TODO...
 pub struct TestResources {
     pub dp: Peripherals,
