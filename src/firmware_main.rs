@@ -7,8 +7,15 @@ mod app {
     use crate::firmware_main::net_clock::NetClock;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
+    use embedded_graphics::{
+        image::{Image, ImageRawLE},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        primitives::{Circle, Line, PrimitiveStyle, Rectangle},
+    };
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
+    use sh1106::{prelude::*, Builder};
     use smoltcp::{
         iface::{Interface, InterfaceBuilder, NeighborCache, Routes, SocketHandle},
         socket::{UdpSocket, UdpSocketBuffer},
@@ -97,6 +104,7 @@ mod app {
         let gpiob = ctx.device.GPIOB.split();
         let gpioc = ctx.device.GPIOC.split();
         let gpiod = ctx.device.GPIOD.split();
+        let gpiof = ctx.device.GPIOF.split();
         let gpiog = ctx.device.GPIOG.split();
 
         let mut link_led = gpiob.pb0.into_push_pull_output();
@@ -138,6 +146,30 @@ mod app {
         let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
         info!("Setup: DS3231 RTC");
         let rtc = Rtc::new(i2c1).unwrap();
+
+        //************************************************
+        // SSH1106 on I2C2
+        info!("Setup: I2C2");
+        let scl = gpiof.pf1.into_alternate().set_open_drain();
+        let sda = gpiof.pf0.into_alternate().set_open_drain();
+        let i2c2 = ctx.device.I2C2.i2c((scl, sda), 100.kHz(), &clocks);
+        // TODO move to wrapper newtype
+        // - used shared-bus here
+        info!("Setup: SSH1106");
+        let mut display: GraphicsMode<_> = Builder::new()
+            .with_i2c_addr(0x3C)
+            .with_size(DisplaySize::Display128x64)
+            .connect_i2c(i2c2)
+            .into();
+        display.init().unwrap();
+        display.clear();
+
+        let im: ImageRawLE<BinaryColor> = ImageRawLE::new(include_bytes!("/tmp/rust.raw"), 64);
+        Image::new(&im, Point::new(128 / 4, 0))
+            .draw(&mut display)
+            .unwrap();
+        display.flush().unwrap();
+        //************************************************
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);

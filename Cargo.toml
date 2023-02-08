@@ -18,6 +18,7 @@ log = "0.4"
 modular-bitfield = "0.11"
 ieee802_3_miim = "0.8"
 ds323x = "0.5"
+sh1106 = "0.4"
 
 [dependencies.stm32f4xx-hal]
 version = "0.14"
@@ -41,6 +42,10 @@ features = [
     #"log",
     #"verbose"
 ]
+
+[dependencies.embedded-graphics]
+version = "0.7"
+default-features = false
 
 [build-dependencies.built]
 version = "0.5"

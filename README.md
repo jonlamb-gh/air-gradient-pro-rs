@@ -5,6 +5,7 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
 * renode things to look at
   - can also emulate the peripherals in Rust: https://antmicro.com/blog/2021/07/rust-peripheral-support-in-renode/
   - https://github.com/antmicro/renode-rust-example
+  - (recent I2C example) https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/I2C/LC709205F.cs
   - https://renode.readthedocs.io/en/latest/tutorials/zephyr-ptp-testing.html#running-the-test
   - https://github.com/renode/renode-infrastructure/tree/master/src/Emulator/Peripherals/Peripherals/Sensors
   - https://github.com/renode/renode/blob/master/tests/platforms/QuarkC1000/QuarkC1000.robot (network tests)
@@ -18,6 +19,9 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
 * add shared-bus for i2c
   - https://docs.rs/shared-bus/latest/shared_bus/type.BusManagerAtomicCheck.html
   - https://github.com/ryan-summers/shared-bus-example/blob/master/src/main.rs
+
+NOTE: uses my fork of renode with custom peripherals:
+https://github.com/renode/renode-infrastructure/compare/master...jonlamb-gh:renode-infrastructure:add-sensors
 
 Renode is the default runner:
 ```
@@ -39,12 +43,15 @@ https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/
 https://www.airgradient.com/images/diy/schematicpro37.png
 https://github.com/airgradienthq/arduino
 
-display U8G2 SH1106
+128x64 display U8G2 SH1106
 https://github.com/olikraus/u8g2
+https://crates.io/crates/sh1106
+https://www.velleman.eu/downloads/29/infosheets/sh1106_datasheet.pdf
 
 SHT31
 https://crates.io/crates/sht3x
 https://www.mouser.com/datasheet/2/682/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital-971521.pdf
+https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/I2C/SHT21.cs
 
 senseAir S8
 https://github.com/Finomnis/AirQualitySensor/tree/main/firmware_rust/AirQualitySensor
