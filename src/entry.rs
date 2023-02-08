@@ -7,6 +7,8 @@
 #![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 
+mod display;
+mod i2c_devices;
 mod logger;
 mod net;
 mod panic_handler;

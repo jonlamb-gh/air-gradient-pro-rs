@@ -47,6 +47,11 @@ features = [
 version = "0.7"
 default-features = false
 
+[dependencies.shared-bus]
+version = "0.2"
+default-features = false
+features = ["cortex-m"]
+
 [build-dependencies.built]
 version = "0.5"
 features = ["git2", "chrono"]
