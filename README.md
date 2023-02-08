@@ -16,9 +16,6 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
   - panic-usart3 (switch to abort instead of loop'n)
   - panic-rtt
 * console: https://github.com/rust-embedded-community/menu
-* add shared-bus for i2c
-  - https://docs.rs/shared-bus/latest/shared_bus/type.BusManagerAtomicCheck.html
-  - https://github.com/ryan-summers/shared-bus-example/blob/master/src/main.rs
 
 NOTE: uses my fork of renode with custom peripherals:
 https://github.com/renode/renode-infrastructure/compare/master...jonlamb-gh:renode-infrastructure:add-sensors
@@ -30,7 +27,7 @@ sudo ./renode/setup-network.sh
 cargo run
 
 # also works
-RENODE_OPTS="--hide-monitor" cargo +nightly test
+RENODE_PATH="/path/to/forked/renode/renode" RENODE_OPTS="--hide-monitor" cargo +nightly test
 ```
 
 https://www.st.com/en/evaluation-tools/nucleo-f429zi.html
@@ -62,3 +59,11 @@ https://crates.io/crates/pms700x
 
 SGP41 TVOC
 https://crates.io/crates/sgp41
+
+
+## Peripheral Support
+
+TODO - add table here with hw and renode support columns
+
+
+
