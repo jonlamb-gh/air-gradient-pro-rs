@@ -6,6 +6,7 @@
 mod app {
     use crate::display::Display;
     use crate::firmware_main::net_clock::NetClock;
+    use crate::i2c_devices::I2cDevices;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
@@ -60,6 +61,8 @@ mod app {
         net: Interface<'static, &'static mut EthernetDMA<'static, 'static>>,
         #[lock_free]
         udp_socket: SocketHandle,
+        #[lock_free]
+        i2c_devices: I2cDevices,
     }
 
     #[local]
@@ -75,7 +78,6 @@ mod app {
         net_poll_timer: CounterHz<TIM5>,
 
         rtc: Rtc,
-        display: Display,
     }
 
     #[monotonic(binds = TIM2, default = true)]
@@ -142,13 +144,23 @@ mod app {
         info!("Setup: DS3231 RTC");
         let rtc = Rtc::new(i2c1).unwrap();
 
-        // SSH1106 on I2C2
-        // TODO - used shared-bus here
-        info!("Setup: I2C2");
-        let scl = gpiof.pf1.into_alternate().set_open_drain();
-        let sda = gpiof.pf0.into_alternate().set_open_drain();
-        let i2c2 = ctx.device.I2C2.i2c((scl, sda), 100.kHz(), &clocks);
-        let display = Display::new(i2c2).unwrap();
+        // Shared I2C2 bus
+        // - SSH1106
+        let bus_manager: &'static _ = {
+            use crate::i2c_devices::I2c;
+            info!("Setup: I2C2");
+            let scl = gpiof.pf1.into_alternate().set_open_drain();
+            let sda = gpiof.pf0.into_alternate().set_open_drain();
+            let i2c2 = ctx.device.I2C2.i2c((scl, sda), 100.kHz(), &clocks);
+            shared_bus::new_atomic_check!(I2c = i2c2).unwrap()
+        };
+
+        let i2c_devices = {
+            info!("Setup: SH1106");
+            let display = Display::new(bus_manager.acquire_i2c()).unwrap();
+
+            I2cDevices { display }
+        };
 
         info!("Setup: ETH");
         let mdio_pin = gpioa.pa2.into_alternate().speed(GpioSpeed::VeryHigh);
@@ -258,6 +270,7 @@ mod app {
             Shared {
                 net: eth_iface,
                 udp_socket: udp_handle,
+                i2c_devices,
             },
             Local {
                 led_b,
@@ -268,7 +281,6 @@ mod app {
                 net_link_check_timer,
                 net_poll_timer,
                 rtc,
-                display,
             },
             init::Monotonics(mono),
         )

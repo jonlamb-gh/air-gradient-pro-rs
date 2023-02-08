@@ -6,7 +6,7 @@ use stm32f4xx_hal::{
     pac::I2C2,
 };
 
-// TODO - switch to shared-bus
+// TODO - switch to shared-bus, move pins to a bsp-like mod
 pub type DefaultDisplayI2c = I2c<I2C2, (PF1<AF4<OpenDrain>>, PF0<AF4<OpenDrain>>)>;
 
 pub struct Display<I2C = DefaultDisplayI2c>
@@ -58,19 +58,5 @@ mod tests {
             .draw(&mut display.drv)
             .unwrap();
         display.drv.flush().unwrap();
-
-        /*
-        let mut rtc = Rtc::new(i2c).unwrap();
-        let new_dt = NaiveDate::from_ymd_opt(2020, 5, 1)
-            .unwrap()
-            .and_hms_opt(19, 59, 30)
-            .unwrap();
-        rtc.set_datetime(&new_dt).unwrap();
-        let now = rtc.datetime().unwrap();
-        assert!(now >= new_dt);
-
-        let i2c = rtc.release();
-        let (_i2c, _pins) = i2c.release();
-        */
     }
 }
