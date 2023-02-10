@@ -2,5 +2,9 @@ using "renode/nucleo_f429zi.repl"
 
 ds3231 : Sensors.DS3231 @ i2c1 0x68
 
-ssh1106 : Video.SSH1106 @ i2c2 0x3C
+sh1106 : Video.SH1106 @ i2c2 0x3C
     FramesPerVirtualSecond: 10
+
+sgp41 : Sensors.SGP41 @ i2c2 0x59
+    VocTicks: 1024
+    NoxTicks: 2048

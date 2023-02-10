@@ -8,11 +8,12 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 
 mod display;
-mod i2c_devices;
 mod logger;
 mod net;
 mod panic_handler;
 mod rtc;
+mod sensors;
+mod shared_i2c;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));

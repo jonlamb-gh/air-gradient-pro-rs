@@ -19,7 +19,7 @@ cpu PerformanceInMips 1
 #logLevel -1 file i2c2.ssh1106
 
 showAnalyzer sysbus.usart3
-showAnalyzer i2c2.ssh1106
+showAnalyzer i2c2.sh1106
 
 # Silence WARNINGs
 #logLevel 3
@@ -33,7 +33,8 @@ logLevel 3 ethernet.phy
 #logLevel -1 i2c1.ds3231
 
 #logLevel -1 i2c2
-#logLevel -1 i2c2.ssh1106
+#logLevel -1 i2c2.sh1106
+#logLevel -1 i2c2.sgp41
 
 # See https://github.com/renode/renode/issues/290 for more info
 # Make to sure to run the ./renode/setup-network.sh script first

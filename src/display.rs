@@ -1,15 +1,7 @@
 use sh1106::{prelude::*, Builder, Error};
-use stm32f4xx_hal::{
-    gpio::{OpenDrain, AF4, PF0, PF1},
-    hal::blocking::i2c::Write,
-    i2c::I2c,
-    pac::I2C2,
-};
+use stm32f4xx_hal::hal::blocking::i2c::Write;
 
-// TODO - switch to shared-bus, move pins to a bsp-like mod
-pub type DefaultDisplayI2c = I2c<I2C2, (PF1<AF4<OpenDrain>>, PF0<AF4<OpenDrain>>)>;
-
-pub struct Display<I2C = DefaultDisplayI2c>
+pub struct Display<I2C>
 where
     I2C: Write,
 {

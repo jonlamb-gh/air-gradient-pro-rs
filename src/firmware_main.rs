@@ -6,9 +6,9 @@
 mod app {
     use crate::display::Display;
     use crate::firmware_main::net_clock::NetClock;
-    use crate::i2c_devices::I2cDevices;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
+    use crate::shared_i2c::I2cDevices;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -147,7 +147,7 @@ mod app {
         // Shared I2C2 bus
         // - SSH1106
         let bus_manager: &'static _ = {
-            use crate::i2c_devices::I2c;
+            use crate::shared_i2c::I2c;
             info!("Setup: I2C2");
             let scl = gpiof.pf1.into_alternate().set_open_drain();
             let sda = gpiof.pf0.into_alternate().set_open_drain();

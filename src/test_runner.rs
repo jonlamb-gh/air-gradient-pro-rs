@@ -4,7 +4,9 @@ use stm32f4xx_hal::{pac::Peripherals, prelude::*, rcc::Clocks};
 /// SAFETY:
 /// * Don't mess with the clocks, USART3, or PD8
 /// * Unit tests should do cleanup/de-init if needed
-/// * TODO...
+/// * TODO
+///   - write down constraints
+///   - add a per-test/global timeout (reserved TIM or systick, SYST is used by some tests atm)
 pub struct TestResources {
     pub dp: Peripherals,
     pub cp: CorePeripherals,

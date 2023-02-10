@@ -20,6 +20,9 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
 NOTE: uses my fork of renode with custom peripherals:
 https://github.com/renode/renode-infrastructure/compare/master...jonlamb-gh:renode-infrastructure:add-sensors
 
+TODO 
+* move Sensors/DS3231.cs to I2C/DS3231.cs or Timers/
+
 Renode is the default runner:
 ```
 sudo ./renode/setup-network.sh
@@ -59,6 +62,9 @@ https://crates.io/crates/pms700x
 
 SGP41 TVOC
 https://crates.io/crates/sgp41
+uses https://crates.io/crates/sensirion-i2c
+https://sensirion.com/products/catalog/SGP41/
+https://www.mouser.com/datasheet/2/682/Sensirion_Gas_Sensors_Datasheet_SGP41-2604356.pdf
 
 
 ## Peripheral Support
