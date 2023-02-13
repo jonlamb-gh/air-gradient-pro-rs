@@ -35,6 +35,7 @@ logLevel 3 ethernet.phy
 #logLevel -1 i2c2
 #logLevel -1 i2c2.sh1106
 #logLevel -1 i2c2.sgp41
+logLevel -1 i2c2.sht31
 
 # See https://github.com/renode/renode/issues/290 for more info
 # Make to sure to run the ./renode/setup-network.sh script first

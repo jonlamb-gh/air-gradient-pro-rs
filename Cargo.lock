@@ -19,6 +19,7 @@ dependencies = [
  "sgp41",
  "sh1106",
  "shared-bus",
+ "sht3x",
  "smoltcp",
  "stm32-eth",
  "stm32f4xx-hal",
@@ -122,9 +123,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "built"
-version = "0.5.3"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce55916af2c6b989e02b810ed4d9fb1bf219f809b683039c33eb92bbb4f2973b"
+checksum = "5b9c056b9ed43aee5e064b683aa1ec783e19c6acec7559e3ae931b7490472fbe"
 dependencies = [
  "cargo-lock",
  "chrono",
@@ -461,9 +462,9 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.16.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccf7f68c2995f392c49fffb4f95ae2c873297830eb25c6bc4c114ce8f4562acc"
+checksum = "2994bee4a3a6a51eb90c218523be382fd7ea09b16380b9312e9dbe955ff7c7d1"
 dependencies = [
  "bitflags",
  "libc",
@@ -881,6 +882,7 @@ dependencies = [
 [[package]]
 name = "sgp41"
 version = "0.1.1"
+source = "git+https://github.com/jonlamb-gh/sgp41.git?branch=various-changes#dfde52c31dfb22e0e37deb0c4541aed638ff55b7"
 dependencies = [
  "embedded-hal 0.2.7",
  "sensirion-i2c",
@@ -906,6 +908,15 @@ dependencies = [
  "cortex-m 0.6.7",
  "embedded-hal 0.2.7",
  "nb 0.1.3",
+]
+
+[[package]]
+name = "sht3x"
+version = "0.1.1"
+source = "git+https://github.com/miek/sht3x-rs.git?branch=master#e0485ab8ae4f4d76ee416907431511231b8d5f06"
+dependencies = [
+ "bitflags",
+ "embedded-hal 0.2.7",
 ]
 
 [[package]]

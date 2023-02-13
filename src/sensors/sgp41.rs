@@ -50,6 +50,6 @@ mod tests {
         sensor.drv.execute_conditioning().unwrap();
         let raw = sensor.drv.measure_raw().unwrap();
         let compd = sensor.drv.measure_raw_compensated(10, 20).unwrap();
-        panic!("sn=0x{sn:X}\n{raw:#?}\n{compd:#?}");
+        //panic!("sn=0x{sn:X}\n{raw:#?}\n{compd:#?}");
     }
 }

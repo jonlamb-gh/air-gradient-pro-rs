@@ -8,3 +8,7 @@ sh1106 : Video.SH1106 @ i2c2 0x3C
 sgp41 : Sensors.SGP41 @ i2c2 0x59
     VocTicks: 1024
     NoxTicks: 2048
+
+sht31 : Sensors.SHT31 @ i2c2 0x44
+    Temperature: 40
+    Humidity: 85

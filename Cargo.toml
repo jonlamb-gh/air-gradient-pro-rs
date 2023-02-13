@@ -26,6 +26,11 @@ sh1106 = "0.4"
 git = "https://github.com/jonlamb-gh/sgp41.git"
 branch = "various-changes"
 
+# TODO - use crates.io once available
+[dependencies.sht3x]
+git = "https://github.com/miek/sht3x-rs.git"
+branch = "master"
+
 [dependencies.stm32f4xx-hal]
 version = "0.14"
 features = ["rt", "stm32f429", "rtic"]
