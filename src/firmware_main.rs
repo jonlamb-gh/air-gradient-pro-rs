@@ -306,7 +306,7 @@ mod app {
             endpoint.replace(remote);
         }
         if let Some(remote) = endpoint.take() {
-            socket.send_slice(b"hello", remote).unwrap();
+            socket.send_slice(b"hello\n", remote).unwrap();
         }
     }
 

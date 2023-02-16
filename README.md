@@ -9,6 +9,7 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
   - https://renode.readthedocs.io/en/latest/tutorials/zephyr-ptp-testing.html#running-the-test
   - https://github.com/renode/renode-infrastructure/tree/master/src/Emulator/Peripherals/Peripherals/Sensors
   - https://github.com/renode/renode/blob/master/tests/platforms/QuarkC1000/QuarkC1000.robot (network tests)
+  - https://github.com/renode/renode/blob/master/tests/platforms/zynq-7000.robot (linux)
   - more examples (log/auto-exit): https://www.bitcraze.io/2021/04/successful-emulation/
 * add features for, compile_error! for conflicts
   - log-rtt
@@ -33,6 +34,16 @@ cargo run
 RENODE_PATH="/path/to/forked/renode/renode" RENODE_OPTS="--hide-monitor" cargo +nightly test
 ```
 
+Robot framework driver:
+```
+renode-test tests.robot
+```
+
+Example responds with "hello":
+```
+echo "hi" | socat -t 2 - udp:192.0.2.29:12345
+```
+
 https://www.st.com/en/evaluation-tools/nucleo-f429zi.html
 
 https://os.mbed.com/platforms/ST-Nucleo-F429ZI/
@@ -53,8 +64,14 @@ https://crates.io/crates/sht3x
 https://www.mouser.com/datasheet/2/682/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital-971521.pdf
 https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/I2C/SHT21.cs
 
-senseAir S8
-https://github.com/Finomnis/AirQualitySensor/tree/main/firmware_rust/AirQualitySensor
+senseAir S8 LP
+CO2 sensor
+serial modbus
+https://senseair.com/products/size-counts/s8-lp/
+https://rmtplusstoragesenseair.blob.core.windows.net/docs/publicerat/PSP126.pdf
+https://rmtplusstoragesenseair.blob.core.windows.net/docs/Dev/publicerat/TDE2067.pdf
+https://github.com/alttch/rmodbus
+https://github.com/slowtec/modbus-core
 
 PMS5003
 https://crates.io/crates/pms-7003
