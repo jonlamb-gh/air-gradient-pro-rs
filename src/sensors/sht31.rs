@@ -1,4 +1,4 @@
-use sht3x::{Address, ClockStretch, Error, Repeatability, Sht3x};
+use sht3x::{Address, ClockStretch, Error, Measurement, Repeatability, Sht3x};
 use stm32f4xx_hal::hal::blocking::{
     delay::DelayMs,
     i2c::{Read, Write, WriteRead},
@@ -7,6 +7,10 @@ use stm32f4xx_hal::hal::blocking::{
 pub struct Sht31<I2C, D> {
     drv: Sht3x<I2C>,
     delay: D,
+}
+
+impl<I2C, D> Sht31<I2C, D> {
+    pub const MEASUREMENT_PERIOD_MS: u32 = 1000;
 }
 
 impl<I2C, D, E> Sht31<I2C, D>
@@ -24,6 +28,11 @@ where
         drv.reset(&mut delay)?;
 
         Ok(Sht31 { drv, delay })
+    }
+
+    pub fn measure(&mut self) -> Result<Measurement, Error<E>> {
+        self.drv
+            .measure(ClockStretch::Disabled, Repeatability::High, &mut self.delay)
     }
 }
 
@@ -43,14 +52,7 @@ mod tests {
         let mut sensor = Sht31::new(i2c, delay).unwrap();
         // TODO - figure out what methods needed
         let pre_status = sensor.drv.status(&mut sensor.delay).unwrap();
-        let m = sensor
-            .drv
-            .measure(
-                ClockStretch::Disabled,
-                Repeatability::High,
-                &mut sensor.delay,
-            )
-            .unwrap();
+        let m = sensor.measure().unwrap();
         let post_status = sensor.drv.status(&mut sensor.delay).unwrap();
         //panic!("pre_status = {pre_status:#?}\n{m:#?}\npost_status = {post_status:#?}");
     }

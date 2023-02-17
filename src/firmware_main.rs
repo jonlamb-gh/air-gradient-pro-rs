@@ -4,11 +4,16 @@
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
+    use crate::config::{
+        self, NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, RX_RING_LEN, SOCKET_BUFFER_SIZE, TX_RING_LEN,
+    };
     use crate::display::Display;
     use crate::firmware_main::net_clock::NetClock;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
+    use crate::sensors::Sht31;
     use crate::shared_i2c::I2cDevices;
+    use crate::tasks::sht31::sht31_task;
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
@@ -26,7 +31,7 @@ mod app {
         pac::{self, TIM3, TIM4, TIM5},
         prelude::*,
         timer::counter::{CounterHz, CounterUs},
-        timer::{Event, MonoTimerUs},
+        timer::{Event, MonoTimerUs, SysDelay},
     };
 
     type LedGreenPin = PB0<Output<PushPull>>;
@@ -36,33 +41,20 @@ mod app {
     type MdioPin = PA2<AF11>;
     type MdcPin = PC1<AF11>;
 
-    // TODO - use env vars + gen build-time for these configs
-    // or put them in a flash section for configs
-    // use renode script to setup flash config as needed
-    const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
-    //const SRC_IP: [u8; 4] = [192, 168, 1, 39];
-    // TODO - for renode stuff: 192.0.2.29 02:00:05:06:07:08
-    const SRC_IP: [u8; 4] = [192, 0, 2, 29];
-    const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
-    const UDP_PORT: u16 = 12345;
-
-    // TODO move consts to config.rs so tests can use them
-    const SOCKET_BUFFER_SIZE: usize = 256;
-    const NEIGHBOR_CACHE_LEN: usize = 16;
-    const ROUTING_TABLE_LEN: usize = 16;
-    const RX_RING_LEN: usize = 16;
-    const TX_RING_LEN: usize = 8;
-
+    // TODO - real clock
     static NET_CLOCK: NetClock = NetClock::new();
 
     #[shared]
     struct Shared {
         #[lock_free]
         net: Interface<'static, &'static mut EthernetDMA<'static, 'static>>,
+
         #[lock_free]
         udp_socket: SocketHandle,
+
+        // TODO using SysTick for delay because I'm seeing an issue in renode with timers
         #[lock_free]
-        i2c_devices: I2cDevices,
+        i2c_devices: I2cDevices<SysDelay>,
     }
 
     #[local]
@@ -83,9 +75,10 @@ mod app {
     #[monotonic(binds = TIM2, default = true)]
     type MicrosecMono = MonoTimerUs<pac::TIM2>;
 
+    // TODO - local type aliases with defaults to clean this up a bit
     #[init(local = [
         eth_dma_storage: EthernetDmaStorage<RX_RING_LEN, TX_RING_LEN> = EthernetDmaStorage::new(),
-        net_storage: NetworkStorage<NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, 1> = NetworkStorage::new(SRC_IP_CIDR),
+        net_storage: NetworkStorage<NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, 1> = NetworkStorage::new(config::SRC_IP_CIDR),
         udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_SIZE> = UdpSocketStorage::new(),
         eth_dma: core::mem::MaybeUninit<EthernetDMA<'static, 'static>> = core::mem::MaybeUninit::uninit(),
     ])]
@@ -155,11 +148,15 @@ mod app {
             shared_bus::new_atomic_check!(I2c = i2c2).unwrap()
         };
 
+        let delay = ctx.core.SYST.delay(&clocks);
+
         let i2c_devices = {
             info!("Setup: SH1106");
             let display = Display::new(bus_manager.acquire_i2c()).unwrap();
+            info!("Setup: SHT31");
+            let sht31 = Sht31::new(bus_manager.acquire_i2c(), delay).unwrap();
 
-            I2cDevices { display }
+            I2cDevices { display, sht31 }
         };
 
         info!("Setup: ETH");
@@ -226,8 +223,8 @@ mod app {
         eth_dma.enable_interrupt();
 
         info!("Setup: TCP/IP");
-        let mac = EthernetAddress::from_bytes(&SRC_MAC);
-        info!("IP: {} MAC: {}", SRC_IP_CIDR.address(), mac);
+        let mac = EthernetAddress::from_bytes(&config::SRC_MAC);
+        info!("IP: {} MAC: {}", config::SRC_IP_CIDR.address(), mac);
         let neighbor_cache = NeighborCache::new(&mut ctx.local.net_storage.neighbor_storage[..]);
         let routes = Routes::new(&mut ctx.local.net_storage.routes_storage[..]);
         let mut eth_iface = InterfaceBuilder::new(eth_dma, &mut ctx.local.net_storage.sockets[..])
@@ -266,6 +263,8 @@ mod app {
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!("Initialized");
 
+        sht31_task::spawn_after(Sht31::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+
         (
             Shared {
                 net: eth_iface,
@@ -286,6 +285,11 @@ mod app {
         )
     }
 
+    extern "Rust" {
+        #[task(shared = [i2c_devices])]
+        fn sht31_task(ctx: sht31_task::Context);
+    }
+
     #[task(local = [led_b, led_r], shared = [net, udp_socket], priority = 3)]
     fn do_udp_stuff(ctx: do_udp_stuff::Context) {
         let led_b = ctx.local.led_b;
@@ -294,8 +298,8 @@ mod app {
         let udp_socket_handle = ctx.shared.udp_socket;
         let socket = net.get_socket::<UdpSocket>(*udp_socket_handle);
         if !socket.is_open() {
-            info!("Binding to UDP port {UDP_PORT}");
-            socket.bind(UDP_PORT).unwrap();
+            info!("Binding to UDP port {}", config::UDP_PORT);
+            socket.bind(config::UDP_PORT).unwrap();
             led_b.set_high();
         }
 

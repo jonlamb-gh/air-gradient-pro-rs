@@ -50,6 +50,31 @@ pub(crate) fn test_runner(tests: &[&dyn Testable]) {
     unsafe { crate::logger::init_logging(log_tx) };
 
     let w = unsafe { crate::logger::get_logger() };
+
+    writeln!(
+        w,
+        "############################################################"
+    )
+    .unwrap();
+    writeln!(
+        w,
+        "{} {} ({})",
+        crate::built_info::PKG_NAME,
+        crate::built_info::PKG_VERSION,
+        crate::built_info::PROFILE
+    )
+    .unwrap();
+    writeln!(w, "Build date: {}", crate::built_info::BUILT_TIME_UTC).unwrap();
+    writeln!(w, "{}", crate::built_info::RUSTC_VERSION).unwrap();
+    if let Some(gc) = crate::built_info::GIT_COMMIT_HASH {
+        writeln!(w, "git commit: {}", gc).unwrap();
+    }
+    writeln!(
+        w,
+        "############################################################"
+    )
+    .unwrap();
+
     writeln!(w, "running {} tests", tests.len()).unwrap();
     for test in tests {
         let res = unsafe {

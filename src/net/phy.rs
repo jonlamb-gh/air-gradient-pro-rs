@@ -107,14 +107,11 @@ impl<M: Miim> EthernetPhy<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::{RX_RING_LEN, TX_RING_LEN};
     use crate::net::EthernetDmaStorage;
     use crate::test_runner::TestResources;
     use stm32_eth::EthPins;
     use stm32f4xx_hal::{gpio::Speed as GpioSpeed, prelude::*};
-
-    // TODO use configs
-    const RX_RING_LEN: usize = 16;
-    const TX_RING_LEN: usize = 8;
 
     #[test_case]
     fn eth_phy_smoke_test(res: TestResources) {

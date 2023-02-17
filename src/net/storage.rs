@@ -61,16 +61,11 @@ impl<const BL: usize> UdpSocketStorage<BL> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::{
+        NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, RX_RING_LEN, SOCKET_BUFFER_SIZE, SRC_IP, TX_RING_LEN,
+    };
     use crate::test_runner::TestResources;
     use smoltcp::wire::Ipv4Address;
-
-    // TODO use real configs once they exist
-    const SRC_IP: [u8; 4] = [192, 0, 2, 29];
-    const SOCKET_BUFFER_SIZE: usize = 256;
-    const NEIGHBOR_CACHE_LEN: usize = 16;
-    const ROUTING_TABLE_LEN: usize = 16;
-    const RX_RING_LEN: usize = 16;
-    const TX_RING_LEN: usize = 8;
 
     #[test_case]
     fn net_storage(_res: TestResources) {

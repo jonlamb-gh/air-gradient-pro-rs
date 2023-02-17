@@ -7,6 +7,7 @@
 #![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 
+mod config;
 mod display;
 mod logger;
 mod net;
@@ -14,6 +15,9 @@ mod panic_handler;
 mod rtc;
 mod sensors;
 mod shared_i2c;
+
+#[cfg(not(test))]
+mod tasks;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));

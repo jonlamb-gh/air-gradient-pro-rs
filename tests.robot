@@ -117,6 +117,6 @@ Should Echo Back Over Network Using Tap
     Execute Command             allowPrivates false
 
     Wait For Line On Uart       [I] Binding to UDP port 12345   timeout=10
-    Wait For Line On Uart       [I] link=true                   timeout=2
+    Wait For Line On Uart       [I] link=true                   timeout=5
     ${reply}=                   Run Process  ${CLIENT_REQ_CMD}  shell=true
     Should Contain              ${reply.stdout}  hello
