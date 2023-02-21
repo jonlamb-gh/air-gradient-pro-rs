@@ -9,8 +9,6 @@ pub const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x05, 0x06, 0x07, 0x08];
 pub const SRC_IP: [u8; 4] = [192, 0, 2, 29];
 pub const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
 
-pub const UDP_PORT: u16 = 12345;
-
 // TODO - maybe put behind a mod like net
 pub const SOCKET_BUFFER_LEN: usize = 256;
 pub const NEIGHBOR_CACHE_LEN: usize = 16;

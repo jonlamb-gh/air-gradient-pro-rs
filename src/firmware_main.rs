@@ -13,7 +13,9 @@ mod app {
     use crate::sensors::{Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     use crate::tasks::{
-        data_manager_task, ipstack_clock_timer_task, sgp41_task, sht31_task, SpawnArg,
+        data_manager_task, eth_interrupt_handler_task, eth_link_status_timer_task,
+        ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task, sgp41_task,
+        sht31_task, SpawnArg,
     };
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
@@ -29,9 +31,9 @@ mod app {
     };
     use stm32f4xx_hal::{
         gpio::{Output, PushPull, Speed as GpioSpeed, AF11, PA2, PB0, PB14, PB7, PC1},
-        pac::{self, TIM10, TIM11, TIM3, TIM4, TIM5},
+        pac::{self, TIM10, TIM11, TIM3, TIM4},
         prelude::*,
-        timer::counter::{CounterHz, CounterUs},
+        timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
     };
 
@@ -64,8 +66,8 @@ mod app {
         phy: EthernetPhy<EthernetMACWithMii<MdioPin, MdcPin>>,
 
         net_clock_timer: SysCounterUs,
-        net_link_check_timer: CounterHz<TIM4>,
-        net_poll_timer: CounterHz<TIM5>,
+        ipstack_poll_timer: CounterHz<TIM3>,
+        eth_link_status_timer: CounterHz<TIM4>,
 
         rtc: Rtc,
     }
@@ -213,6 +215,7 @@ mod app {
 
         phy.phy_init();
 
+        // TODO - don't fail if link is down on init
         info!("Setup: waiting for link");
         while !phy.phy_link_up() {
             cortex_m::asm::delay(100000);
@@ -263,15 +266,15 @@ mod app {
         net_clock_timer.start(1.millis()).unwrap();
         net_clock_timer.listen(SysEvent::Update);
 
-        info!("Setup: net link check timer");
-        let mut net_link_check_timer = ctx.device.TIM4.counter_hz(&clocks);
-        //net_link_check_timer.start(1.Hz()).unwrap();
-        //net_link_check_timer.listen(Event::Update);
-
         info!("Setup: net poll timer");
-        let mut net_poll_timer = ctx.device.TIM5.counter_hz(&clocks);
-        //net_poll_timer.start(25.Hz()).unwrap();
-        //net_poll_timer.listen(Event::Update);
+        let mut ipstack_poll_timer = ctx.device.TIM3.counter_hz(&clocks);
+        ipstack_poll_timer.start(20.Hz()).unwrap();
+        ipstack_poll_timer.listen(Event::Update);
+
+        info!("Setup: net link check timer");
+        let mut eth_link_status_timer = ctx.device.TIM4.counter_hz(&clocks);
+        eth_link_status_timer.start(1.Hz()).unwrap();
+        eth_link_status_timer.listen(Event::Update);
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!("Initialized");
@@ -293,8 +296,8 @@ mod app {
                 link_led,
                 phy,
                 net_clock_timer,
-                net_link_check_timer,
-                net_poll_timer,
+                eth_link_status_timer,
+                ipstack_poll_timer,
                 rtc,
             },
             init::Monotonics(mono),
@@ -312,106 +315,32 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(shared = [net], capacity = 6)]
+        #[task(local = [rtc], shared = [net, udp_socket], capacity = 6)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
     }
 
     extern "Rust" {
-        //#[task(binds = TIM3, local = [net_clock_timer])]
         #[task(binds = SysTick, local = [net_clock_timer])]
         fn ipstack_clock_timer_task(ctx: ipstack_clock_timer_task::Context);
     }
 
-    #[task(binds = ETH, shared = [net])]
-    fn on_eth(ctx: on_eth::Context) {
-        let net = ctx.shared.net;
-        net.device_mut().interrupt_handler();
-        // TODO
-        //poll_ip_stack::spawn().ok();
+    extern "Rust" {
+        #[task(shared = [net], capacity = 2)]
+        fn ipstack_poll_task(ctx: ipstack_poll_task::Context);
     }
 
-    // TODO - demo stuff below, needs changed
-    // - priorities need changed for the shared stuff
-
-    /*
-    #[task(local = [led_b, led_r], shared = [net, udp_socket])]
-    fn do_udp_stuff(ctx: do_udp_stuff::Context) {
-        let led_b = ctx.local.led_b;
-        let led_r = ctx.local.led_r;
-        let net = ctx.shared.net;
-        let udp_socket_handle = ctx.shared.udp_socket;
-        let socket = net.get_socket::<UdpSocket>(*udp_socket_handle);
-        if !socket.is_open() {
-            info!("Binding to UDP port {}", config::UDP_PORT);
-            socket.bind(config::UDP_PORT).unwrap();
-            led_b.set_high();
-        }
-
-        let mut endpoint = None;
-        if let Ok((data, remote)) = socket.recv() {
-            led_r.toggle();
-            info!("Got {} bytes from {}", data.len(), remote);
-            endpoint.replace(remote);
-        }
-        if let Some(remote) = endpoint.take() {
-            socket.send_slice(b"hello\n", remote).unwrap();
-        }
+    extern "Rust" {
+        #[task(binds = TIM3, local = [ipstack_poll_timer])]
+        fn ipstack_poll_timer_task(ctx: ipstack_poll_timer_task::Context);
     }
 
-    #[task(binds=TIM3, local = [net_clock_timer])]
-    fn on_net_clock_timer(ctx: on_net_clock_timer::Context) {
-        let timer = ctx.local.net_clock_timer;
-        let _ = timer.wait();
-        NET_CLOCK.inc_from_interrupt();
+    extern "Rust" {
+        #[task(binds = ETH, shared = [net])]
+        fn eth_interrupt_handler_task(ctx: eth_interrupt_handler_task::Context);
     }
 
-    #[task(binds=TIM4, local = [link_led, phy, net_link_check_timer, rtc])]
-    fn on_net_link_check_timer(ctx: on_net_link_check_timer::Context) {
-        let link_led = ctx.local.link_led;
-        let phy = ctx.local.phy;
-        let timer = ctx.local.net_link_check_timer;
-        let rtc = ctx.local.rtc;
-
-        let _ = timer.wait();
-
-        // Poll link status
-        let link_status = if phy.phy_link_up() {
-            link_led.set_high();
-            true
-        } else {
-            link_led.set_low();
-            false
-        };
-
-        // TODO - just printing to see it work
-        let dt = rtc.datetime().unwrap();
-        info!("link={}, dt={}", link_status, dt);
+    extern "Rust" {
+        #[task(binds = TIM4, local = [link_led, phy, eth_link_status_timer, prev_link_status: bool = false])]
+        fn eth_link_status_timer_task(ctx: eth_link_status_timer_task::Context);
     }
-
-    #[task(binds=TIM5, local = [net_poll_timer])]
-    fn on_net_poll_timer(ctx: on_net_poll_timer::Context) {
-        let timer = ctx.local.net_poll_timer;
-        let _ = timer.wait();
-        poll_ip_stack::spawn().ok();
-        do_udp_stuff::spawn().ok();
-    }
-
-    #[task(binds = ETH, shared = [net])]
-    fn on_eth(ctx: on_eth::Context) {
-        let net = ctx.shared.net;
-        net.device_mut().interrupt_handler();
-        poll_ip_stack::spawn().ok();
-    }
-
-    // TODO - could put into the idle handler
-    #[task(shared = [net], capacity = 2)]
-    fn poll_ip_stack(ctx: poll_ip_stack::Context) {
-        let net = ctx.shared.net;
-        let time = NET_CLOCK.get();
-        match net.poll(time) {
-            Ok(_something_happened) => (),
-            Err(e) => debug!("{:?}", e),
-        }
-    }
-    */
 }

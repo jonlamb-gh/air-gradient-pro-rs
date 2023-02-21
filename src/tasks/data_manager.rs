@@ -1,6 +1,7 @@
 use crate::firmware_main::app::data_manager_task;
 use crate::sensors::{sgp41, sht31};
 use log::info;
+use smoltcp::socket::UdpSocket;
 use stm32f4xx_hal::prelude::*;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -17,6 +18,11 @@ pub enum SpawnArg {
 
 // TODO - takes an enum arg, each sensor task sends/spawns this task
 pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) {
+    let rtc = ctx.local.rtc;
+    let net = ctx.shared.net;
+    let udp_socket_handle = ctx.shared.udp_socket;
+    let socket = net.get_socket::<UdpSocket>(*udp_socket_handle);
+
     // TODO
     info!("Data manager task updating reason={}", arg.as_reason());
 
