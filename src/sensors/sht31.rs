@@ -1,8 +1,15 @@
-use sht3x::{Address, ClockStretch, Error, Measurement, Repeatability, Sht3x};
+use core::fmt;
+use sht3x::{Address, ClockStretch, Error, Repeatability, Sht3x};
 use stm32f4xx_hal::hal::blocking::{
     delay::DelayMs,
     i2c::{Read, Write, WriteRead},
 };
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct Measurement {
+    pub temperature: i32,
+    pub humidity: u16,
+}
 
 pub struct Sht31<I2C, D> {
     drv: Sht3x<I2C>,
@@ -33,6 +40,26 @@ where
     pub fn measure(&mut self) -> Result<Measurement, Error<E>> {
         self.drv
             .measure(ClockStretch::Disabled, Repeatability::High, &mut self.delay)
+            .map(Measurement::from)
+    }
+}
+
+impl From<sht3x::Measurement> for Measurement {
+    fn from(value: sht3x::Measurement) -> Self {
+        Self {
+            temperature: value.temperature,
+            humidity: value.humidity,
+        }
+    }
+}
+
+impl fmt::Display for Measurement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "SHT31 Measurement temperature: {}, humidity: {}",
+            self.temperature, self.humidity
+        )
     }
 }
 

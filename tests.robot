@@ -1,5 +1,8 @@
 # tests.robot
 
+# TODO
+# - add a basic network ping test
+
 *** Settings ***
 Library  Process
 

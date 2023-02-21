@@ -5,21 +5,22 @@
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
     use crate::config::{
-        self, NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, RX_RING_LEN, SOCKET_BUFFER_SIZE, TX_RING_LEN,
+        self, NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, RX_RING_LEN, SOCKET_BUFFER_LEN, TX_RING_LEN,
     };
     use crate::display::Display;
-    use crate::firmware_main::net_clock::NetClock;
     use crate::net::{EthernetDmaStorage, EthernetPhy, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
-    use crate::sensors::Sht31;
+    use crate::sensors::{Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
-    use crate::tasks::sht31::sht31_task;
+    use crate::tasks::{
+        data_manager_task, ipstack_clock_timer_task, sgp41_task, sht31_task, SpawnArg,
+    };
     use ieee802_3_miim::{phy::PhySpeed, Phy};
     use log::{debug, info, warn};
     use smoltcp::{
         iface::{Interface, InterfaceBuilder, NeighborCache, Routes, SocketHandle},
         socket::{UdpSocket, UdpSocketBuffer},
-        wire::{EthernetAddress, Ipv4Address, Ipv4Cidr},
+        wire::EthernetAddress,
     };
     use stm32_eth::{
         dma::EthernetDMA,
@@ -28,10 +29,10 @@ mod app {
     };
     use stm32f4xx_hal::{
         gpio::{Output, PushPull, Speed as GpioSpeed, AF11, PA2, PB0, PB14, PB7, PC1},
-        pac::{self, TIM3, TIM4, TIM5},
+        pac::{self, TIM10, TIM11, TIM3, TIM4, TIM5},
         prelude::*,
         timer::counter::{CounterHz, CounterUs},
-        timer::{Event, MonoTimerUs, SysDelay},
+        timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
     };
 
     type LedGreenPin = PB0<Output<PushPull>>;
@@ -41,9 +42,6 @@ mod app {
     type MdioPin = PA2<AF11>;
     type MdcPin = PC1<AF11>;
 
-    // TODO - real clock
-    static NET_CLOCK: NetClock = NetClock::new();
-
     #[shared]
     struct Shared {
         #[lock_free]
@@ -52,26 +50,28 @@ mod app {
         #[lock_free]
         udp_socket: SocketHandle,
 
-        // TODO using SysTick for delay because I'm seeing an issue in renode with timers
         #[lock_free]
-        i2c_devices: I2cDevices<SysDelay>,
+        i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
     }
 
     #[local]
     struct Local {
+        // TODO - move these LEDs around
         led_b: LedBluePin,
         led_r: LedRedPin,
 
         link_led: LedGreenPin,
         phy: EthernetPhy<EthernetMACWithMii<MdioPin, MdcPin>>,
 
-        net_clock_timer: CounterUs<TIM3>,
+        net_clock_timer: SysCounterUs,
         net_link_check_timer: CounterHz<TIM4>,
         net_poll_timer: CounterHz<TIM5>,
 
         rtc: Rtc,
     }
 
+    // TODO
+    //#[monotonic(binds = TIM2, priority = 3, default = true)]
     #[monotonic(binds = TIM2, default = true)]
     type MicrosecMono = MonoTimerUs<pac::TIM2>;
 
@@ -79,7 +79,7 @@ mod app {
     #[init(local = [
         eth_dma_storage: EthernetDmaStorage<RX_RING_LEN, TX_RING_LEN> = EthernetDmaStorage::new(),
         net_storage: NetworkStorage<NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, 1> = NetworkStorage::new(config::SRC_IP_CIDR),
-        udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_SIZE> = UdpSocketStorage::new(),
+        udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_LEN> = UdpSocketStorage::new(),
         eth_dma: core::mem::MaybeUninit<EthernetDMA<'static, 'static>> = core::mem::MaybeUninit::uninit(),
     ])]
     fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
@@ -148,15 +148,28 @@ mod app {
             shared_bus::new_atomic_check!(I2c = i2c2).unwrap()
         };
 
-        let delay = ctx.core.SYST.delay(&clocks);
+        // TODO - renode STM32_Timer (LTimer) issues
+        // the hal timer/delay.rs impl is blocked on
+        // CEN bit to clear
+        // timer10 enableRequested False
+        //
+        // could also adjust timer11 frequency in script to make it finish faster
+        let sht31_delay = ctx.device.TIM10.delay_us(&clocks);
+        let sgp41_delay = ctx.device.TIM11.delay_us(&clocks);
 
         let i2c_devices = {
             info!("Setup: SH1106");
             let display = Display::new(bus_manager.acquire_i2c()).unwrap();
             info!("Setup: SHT31");
-            let sht31 = Sht31::new(bus_manager.acquire_i2c(), delay).unwrap();
+            let sht31 = Sht31::new(bus_manager.acquire_i2c(), sht31_delay).unwrap();
+            info!("Setup: SGP41");
+            let sgp41 = Sgp41::new(bus_manager.acquire_i2c(), sgp41_delay).unwrap();
 
-            I2cDevices { display, sht31 }
+            I2cDevices {
+                display,
+                sht31,
+                sgp41,
+            }
         };
 
         info!("Setup: ETH");
@@ -246,24 +259,27 @@ mod app {
         let udp_handle = eth_iface.add_socket(udp_socket);
 
         info!("Setup: net clock timer");
-        let mut net_clock_timer = ctx.device.TIM3.counter_us(&clocks);
+        let mut net_clock_timer = ctx.core.SYST.counter_us(&clocks);
         net_clock_timer.start(1.millis()).unwrap();
-        net_clock_timer.listen(Event::Update);
+        net_clock_timer.listen(SysEvent::Update);
 
         info!("Setup: net link check timer");
         let mut net_link_check_timer = ctx.device.TIM4.counter_hz(&clocks);
-        net_link_check_timer.start(1.Hz()).unwrap();
-        net_link_check_timer.listen(Event::Update);
+        //net_link_check_timer.start(1.Hz()).unwrap();
+        //net_link_check_timer.listen(Event::Update);
 
         info!("Setup: net poll timer");
         let mut net_poll_timer = ctx.device.TIM5.counter_hz(&clocks);
-        net_poll_timer.start(25.Hz()).unwrap();
-        net_poll_timer.listen(Event::Update);
+        //net_poll_timer.start(25.Hz()).unwrap();
+        //net_poll_timer.listen(Event::Update);
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!("Initialized");
 
+        // TODO - move this to a wrapper task that schedules all the sensor tasks
         sht31_task::spawn_after(Sht31::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+        sgp41_task::spawn_after(Sgp41::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+        data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
 
         (
             Shared {
@@ -290,7 +306,35 @@ mod app {
         fn sht31_task(ctx: sht31_task::Context);
     }
 
-    #[task(local = [led_b, led_r], shared = [net, udp_socket], priority = 3)]
+    extern "Rust" {
+        #[task(shared = [i2c_devices])]
+        fn sgp41_task(ctx: sgp41_task::Context);
+    }
+
+    extern "Rust" {
+        #[task(shared = [net], capacity = 6)]
+        fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
+    }
+
+    extern "Rust" {
+        //#[task(binds = TIM3, local = [net_clock_timer])]
+        #[task(binds = SysTick, local = [net_clock_timer])]
+        fn ipstack_clock_timer_task(ctx: ipstack_clock_timer_task::Context);
+    }
+
+    #[task(binds = ETH, shared = [net])]
+    fn on_eth(ctx: on_eth::Context) {
+        let net = ctx.shared.net;
+        net.device_mut().interrupt_handler();
+        // TODO
+        //poll_ip_stack::spawn().ok();
+    }
+
+    // TODO - demo stuff below, needs changed
+    // - priorities need changed for the shared stuff
+
+    /*
+    #[task(local = [led_b, led_r], shared = [net, udp_socket])]
     fn do_udp_stuff(ctx: do_udp_stuff::Context) {
         let led_b = ctx.local.led_b;
         let led_r = ctx.local.led_r;
@@ -314,14 +358,14 @@ mod app {
         }
     }
 
-    #[task(binds=TIM3, local = [net_clock_timer], priority = 4)]
+    #[task(binds=TIM3, local = [net_clock_timer])]
     fn on_net_clock_timer(ctx: on_net_clock_timer::Context) {
         let timer = ctx.local.net_clock_timer;
         let _ = timer.wait();
         NET_CLOCK.inc_from_interrupt();
     }
 
-    #[task(binds=TIM4, local = [link_led, phy, net_link_check_timer, rtc], priority = 3)]
+    #[task(binds=TIM4, local = [link_led, phy, net_link_check_timer, rtc])]
     fn on_net_link_check_timer(ctx: on_net_link_check_timer::Context) {
         let link_led = ctx.local.link_led;
         let phy = ctx.local.phy;
@@ -344,7 +388,7 @@ mod app {
         info!("link={}, dt={}", link_status, dt);
     }
 
-    #[task(binds=TIM5, local = [net_poll_timer], priority = 1)]
+    #[task(binds=TIM5, local = [net_poll_timer])]
     fn on_net_poll_timer(ctx: on_net_poll_timer::Context) {
         let timer = ctx.local.net_poll_timer;
         let _ = timer.wait();
@@ -352,14 +396,15 @@ mod app {
         do_udp_stuff::spawn().ok();
     }
 
-    #[task(binds = ETH, shared = [net], priority = 3)]
+    #[task(binds = ETH, shared = [net])]
     fn on_eth(ctx: on_eth::Context) {
         let net = ctx.shared.net;
         net.device_mut().interrupt_handler();
         poll_ip_stack::spawn().ok();
     }
 
-    #[task(shared = [net], capacity = 2, priority = 3)]
+    // TODO - could put into the idle handler
+    #[task(shared = [net], capacity = 2)]
     fn poll_ip_stack(ctx: poll_ip_stack::Context) {
         let net = ctx.shared.net;
         let time = NET_CLOCK.get();
@@ -368,33 +413,5 @@ mod app {
             Err(e) => debug!("{:?}", e),
         }
     }
-}
-
-// TODO
-mod net_clock {
-    use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
-    use smoltcp::time::Instant;
-
-    /// 32-bit millisecond clock
-    #[derive(Debug)]
-    #[repr(transparent)]
-    pub struct NetClock(AtomicU32);
-
-    impl NetClock {
-        pub const fn new() -> Self {
-            NetClock(AtomicU32::new(0))
-        }
-
-        pub fn inc_from_interrupt(&self) {
-            self.0.fetch_add(1, Relaxed);
-        }
-
-        pub fn get_raw(&self) -> u32 {
-            self.0.load(Relaxed)
-        }
-
-        pub fn get(&self) -> Instant {
-            Instant::from_millis(self.get_raw() as i64)
-        }
-    }
+    */
 }

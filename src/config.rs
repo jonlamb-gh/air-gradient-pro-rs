@@ -12,7 +12,7 @@ pub const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
 pub const UDP_PORT: u16 = 12345;
 
 // TODO - maybe put behind a mod like net
-pub const SOCKET_BUFFER_SIZE: usize = 256;
+pub const SOCKET_BUFFER_LEN: usize = 256;
 pub const NEIGHBOR_CACHE_LEN: usize = 16;
 pub const ROUTING_TABLE_LEN: usize = 16;
 pub const RX_RING_LEN: usize = 16;
