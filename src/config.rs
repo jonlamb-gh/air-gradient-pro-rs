@@ -15,3 +15,6 @@ pub const NEIGHBOR_CACHE_LEN: usize = 16;
 pub const ROUTING_TABLE_LEN: usize = 16;
 pub const RX_RING_LEN: usize = 16;
 pub const TX_RING_LEN: usize = 8;
+
+// sensor mod
+pub const MEASUREMENT_PERIOD_MS: u32 = 1000;

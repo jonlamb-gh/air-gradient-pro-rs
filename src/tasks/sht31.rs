@@ -12,7 +12,4 @@ pub(crate) fn sht31_task(ctx: sht31_task::Context) {
     info!("{measurement}");
 
     data_manager_task::spawn(SpawnArg::Sht31Measurement(measurement)).ok();
-
-    // TODO - wrapper tasks will reschedule
-    sht31_task::spawn_after(Sht31::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).ok();
 }

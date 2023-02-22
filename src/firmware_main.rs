@@ -12,6 +12,7 @@ mod app {
     use crate::rtc::Rtc;
     use crate::sensors::{Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
+    use crate::tasks::data_manager::default_bcast_message;
     use crate::tasks::{
         data_manager_task, eth_interrupt_handler_task, eth_link_status_timer_task,
         ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task, sgp41_task,
@@ -36,6 +37,7 @@ mod app {
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
     };
+    use wire_protocols::broadcast::Repr as Message;
 
     type LedGreenPin = PB0<Output<PushPull>>;
     type LedBluePin = PB7<Output<PushPull>>;
@@ -268,7 +270,7 @@ mod app {
 
         info!("Setup: net poll timer");
         let mut ipstack_poll_timer = ctx.device.TIM3.counter_hz(&clocks);
-        ipstack_poll_timer.start(20.Hz()).unwrap();
+        ipstack_poll_timer.start(25.Hz()).unwrap();
         ipstack_poll_timer.listen(Event::Update);
 
         info!("Setup: net link check timer");
@@ -280,9 +282,9 @@ mod app {
         info!("Initialized");
 
         // TODO - move this to a wrapper task that schedules all the sensor tasks
-        sht31_task::spawn_after(Sht31::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).unwrap();
-        sgp41_task::spawn_after(Sgp41::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).unwrap();
         data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
+
+        sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
 
         (
             Shared {
@@ -304,6 +306,13 @@ mod app {
         )
     }
 
+    #[task]
+    fn sensor_measurements_task(_ctx: sensor_measurements_task::Context) {
+        sht31_task::spawn().ok();
+        sgp41_task::spawn().ok();
+        sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+    }
+
     extern "Rust" {
         #[task(shared = [i2c_devices])]
         fn sht31_task(ctx: sht31_task::Context);
@@ -315,7 +324,7 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(local = [rtc], shared = [net, udp_socket], capacity = 6)]
+        #[task(local = [rtc, msg: Message = default_bcast_message()], shared = [net, udp_socket], capacity = 6)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
     }
 

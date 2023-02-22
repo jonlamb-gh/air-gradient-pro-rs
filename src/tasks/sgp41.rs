@@ -12,7 +12,4 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context) {
     info!("{measurement}");
 
     data_manager_task::spawn(SpawnArg::Sgp41Measurement(measurement)).ok();
-
-    // TODO - wrapper tasks will reschedule
-    sgp41_task::spawn_after(Sgp41::<(), ()>::MEASUREMENT_PERIOD_MS.millis()).ok();
 }

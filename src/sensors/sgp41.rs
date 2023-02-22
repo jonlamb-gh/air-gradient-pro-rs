@@ -15,10 +15,6 @@ pub struct Sgp41<I2C, D> {
     drv: sgp41::sgp41::Sgp41<I2C, D>,
 }
 
-impl<I2C, D> Sgp41<I2C, D> {
-    pub const MEASUREMENT_PERIOD_MS: u32 = 1000;
-}
-
 impl<I2C, D, E> Sgp41<I2C, D>
 where
     I2C: Read<Error = E> + Write<Error = E> + WriteRead<Error = E>,

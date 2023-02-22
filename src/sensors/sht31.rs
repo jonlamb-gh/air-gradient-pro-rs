@@ -16,10 +16,6 @@ pub struct Sht31<I2C, D> {
     delay: D,
 }
 
-impl<I2C, D> Sht31<I2C, D> {
-    pub const MEASUREMENT_PERIOD_MS: u32 = 1000;
-}
-
 impl<I2C, D, E> Sht31<I2C, D>
 where
     I2C: Read<Error = E> + Write<Error = E> + WriteRead<Error = E>,

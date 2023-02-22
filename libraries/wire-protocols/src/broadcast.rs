@@ -8,6 +8,8 @@ use crate::{
 use byteorder::{ByteOrder, LittleEndian};
 use core::fmt;
 
+pub const DEFAULT_PORT: u16 = 32100;
+
 #[derive(Debug, Clone)]
 pub struct Message<T: AsRef<[u8]>> {
     buffer: T,
