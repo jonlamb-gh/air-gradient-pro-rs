@@ -15,6 +15,7 @@ fn panic(info: &PanicInfo) -> ! {
 
     let w = unsafe { crate::logger::get_logger() };
     writeln!(w, "\n********************************").ok();
+    writeln!(w, "PANIC").ok();
     writeln!(w, "{info}").ok();
     writeln!(w, "********************************").ok();
 

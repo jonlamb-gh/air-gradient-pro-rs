@@ -2,6 +2,9 @@
 
 NOTE: this isn't a real thing yet, just a place for hacking around in renode
 
+## TODOs/NOTEs
+
+* move Sensors/DS3231.cs to I2C/DS3231.cs or Timers/
 * renode things to look at
   - can also emulate the peripherals in Rust: https://antmicro.com/blog/2021/07/rust-peripheral-support-in-renode/
   - https://github.com/antmicro/renode-rust-example
@@ -21,17 +24,21 @@ NOTE: this isn't a real thing yet, just a place for hacking around in renode
 NOTE: uses my fork of renode with custom peripherals:
 https://github.com/renode/renode-infrastructure/compare/master...jonlamb-gh:renode-infrastructure:add-sensors
 
-TODO 
-* move Sensors/DS3231.cs to I2C/DS3231.cs or Timers/
+[`renode-run`](https://crates.io/crates/renode-run) is the default runner:
+```
+cargo install renode-run
+```
 
-Renode is the default runner:
+
 ```
 sudo ./renode/setup-network.sh
+
+export RENODE_RUN_RENODE_BIN=~/repos/forks/renode/renode
 
 cargo run
 
 # also works
-RENODE_PATH="/path/to/forked/renode/renode" RENODE_OPTS="--hide-monitor" cargo +nightly test
+cargo +nightly test
 ```
 
 Robot framework driver:
