@@ -1,7 +1,7 @@
 use crate::firmware_main::app::data_manager_task;
 use crate::sensors::{sgp41, sht31};
 use log::{info, warn};
-use smoltcp::{socket::UdpSocket, wire::Ipv4Address};
+use smoltcp::{socket::udp::Socket as UdpSocket, wire::Ipv4Address};
 use stm32f4xx_hal::prelude::*;
 use wire_protocols::{
     broadcast::{self, Message as WireMessage, Repr as Message},
@@ -27,11 +27,12 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
     let rtc = ctx.local.rtc;
     let msg = ctx.local.msg;
     let net = ctx.shared.net;
+    let sockets = ctx.shared.sockets;
     let udp_socket_handle = ctx.shared.udp_socket;
 
     info!("Data manager task updating reason={}", arg.as_reason());
 
-    let socket = net.get_socket::<UdpSocket>(*udp_socket_handle);
+    let socket = sockets.get_mut::<UdpSocket>(*udp_socket_handle);
 
     // TODO - state management, rtc, status bits, timeout/invalidate, etc
 
@@ -65,7 +66,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
                 msg.message_len(),
                 (Ipv4Address::BROADCAST, broadcast::DEFAULT_PORT).into(),
             ) {
-                Err(e) => warn!("Failed to send. {e}"),
+                Err(e) => warn!("Failed to send. {e:?}"),
                 Ok(buf) => {
                     let mut wire = WireMessage::new_unchecked(buf);
                     msg.emit(&mut wire);

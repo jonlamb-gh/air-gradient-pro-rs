@@ -1,41 +1,27 @@
-use smoltcp::{
-    iface::{Neighbor, Route, SocketStorage},
-    socket::UdpPacketMetadata,
-    wire::{IpAddress, IpCidr, Ipv4Cidr},
-};
-use stm32_eth::dma::{RxRingEntry, TxRingEntry};
+use smoltcp::{iface::SocketStorage, socket::udp::PacketMetadata as UdpPacketMetadata};
 
-const RX_RING_INIT: RxRingEntry = RxRingEntry::new();
-const TX_RING_INIT: TxRingEntry = TxRingEntry::new();
-
-pub struct EthernetDmaStorage<const RX: usize, const TX: usize> {
-    pub rx_ring: [RxRingEntry; RX],
-    pub tx_ring: [TxRingEntry; TX],
+pub struct EthernetStorage<const BL: usize> {
+    pub rx_buffer: [u8; BL],
+    pub tx_buffer: [u8; BL],
 }
 
-impl<const RX: usize, const TX: usize> EthernetDmaStorage<RX, TX> {
+impl<const BL: usize> EthernetStorage<BL> {
     pub const fn new() -> Self {
-        EthernetDmaStorage {
-            rx_ring: [RX_RING_INIT; RX],
-            tx_ring: [TX_RING_INIT; TX],
+        EthernetStorage {
+            rx_buffer: [0; BL],
+            tx_buffer: [0; BL],
         }
     }
 }
 
-pub struct NetworkStorage<const NCL: usize, const RTL: usize, const SL: usize> {
-    pub neighbor_storage: [Option<(IpAddress, Neighbor)>; NCL],
-    pub routes_storage: [Option<(IpCidr, Route)>; RTL],
+pub struct NetworkStorage<const SL: usize> {
     pub sockets: [SocketStorage<'static>; SL],
-    pub ip_addrs: [IpCidr; 1],
 }
 
-impl<const NCL: usize, const RTL: usize, const SL: usize> NetworkStorage<NCL, RTL, SL> {
-    pub const fn new(ip_addr: Ipv4Cidr) -> Self {
+impl<const SL: usize> NetworkStorage<SL> {
+    pub const fn new() -> Self {
         NetworkStorage {
-            neighbor_storage: [None; NCL],
-            routes_storage: [None; RTL],
             sockets: [SocketStorage::EMPTY; SL],
-            ip_addrs: [IpCidr::Ipv4(ip_addr)],
         }
     }
 }

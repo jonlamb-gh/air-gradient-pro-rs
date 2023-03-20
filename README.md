@@ -1,61 +1,10 @@
 # air-gradient-pro-rs
 
-NOTE: this isn't a real thing yet, just a place for hacking around in renode
+https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
-## TODOs/NOTEs
+https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board
 
-* move Sensors/DS3231.cs to I2C/DS3231.cs or Timers/
-* renode things to look at
-  - can also emulate the peripherals in Rust: https://antmicro.com/blog/2021/07/rust-peripheral-support-in-renode/
-  - https://github.com/antmicro/renode-rust-example
-  - (recent I2C example) https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/I2C/LC709205F.cs
-  - https://renode.readthedocs.io/en/latest/tutorials/zephyr-ptp-testing.html#running-the-test
-  - https://github.com/renode/renode-infrastructure/tree/master/src/Emulator/Peripherals/Peripherals/Sensors
-  - https://github.com/renode/renode/blob/master/tests/platforms/QuarkC1000/QuarkC1000.robot (network tests)
-  - https://github.com/renode/renode/blob/master/tests/platforms/zynq-7000.robot (linux)
-  - more examples (log/auto-exit): https://www.bitcraze.io/2021/04/successful-emulation/
-* add features for, compile_error! for conflicts
-  - log-rtt
-  - log-usart3
-  - panic-usart3 (switch to abort instead of loop'n)
-  - panic-rtt
-* console: https://github.com/rust-embedded-community/menu
-
-NOTE: uses my fork of renode with custom peripherals:
-https://github.com/renode/renode-infrastructure/compare/master...jonlamb-gh:renode-infrastructure:add-sensors
-
-[`renode-run`](https://crates.io/crates/renode-run) is the default runner:
-```
-cargo install renode-run
-```
-
-
-```
-sudo ./renode/setup-network.sh
-
-export RENODE_RUN_RENODE_BIN=~/repos/forks/renode/renode
-
-cargo run
-
-# also works
-cargo +nightly test
-```
-
-Robot framework driver:
-```
-renode-test tests.robot
-```
-
-Example responds with "hello":
-```
-echo "hi" | socat -t 2 - udp:192.0.2.29:12345
-```
-
-https://www.st.com/en/evaluation-tools/nucleo-f429zi.html
-
-https://os.mbed.com/platforms/ST-Nucleo-F429ZI/
-
-USART3 is virtual comm, D8-tx, D9-rx
+USART2 is the console, PA3 rx, PA2 tx
 
 https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/
 https://www.airgradient.com/images/diy/schematicpro37.png

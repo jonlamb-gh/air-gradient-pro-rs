@@ -38,15 +38,13 @@ pub extern "C" fn main() -> ! {
 pub(crate) fn test_runner(tests: &[&dyn Testable]) {
     let dp = stm32f4xx_hal::pac::Peripherals::take().unwrap();
 
-    // Set up the system clock
-    // HCLK must be at least 25MHz to use the ethernet peripheral
     let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.hclk(64.MHz()).sysclk(180.MHz()).freeze();
+    let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(72.MHz()).freeze();
 
     let gpiod = dp.GPIOD.split();
 
-    let log_tx_pin = gpiod.pd8.into_alternate();
-    let log_tx = dp.USART3.tx(log_tx_pin, 115_200.bps(), &clocks).unwrap();
+    let log_tx_pin = gpioa.pa2.into_alternate();
+    let log_tx = dp.USART2.tx(log_tx_pin, 115_200.bps(), &clocks).unwrap();
     unsafe { crate::logger::init_logging(log_tx) };
 
     let w = unsafe { crate::logger::get_logger() };

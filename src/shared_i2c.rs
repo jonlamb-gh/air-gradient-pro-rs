@@ -3,12 +3,12 @@ use crate::sensors::Sgp41;
 use crate::sensors::Sht31;
 use shared_bus::AtomicCheckMutex;
 use stm32f4xx_hal::{
-    gpio::{OpenDrain, AF4, PF0, PF1},
+    gpio::{OpenDrain, AF0, AF4, AF9, PB10, PB3},
     hal::blocking::i2c::Write,
     pac::I2C2,
 };
 
-pub type I2cPins = (PF1<AF4<OpenDrain>>, PF0<AF4<OpenDrain>>);
+pub type I2cPins = (PB10<AF4<OpenDrain>>, PB3<AF9<OpenDrain>>);
 pub type I2c<PINS = I2cPins> = stm32f4xx_hal::i2c::I2c<I2C2, PINS>;
 pub type I2cProxy<I2C> = shared_bus::I2cProxy<'static, AtomicCheckMutex<I2C>>;
 

@@ -1,12 +1,12 @@
 use ds323x::{ic::DS3231, interface::I2cInterface, DateTimeAccess, Ds323x, Error, NaiveDateTime};
 use stm32f4xx_hal::{
-    gpio::{OpenDrain, AF4, PB8, PB9},
+    gpio::{OpenDrain, AF4, PB6, PB7},
     hal::blocking::i2c::{Write, WriteRead},
     i2c::I2c,
     pac::I2C1,
 };
 
-pub type DefaultRtcI2c = I2c<I2C1, (PB8<AF4<OpenDrain>>, PB9<AF4<OpenDrain>>)>;
+pub type DefaultRtcI2c = I2c<I2C1, (PB6<AF4<OpenDrain>>, PB7<AF4<OpenDrain>>)>;
 
 pub struct Rtc<I2C = DefaultRtcI2c> {
     drv: Ds323x<I2cInterface<I2C>, DS3231>,

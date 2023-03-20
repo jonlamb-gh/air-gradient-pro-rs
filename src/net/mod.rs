@@ -1,5 +1,5 @@
-pub mod phy;
+pub mod eth;
 pub mod storage;
 
-pub use phy::EthernetPhy;
-pub use storage::{EthernetDmaStorage, NetworkStorage, UdpSocketStorage};
+pub use eth::Eth;
+pub use storage::{EthernetStorage, NetworkStorage, UdpSocketStorage};

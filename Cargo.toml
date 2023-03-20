@@ -16,12 +16,11 @@ cortex-m-rt = "0.7"
 rtic-monotonic = "1.0"
 cortex-m-rtic = "1.1"
 log = "0.4"
-modular-bitfield = "0.11"
-ieee802_3_miim = "0.8"
 ds323x = "0.5"
 sh1106 = "0.4"
 
-wire-protocols = { path = "libraries/wire-protocols" }
+[dependencies.wire-protocols]
+path = "libraries/wire-protocols"
 
 # TODO - upstream these changes
 [dependencies.sgp41]
@@ -35,16 +34,11 @@ git = "https://github.com/miek/sht3x-rs.git"
 branch = "master"
 
 [dependencies.stm32f4xx-hal]
-version = "0.14"
-features = ["rt", "stm32f429", "rtic"]
-
-[dependencies.stm32-eth]
-version = "0.4"
-default-features = false
-features = ["stm32f429", "smoltcp-phy"]
+version = "0.15"
+features = ["rt", "stm32f411", "rtic"]
 
 [dependencies.smoltcp]
-version = "0.8"
+version = "0.9"
 default-features = false
 features = [
     "medium-ethernet",
@@ -56,6 +50,10 @@ features = [
     #"log",
     #"verbose"
 ]
+
+[dependencies.enc28j60]
+git = "https://github.com/jonlamb-gh/enc28j60.git"
+branch = "cleanup"
 
 [dependencies.embedded-graphics]
 version = "0.7"
@@ -74,89 +72,3 @@ features = ["git2", "chrono"]
 codegen-units = 1 # better optimizations
 debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
-
-[package.metadata.renode]
-machine-name = 'stm32f429-machine'
-using-sysbus = true
-#renode = '${HOME}/repos/forks/renode/renode'
-variables = [
-    '$tap ?= "renode-tap0"',
-    # Set random board UNIQUE ID
-    '''
-    python "import _random"
-    python "rand = _random.Random()"
-
-    $id1 = `python "print rand.getrandbits(32)"`
-    $id2 = `python "print rand.getrandbits(32)"`
-    $id3 = `python "print rand.getrandbits(32)"`
-    ''',
-]
-platform-description = '''
-using "platforms/cpus/stm32f429.repl"
-
-ledGreen: Miscellaneous.LED @ gpioPortB
-ledBlue: Miscellaneous.LED @ gpioPortB
-ledRed: Miscellaneous.LED @ gpioPortB
-
-gpioPortB:
-    0 -> ledGreen@0
-    7 -> ledBlue@0
-    14 -> ledRed@0
-
-phy: Network.EthernetPhysicalLayer @ ethernet 0
-    Id1: 0x0007
-    Id2: 0xC0F1
-    BasicStatus: 0xFE2D
-    AutoNegotiationAdvertisement: 0x00A1
-    AutoNegotiationLinkPartnerBasePageAbility: 0x001
-    // SSR
-    VendorSpecific15: 0x101C
-
-ds3231 : Sensors.DS3231 @ i2c1 0x68
-
-sh1106 : Video.SH1106 @ i2c2 0x3C
-    FramesPerVirtualSecond: 10
-
-sgp41 : Sensors.SGP41 @ i2c2 0x59
-    VocTicks: 1024
-    NoxTicks: 2048
-
-sht31 : Sensors.SHT31 @ i2c2 0x44
-    Temperature: 40
-    Humidity: 85
-'''
-pre-start-commands = [
-    'cpu PerformanceInMips 1',
-    'showAnalyzer sysbus.usart3',
-    'showAnalyzer i2c2.sh1106',
-    'logLevel 3 ethernet',
-    'logLevel 3 ethernet.phy',
-    '''
-    emulation CreateSwitch "switch"
-    connector Connect sysbus.ethernet switch
-    emulation CreateTap $tap "tap"
-    connector Connect host.tap switch
-    ''',
-    '''
-    sysbus.usart3 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
-    sysbus.usart3 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
-    ''',
-]
-reset = '''
-sysbus LoadELF $bin
-sysbus WriteDoubleWord 0x1FFF7A10 $id1
-sysbus WriteDoubleWord 0x1FFF7A14 $id2
-sysbus WriteDoubleWord 0x1FFF7A18 $id3
-'''
-post-start-commands = [
-    '''
-    echo "*******************************************"
-    echo "Doing workaround for https://github.com/renode/renode/issues/237"
-    sleep 3
-    allowPrivates true
-    ethernet packetSent true
-    ethernet MAC "02:00:05:06:07:08"
-    allowPrivates false
-    echo "*******************************************"
-    ''',
-]

@@ -1,18 +1,7 @@
-// TODO
-// on_net_clock_timer
-// on_net_link_check_timer
-// on_eth
-// on_net_poll_timera
-// poll_ip_stack
-//
-// maybe split some up into net/ and ip/
-
 use crate::firmware_main::app::{
-    eth_interrupt_handler_task, eth_link_status_timer_task, ipstack_clock_timer_task,
-    ipstack_poll_task, ipstack_poll_timer_task,
+    ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task,
 };
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
-use ieee802_3_miim::Phy;
 use log::{debug, info};
 use smoltcp::time::Instant;
 
@@ -48,11 +37,12 @@ pub(crate) fn ipstack_clock_timer_task(ctx: ipstack_clock_timer_task::Context) {
 }
 
 pub(crate) fn ipstack_poll_task(ctx: ipstack_poll_task::Context) {
+    let eth = ctx.shared.eth;
     let net = ctx.shared.net;
+    let sockets = ctx.shared.sockets;
     let time = NET_CLOCK.get();
-    match net.poll(time) {
-        Ok(_something_happened) => (),
-        Err(e) => debug!("{:?}", e),
+    if net.poll(time, eth, sockets) {
+        // _something_happened
     }
 }
 
@@ -60,30 +50,4 @@ pub(crate) fn ipstack_poll_timer_task(ctx: ipstack_poll_timer_task::Context) {
     let timer = ctx.local.ipstack_poll_timer;
     let _ = timer.wait();
     ipstack_poll_task::spawn().ok();
-}
-
-pub(crate) fn eth_interrupt_handler_task(ctx: eth_interrupt_handler_task::Context) {
-    let net = ctx.shared.net;
-    net.device_mut().interrupt_handler();
-    ipstack_poll_task::spawn().ok();
-}
-
-pub(crate) fn eth_link_status_timer_task(ctx: eth_link_status_timer_task::Context) {
-    let link_led = ctx.local.link_led;
-    let phy = ctx.local.phy;
-    let timer = ctx.local.eth_link_status_timer;
-    let prev_link_status = ctx.local.prev_link_status;
-    let _ = timer.wait();
-    let link_status = if phy.phy_link_up() {
-        link_led.set_high();
-        true
-    } else {
-        link_led.set_low();
-        false
-    };
-
-    if link_status != *prev_link_status {
-        info!("Link is {}", if link_status { "up" } else { "down" });
-        *prev_link_status = link_status;
-    }
 }
