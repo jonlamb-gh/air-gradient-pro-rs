@@ -69,7 +69,9 @@ mod app {
         info!("Starting");
 
         let rcc = ctx.device.RCC.constrain();
-        let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(72.MHz()).freeze();
+        //let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(72.MHz()).freeze();
+        //let clocks = rcc.cfgr.freeze();
+        let clocks = rcc.cfgr.sysclk(64.MHz()).freeze();
 
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
