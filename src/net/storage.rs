@@ -43,22 +43,3 @@ impl<const BL: usize> UdpSocketStorage<BL> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{
-        NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, RX_RING_LEN, SOCKET_BUFFER_LEN, SRC_IP, TX_RING_LEN,
-    };
-    use crate::test_runner::TestResources;
-    use smoltcp::wire::Ipv4Address;
-
-    #[test_case]
-    fn net_storage(_res: TestResources) {
-        let _eth_dma_storage: EthernetDmaStorage<RX_RING_LEN, TX_RING_LEN> =
-            EthernetDmaStorage::new();
-        let _net_storage: NetworkStorage<NEIGHBOR_CACHE_LEN, ROUTING_TABLE_LEN, 1> =
-            NetworkStorage::new(Ipv4Cidr::new(Ipv4Address(SRC_IP), 24));
-        let _udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_LEN> = UdpSocketStorage::new();
-    }
-}

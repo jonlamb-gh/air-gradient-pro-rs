@@ -1,6 +1,22 @@
-// TODO - not being in the root module means some generated RTIC code is
-// seen as dead_code
-#![allow(dead_code)]
+//#![deny(warnings, clippy::all)]
+// TODO
+//#![forbid(unsafe_code)]
+#![no_main]
+#![no_std]
+
+mod config;
+mod display;
+mod logger;
+mod net;
+mod panic_handler;
+mod rtc;
+mod sensors;
+mod shared_i2c;
+mod tasks;
+
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
@@ -22,9 +38,10 @@ mod app {
         wire::EthernetAddress,
     };
     use stm32f4xx_hal::{
-        gpio::Speed as GpioSpeed,
-        pac::{self, TIM10, TIM11, TIM3},
+        gpio::{PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9},
+        pac::{self, TIM10, TIM11, TIM3, USART1, USART2},
         prelude::*,
+        serial::Serial,
         spi::Spi,
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
@@ -53,6 +70,11 @@ mod app {
         ipstack_poll_timer: CounterHz<TIM3>,
 
         rtc: Rtc,
+
+        // TODO
+        s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
+        // TODO
+        pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
     }
 
     // TODO
@@ -69,19 +91,17 @@ mod app {
         info!("Starting");
 
         let rcc = ctx.device.RCC.constrain();
-        //let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(72.MHz()).freeze();
-        //let clocks = rcc.cfgr.freeze();
-        let clocks = rcc.cfgr.sysclk(64.MHz()).freeze();
+        let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
 
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
 
-        // Setup logging impl via USART2, Rx on PA3, Tx on PA2
+        // Setup logging impl via USART6, Rx on PA12, Tx on PA11
         // This is also the virtual com port on the nucleo boards: stty -F /dev/ttyACM0 115200
-        let log_tx_pin = gpioa.pa2.into_alternate();
+        let log_tx_pin = gpioa.pa11.into_alternate();
         let log_tx = ctx
             .device
-            .USART2
+            .USART6
             .tx(log_tx_pin, 115_200.bps(), &clocks)
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
@@ -101,6 +121,25 @@ mod app {
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
+
+        // TODO
+        info!("Setup: S8 LP");
+        let tx = gpioa.pa9.into_alternate();
+        let rx = gpioa.pa10.into_alternate();
+        let s8_serial = ctx
+            .device
+            .USART1
+            .serial((tx, rx), 9600.bps(), &clocks)
+            .unwrap();
+
+        info!("Setup: PMS5003");
+        let tx = gpioa.pa2.into_alternate();
+        let rx = gpioa.pa3.into_alternate();
+        let pms_serial = ctx
+            .device
+            .USART2
+            .serial((tx, rx), 9600.bps(), &clocks)
+            .unwrap();
 
         // DS3231 RTC on I2C1
         // TODO - does it have an on-board pull-up?
@@ -170,10 +209,10 @@ mod app {
             let mut ncs = gpiob.pb12.into_push_pull_output();
             ncs.set_high();
             let int = gpioa.pa8.into_pull_up_input();
-            let mut reset = gpioa.pa9.into_push_pull_output();
+            let mut reset = gpiob.pb1.into_push_pull_output();
             reset.set_high();
 
-            let enc = enc28j60::Enc28j60::new(
+            let mut enc = enc28j60::Enc28j60::new(
                 eth_spi,
                 ncs,
                 int,
@@ -183,6 +222,9 @@ mod app {
                 config::SRC_MAC,
             )
             .unwrap();
+
+            // TODO - renode issue with ints vs not-connected/polling?
+            //enc.listen(enc28j60::Event::Pkt).unwrap();
 
             Eth::new(
                 enc,
@@ -242,6 +284,8 @@ mod app {
                 net_clock_timer,
                 ipstack_poll_timer,
                 rtc,
+                s8_serial,
+                pms_serial,
             },
             init::Monotonics(mono),
         )

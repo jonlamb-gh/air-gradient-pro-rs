@@ -24,31 +24,3 @@ where
         Ok(Display { drv })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_runner::TestResources;
-    use embedded_graphics::{
-        image::{Image, ImageRawLE},
-        pixelcolor::BinaryColor,
-        prelude::*,
-    };
-    use stm32f4xx_hal::prelude::*;
-
-    #[test_case]
-    fn display_drawing(res: TestResources) {
-        let gpiof = res.dp.GPIOF.split();
-        let scl = gpiof.pf1.into_alternate().set_open_drain();
-        let sda = gpiof.pf0.into_alternate().set_open_drain();
-        let i2c = res.dp.I2C2.i2c((scl, sda), 100.kHz(), &res.clocks);
-        let mut display = Display::new(i2c).unwrap();
-
-        let im: ImageRawLE<BinaryColor> =
-            ImageRawLE::new(include_bytes!("../test_resources/rust.raw"), 64);
-        Image::new(&im, Point::new(128 / 4, 0))
-            .draw(&mut display.drv)
-            .unwrap();
-        display.drv.flush().unwrap();
-    }
-}

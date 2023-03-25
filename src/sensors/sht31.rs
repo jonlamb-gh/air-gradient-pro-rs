@@ -58,25 +58,3 @@ impl fmt::Display for Measurement {
         )
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_runner::TestResources;
-    use stm32f4xx_hal::prelude::*;
-
-    #[test_case]
-    fn sht31_measurement(res: TestResources) {
-        let gpiof = res.dp.GPIOF.split();
-        let scl = gpiof.pf1.into_alternate().set_open_drain();
-        let sda = gpiof.pf0.into_alternate().set_open_drain();
-        let i2c = res.dp.I2C2.i2c((scl, sda), 100.kHz(), &res.clocks);
-        let delay = res.cp.SYST.delay(&res.clocks);
-        let mut sensor = Sht31::new(i2c, delay).unwrap();
-        // TODO - figure out what methods needed
-        let pre_status = sensor.drv.status(&mut sensor.delay).unwrap();
-        let m = sensor.measure().unwrap();
-        let post_status = sensor.drv.status(&mut sensor.delay).unwrap();
-        //panic!("pre_status = {pre_status:#?}\n{m:#?}\npost_status = {post_status:#?}");
-    }
-}

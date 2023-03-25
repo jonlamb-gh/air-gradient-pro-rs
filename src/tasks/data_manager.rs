@@ -1,4 +1,4 @@
-use crate::firmware_main::app::data_manager_task;
+use crate::app::data_manager_task;
 use crate::sensors::{sgp41, sht31};
 use log::{info, warn};
 use smoltcp::{socket::udp::Socket as UdpSocket, wire::Ipv4Address};

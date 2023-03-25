@@ -20,24 +20,3 @@ where
     pub sht31: Sht31<I2cProxy<I2C>, D0>,
     pub sgp41: Sgp41<I2cProxy<I2C>, D1>,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_runner::TestResources;
-    use stm32f4xx_hal::prelude::*;
-
-    #[test_case]
-    fn shared_i2c_smoke(res: TestResources) {
-        let bus_manager: &'static _ = {
-            let gpiof = res.dp.GPIOF.split();
-            let scl = gpiof.pf1.into_alternate().set_open_drain();
-            let sda = gpiof.pf0.into_alternate().set_open_drain();
-            let i2c = res.dp.I2C2.i2c((scl, sda), 100.kHz(), &res.clocks);
-            shared_bus::new_atomic_check!(I2c = i2c).unwrap()
-        };
-
-        let _dummy_a: I2cProxy<_> = bus_manager.acquire_i2c();
-        let _dummy_b: I2cProxy<_> = bus_manager.acquire_i2c();
-    }
-}

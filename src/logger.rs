@@ -4,17 +4,17 @@ use cortex_m::interrupt::{self, Mutex};
 use log::{Metadata, Record};
 use stm32f4xx_hal::{
     hal::blocking::serial::Write,
-    pac::USART2,
+    pac::USART6,
     serial::{Instance, Tx},
 };
 
 type Inner<T> = Mutex<RefCell<Tx<T>>>;
 pub struct Logger<T: Instance>(Inner<T>);
-pub type LoggerUsart2 = MaybeUninit<Logger<USART2>>;
+pub type LoggerUsart6 = MaybeUninit<Logger<USART6>>;
 
-static mut LOGGER: LoggerUsart2 = LoggerUsart2::uninit();
+static mut LOGGER: LoggerUsart6 = LoggerUsart6::uninit();
 
-pub(crate) unsafe fn init_logging(tx: Tx<USART2>) {
+pub(crate) unsafe fn init_logging(tx: Tx<USART6>) {
     LOGGER.write(Logger(Mutex::new(RefCell::new(tx))));
     log::set_logger(&*LOGGER.as_ptr())
         .map(|()| log::set_max_level(log::LevelFilter::Trace))
@@ -25,7 +25,7 @@ pub(crate) unsafe fn get_logger() -> &'static mut dyn fmt::Write {
     &mut *LOGGER.as_mut_ptr()
 }
 
-impl log::Log for Logger<USART2> {
+impl log::Log for Logger<USART6> {
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= log::max_level()
     }
@@ -51,7 +51,7 @@ impl log::Log for Logger<USART2> {
     }
 }
 
-impl fmt::Write for Logger<USART2> {
+impl fmt::Write for Logger<USART6> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         interrupt::free(|cs| {
             self.0.borrow(cs).borrow_mut().bwrite_all(s.as_bytes()).ok();

@@ -33,36 +33,4 @@ where
     pub fn set_datetime(&mut self, dt: &NaiveDateTime) -> Result<(), Error<E, ()>> {
         self.drv.set_datetime(dt)
     }
-
-    #[cfg(test)]
-    pub fn release(self) -> I2C {
-        self.drv.destroy_ds3231()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_runner::TestResources;
-    use ds323x::NaiveDate;
-    use stm32f4xx_hal::prelude::*;
-
-    #[test_case]
-    fn roundtrip_datetime(res: TestResources) {
-        let gpiob = res.dp.GPIOB.split();
-        let scl = gpiob.pb8.into_alternate().set_open_drain();
-        let sda = gpiob.pb9.into_alternate().set_open_drain();
-        let i2c = res.dp.I2C1.i2c((scl, sda), 100.kHz(), &res.clocks);
-        let mut rtc = Rtc::new(i2c).unwrap();
-        let new_dt = NaiveDate::from_ymd_opt(2020, 5, 1)
-            .unwrap()
-            .and_hms_opt(19, 59, 30)
-            .unwrap();
-        rtc.set_datetime(&new_dt).unwrap();
-        let now = rtc.datetime().unwrap();
-        assert!(now >= new_dt);
-
-        let i2c = rtc.release();
-        let (_i2c, _pins) = i2c.release();
-    }
 }

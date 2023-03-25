@@ -2,14 +2,14 @@ use enc28j60::Enc28j60;
 use smoltcp::phy::{self, Device, DeviceCapabilities, Medium};
 use smoltcp::time::Instant;
 use stm32f4xx_hal::{
-    gpio::{Input, Output, PushPull, AF5, PA8, PA9, PB12, PB13, PB14, PB15},
+    gpio::{Input, Output, PushPull, AF5, PA8, PB1, PB12, PB13, PB14, PB15},
     pac::SPI2,
     spi::Spi,
 };
 
 type CsPin = PB12<Output<PushPull>>;
 type IntPin = PA8<Input>;
-type ResetPin = PA9<Output<PushPull>>;
+type ResetPin = PB1<Output<PushPull>>;
 
 type SpiSckPin = PB13<AF5>;
 type SpiMisoPin = PB14<AF5>;

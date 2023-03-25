@@ -1,4 +1,4 @@
-use crate::firmware_main::app::{data_manager_task, sgp41_task};
+use crate::app::{data_manager_task, sgp41_task};
 use crate::sensors::Sgp41;
 use crate::tasks::SpawnArg;
 use log::info;

@@ -1,4 +1,4 @@
-use crate::firmware_main::app::{data_manager_task, sht31_task};
+use crate::app::{data_manager_task, sht31_task};
 use crate::sensors::Sht31;
 use crate::tasks::SpawnArg;
 use log::info;

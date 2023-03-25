@@ -1,6 +1,4 @@
-use crate::firmware_main::app::{
-    ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task,
-};
+use crate::app::{ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task};
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
 use log::{debug, info};
 use smoltcp::time::Instant;

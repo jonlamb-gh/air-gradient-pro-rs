@@ -61,28 +61,3 @@ impl fmt::Display for Measurement {
         )
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_runner::TestResources;
-    use stm32f4xx_hal::prelude::*;
-
-    #[test_case]
-    fn sgp41_self_test_and_measurement(res: TestResources) {
-        let gpiof = res.dp.GPIOF.split();
-        let scl = gpiof.pf1.into_alternate().set_open_drain();
-        let sda = gpiof.pf0.into_alternate().set_open_drain();
-        let i2c = res.dp.I2C2.i2c((scl, sda), 100.kHz(), &res.clocks);
-        let delay = res.cp.SYST.delay(&res.clocks);
-        let mut sensor = Sgp41::new(i2c, delay).unwrap();
-        // TODO - figure out what methods needed
-        let sn = sensor.drv.get_serial_number().unwrap();
-        sensor.self_test().unwrap();
-        sensor.drv.execute_conditioning().unwrap();
-        let m = sensor.measure().unwrap();
-        let raw = sensor.drv.measure_raw().unwrap();
-        let compd = sensor.drv.measure_raw_compensated(10, 20).unwrap();
-        //panic!("sn=0x{sn:X}\n{raw:#?}\n{compd:#?}");
-    }
-}
