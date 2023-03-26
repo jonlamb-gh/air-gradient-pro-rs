@@ -35,7 +35,7 @@ impl log::Log for Logger<USART6> {
             interrupt::free(|cs| {
                 writeln!(
                     self.0.borrow(cs).borrow_mut(),
-                    "[{}] {}",
+                    "[{}] {}\r",
                     level_marker(record.level()),
                     record.args()
                 )

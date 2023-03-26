@@ -9,7 +9,8 @@ use stm32f4xx_hal::{
 
 type CsPin = PB12<Output<PushPull>>;
 type IntPin = PA8<Input>;
-type ResetPin = PB1<Output<PushPull>>;
+//type ResetPin = PB1<Output<PushPull>>;
+type ResetPin = enc28j60::Unconnected;
 
 type SpiSckPin = PB13<AF5>;
 type SpiMisoPin = PB14<AF5>;
@@ -35,6 +36,10 @@ impl<'buf> Eth<'buf> {
             rx_buffer,
             tx_buffer,
         }
+    }
+
+    pub fn driver(&mut self) -> &mut Drv {
+        &mut self.drv
     }
 }
 

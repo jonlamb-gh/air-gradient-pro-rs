@@ -14,10 +14,10 @@ fn panic(info: &PanicInfo) -> ! {
     interrupt::disable();
 
     let w = unsafe { crate::logger::get_logger() };
-    writeln!(w, "\n********************************").ok();
-    writeln!(w, "PANIC").ok();
-    writeln!(w, "{info}").ok();
-    writeln!(w, "********************************").ok();
+    writeln!(w, "\n********************************\r").ok();
+    writeln!(w, "PANIC\r").ok();
+    writeln!(w, "{info}\r").ok();
+    writeln!(w, "********************************\r").ok();
 
     loop {
         compiler_fence(SeqCst);

@@ -51,9 +51,11 @@ features = [
     #"verbose"
 ]
 
+# TODO
 [dependencies.enc28j60]
-git = "https://github.com/jonlamb-gh/enc28j60.git"
-branch = "cleanup"
+#git = "https://github.com/jonlamb-gh/enc28j60.git"
+#branch = "cleanup"
+path = "../enc28j60"
 
 [dependencies.embedded-graphics]
 version = "0.7"

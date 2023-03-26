@@ -26,10 +26,14 @@ mod app {
     use crate::rtc::Rtc;
     use crate::sensors::{Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
-    use crate::tasks::data_manager::default_bcast_message;
+    //use crate::tasks::data_manager::default_bcast_message;
     use crate::tasks::{
-        data_manager_task, ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task,
-        sgp41_task, sht31_task, SpawnArg,
+        eth_gpio_interrupt_handler_task,
+        //sgp41_task, sht31_task, SpawnArg,
+        //data_manager_task,
+        ipstack_clock_timer_task,
+        ipstack_poll_task,
+        ipstack_poll_timer_task,
     };
     use log::{debug, info, warn};
     use smoltcp::{
@@ -38,7 +42,7 @@ mod app {
         wire::EthernetAddress,
     };
     use stm32f4xx_hal::{
-        gpio::{PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9},
+        gpio::{Edge, PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9},
         pac::{self, TIM10, TIM11, TIM3, USART1, USART2},
         prelude::*,
         serial::Serial,
@@ -60,21 +64,20 @@ mod app {
         sockets: SocketSet<'static>,
         #[lock_free]
         udp_socket: SocketHandle,
-        #[lock_free]
-        i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
+        //#[lock_free]
+        //i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
     }
 
     #[local]
     struct Local {
         net_clock_timer: SysCounterUs,
         ipstack_poll_timer: CounterHz<TIM3>,
-
-        rtc: Rtc,
+        //rtc: Rtc,
 
         // TODO
-        s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
+        //s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
         // TODO
-        pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
+        //pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
     }
 
     // TODO
@@ -87,9 +90,8 @@ mod app {
         net_storage: NetworkStorage<1> = NetworkStorage::new(),
         udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_LEN> = UdpSocketStorage::new(),
     ])]
-    fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
-        info!("Starting");
-
+    fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+        let mut syscfg = ctx.device.SYSCFG.constrain();
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
 
@@ -121,6 +123,8 @@ mod app {
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
+
+        /*
 
         // TODO
         info!("Setup: S8 LP");
@@ -160,12 +164,6 @@ mod app {
             shared_bus::new_atomic_check!(I2c = i2c2).unwrap()
         };
 
-        // TODO - renode STM32_Timer (LTimer) issues
-        // the hal timer/delay.rs impl is blocked on
-        // CEN bit to clear
-        // timer10 enableRequested False
-        //
-        // could also adjust timer11 frequency in script to make it finish faster
         let sht31_delay = ctx.device.TIM10.delay_us(&clocks);
         let sgp41_delay = ctx.device.TIM11.delay_us(&clocks);
 
@@ -183,6 +181,7 @@ mod app {
                 sgp41,
             }
         };
+        */
 
         info!("Setup: ETH");
         let eth_spi = {
@@ -204,27 +203,37 @@ mod app {
             )
         };
         let mut eth = {
-            // TODO GPIO interrupt
+            let ncs = gpiob.pb12.into_push_pull_output_in_state(true.into());
 
-            let mut ncs = gpiob.pb12.into_push_pull_output();
-            ncs.set_high();
-            let int = gpioa.pa8.into_pull_up_input();
-            let mut reset = gpiob.pb1.into_push_pull_output();
+            let mut int = gpioa.pa8.into_pull_up_input();
+            int.make_interrupt_source(&mut syscfg);
+            int.enable_interrupt(&mut ctx.device.EXTI);
+            int.trigger_on_edge(&mut ctx.device.EXTI, Edge::Falling);
+
+            let mut reset = gpiob.pb1.into_push_pull_output_in_state(true.into());
+            // Hard reset
+            reset.set_low();
+            common_delay.delay_ms(5_u8);
             reset.set_high();
+            common_delay.delay_ms(5_u8);
 
             let mut enc = enc28j60::Enc28j60::new(
                 eth_spi,
                 ncs,
                 int,
-                reset,
+                // Provide Unconnected so that a soft-reset also happens
+                // TODO - still debugging why it occasionally gets into
+                // CorruptRxBuffer and no more data
+                // Probably just panic/reset when it happens until I
+                // look into it more
+                enc28j60::Unconnected,
                 &mut common_delay,
                 7168,
                 config::SRC_MAC,
             )
             .unwrap();
 
-            // TODO - renode issue with ints vs not-connected/polling?
-            //enc.listen(enc28j60::Event::Pkt).unwrap();
+            enc.listen(enc28j60::Event::Pkt).unwrap();
 
             Eth::new(
                 enc,
@@ -268,9 +277,9 @@ mod app {
         info!("Initialized");
 
         // TODO - move this to a wrapper task that schedules all the sensor tasks
-        data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
+        //data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
 
-        sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+        //sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
 
         (
             Shared {
@@ -278,19 +287,20 @@ mod app {
                 net: eth_iface,
                 sockets,
                 udp_socket: udp_handle,
-                i2c_devices,
+                //i2c_devices,
             },
             Local {
                 net_clock_timer,
                 ipstack_poll_timer,
-                rtc,
-                s8_serial,
-                pms_serial,
+                //rtc,
+                //s8_serial,
+                //pms_serial,
             },
             init::Monotonics(mono),
         )
     }
 
+    /*
     #[task]
     fn sensor_measurements_task(_ctx: sensor_measurements_task::Context) {
         sht31_task::spawn().ok();
@@ -312,6 +322,7 @@ mod app {
         #[task(local = [rtc, msg: Message = default_bcast_message()], shared = [net, sockets, udp_socket], capacity = 6)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
     }
+    */
 
     extern "Rust" {
         #[task(binds = SysTick, local = [net_clock_timer])]
@@ -326,5 +337,10 @@ mod app {
     extern "Rust" {
         #[task(binds = TIM3, local = [ipstack_poll_timer])]
         fn ipstack_poll_timer_task(ctx: ipstack_poll_timer_task::Context);
+    }
+
+    extern "Rust" {
+        #[task(binds = EXTI9_5, shared = [eth])]
+        fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context);
     }
 }

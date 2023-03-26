@@ -8,6 +8,9 @@ https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/
 https://www.airgradient.com/images/diy/schematicpro37.png
 https://github.com/airgradienthq/arduino
 
+use their defaults:
+https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino#L267
+
 128x64 display U8G2 SH1106
 https://github.com/olikraus/u8g2
 https://crates.io/crates/sh1106

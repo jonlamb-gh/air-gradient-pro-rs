@@ -1,7 +1,10 @@
-use crate::app::{ipstack_clock_timer_task, ipstack_poll_task, ipstack_poll_timer_task};
+use crate::app::{
+    eth_gpio_interrupt_handler_task, ipstack_clock_timer_task, ipstack_poll_task,
+    ipstack_poll_timer_task,
+};
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
-use log::{debug, info};
 use smoltcp::time::Instant;
+use stm32f4xx_hal::gpio::ExtiPin;
 
 /// 32-bit millisecond clock
 #[derive(Debug)]
@@ -48,4 +51,12 @@ pub(crate) fn ipstack_poll_timer_task(ctx: ipstack_poll_timer_task::Context) {
     let timer = ctx.local.ipstack_poll_timer;
     let _ = timer.wait();
     ipstack_poll_task::spawn().ok();
+}
+
+pub(crate) fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context) {
+    let eth = ctx.shared.eth;
+    if eth.driver().interrupt_pending() {
+        eth.driver().int_pin().clear_interrupt_pending_bit();
+        ipstack_poll_task::spawn().ok();
+    }
 }
