@@ -27,13 +27,16 @@ mod app {
     use crate::sensors::{Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     //use crate::tasks::data_manager::default_bcast_message;
+    use crate::tasks::sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState};
     use crate::tasks::{
         eth_gpio_interrupt_handler_task,
-        //sgp41_task, sht31_task, SpawnArg,
+        //SpawnArg,
         //data_manager_task,
         ipstack_clock_timer_task,
         ipstack_poll_task,
         ipstack_poll_timer_task,
+        sgp41_task,
+        sht31_task,
     };
     use log::{debug, info, warn};
     use smoltcp::{
@@ -42,7 +45,7 @@ mod app {
         wire::EthernetAddress,
     };
     use stm32f4xx_hal::{
-        gpio::{Edge, PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9},
+        gpio::{Edge, Output, PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9, PC13},
         pac::{self, TIM10, TIM11, TIM3, USART1, USART2},
         prelude::*,
         serial::Serial,
@@ -52,7 +55,7 @@ mod app {
     };
     use wire_protocols::broadcast::Repr as Message;
 
-    //type LedGreenPin = PB0<Output<PushPull>>;
+    type LedPin = PC13<Output<PushPull>>;
 
     #[shared]
     struct Shared {
@@ -64,8 +67,8 @@ mod app {
         sockets: SocketSet<'static>,
         #[lock_free]
         udp_socket: SocketHandle,
-        //#[lock_free]
-        //i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
+        #[lock_free]
+        i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
     }
 
     #[local]
@@ -75,9 +78,9 @@ mod app {
         //rtc: Rtc,
 
         // TODO
-        //s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
+        s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
         // TODO
-        //pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
+        pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
     }
 
     // TODO
@@ -124,7 +127,15 @@ mod app {
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
 
-        /*
+        info!(
+            "Setup: startup delay {} seconds",
+            config::STARTUP_DELAY_SECONDS
+        );
+        for _ in 0..config::STARTUP_DELAY_SECONDS {
+            for _ in 0..10 {
+                common_delay.delay_ms(100_u8);
+            }
+        }
 
         // TODO
         info!("Setup: S8 LP");
@@ -139,12 +150,25 @@ mod app {
         info!("Setup: PMS5003");
         let tx = gpioa.pa2.into_alternate();
         let rx = gpioa.pa3.into_alternate();
-        let pms_serial = ctx
+        let mut pms_serial = ctx
             .device
             .USART2
             .serial((tx, rx), 9600.bps(), &clocks)
             .unwrap();
+        info!("PMS5003: entering standy mode");
+        // TODO - just putting into standby mode for now
+        let cmd = [0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73];
+        common_delay.delay_ms(20_u8);
+        pms_serial.bwrite_all(&cmd).unwrap();
+        pms_serial.bflush().unwrap();
+        common_delay.delay_ms(20_u8);
+        pms_serial.bwrite_all(&cmd).unwrap();
+        pms_serial.bflush().unwrap();
+        common_delay.delay_ms(20_u8);
+        pms_serial.bwrite_all(&cmd).unwrap();
+        pms_serial.bflush().unwrap();
 
+        /*
         // DS3231 RTC on I2C1
         // TODO - does it have an on-board pull-up?
         info!("Setup: I2C1");
@@ -153,6 +177,7 @@ mod app {
         let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
         info!("Setup: DS3231 RTC");
         let rtc = Rtc::new(i2c1).unwrap();
+        */
 
         // Shared I2C2 bus
         info!("Setup: I2C2");
@@ -172,8 +197,10 @@ mod app {
             let display = Display::new(bus_manager.acquire_i2c()).unwrap();
             info!("Setup: SHT31");
             let sht31 = Sht31::new(bus_manager.acquire_i2c(), sht31_delay).unwrap();
+            info!("SHT31: serial number {}", sht31.serial_number());
             info!("Setup: SGP41");
             let sgp41 = Sgp41::new(bus_manager.acquire_i2c(), sgp41_delay).unwrap();
+            info!("SGP41: serial number {}", sgp41.serial_number());
 
             I2cDevices {
                 display,
@@ -181,7 +208,6 @@ mod app {
                 sgp41,
             }
         };
-        */
 
         info!("Setup: ETH");
         let eth_spi = {
@@ -279,7 +305,8 @@ mod app {
         // TODO - move this to a wrapper task that schedules all the sensor tasks
         //data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
 
-        //sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
+        sht31_task::spawn().unwrap();
+        sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
 
         (
             Shared {
@@ -287,25 +314,17 @@ mod app {
                 net: eth_iface,
                 sockets,
                 udp_socket: udp_handle,
-                //i2c_devices,
+                i2c_devices,
             },
             Local {
                 net_clock_timer,
                 ipstack_poll_timer,
                 //rtc,
-                //s8_serial,
-                //pms_serial,
+                s8_serial,
+                pms_serial,
             },
             init::Monotonics(mono),
         )
-    }
-
-    /*
-    #[task]
-    fn sensor_measurements_task(_ctx: sensor_measurements_task::Context) {
-        sht31_task::spawn().ok();
-        sgp41_task::spawn().ok();
-        sensor_measurements_task::spawn_after(config::MEASUREMENT_PERIOD_MS.millis()).unwrap();
     }
 
     extern "Rust" {
@@ -314,10 +333,11 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(shared = [i2c_devices])]
-        fn sgp41_task(ctx: sgp41_task::Context);
+        #[task(local = [state: Sgp41TaskState = Sgp41TaskState::new()], shared = [i2c_devices], capacity = 4)]
+        fn sgp41_task(ctx: sgp41_task::Context, arg: Sgp41SpawnArg);
     }
 
+    /*
     extern "Rust" {
         #[task(local = [rtc, msg: Message = default_bcast_message()], shared = [net, sockets, udp_socket], capacity = 6)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);

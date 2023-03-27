@@ -7,6 +7,7 @@ https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board
 https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/
 https://www.airgradient.com/images/diy/schematicpro37.png
 https://github.com/airgradienthq/arduino
+https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino
 
 use their defaults:
 https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino#L267
@@ -39,6 +40,9 @@ https://crates.io/crates/sgp41
 uses https://crates.io/crates/sensirion-i2c
 https://sensirion.com/products/catalog/SGP41/
 https://www.mouser.com/datasheet/2/682/Sensirion_Gas_Sensors_Datasheet_SGP41-2604356.pdf
+https://github.com/Sensirion/arduino-i2c-sgp41
+https://github.com/Sensirion/gas-index-algorithm
+https://github.com/Sensirion/arduino-gas-index-algorithm
 
 ## Pins
 

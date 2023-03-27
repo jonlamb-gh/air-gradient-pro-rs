@@ -9,5 +9,7 @@ pub const SRC_IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(SRC_IP), 24);
 // TODO - maybe put behind a mod like net
 pub const SOCKET_BUFFER_LEN: usize = 256;
 
-// sensor mod
-pub const MEASUREMENT_PERIOD_MS: u32 = 1000;
+pub const STARTUP_DELAY_SECONDS: u8 = 5;
+
+pub const SGP41_MEASUREMENT_INTERVAL_MS: u32 = 1000;
+pub const SHT31_MEASUREMENT_INTERVAL_MS: u32 = 2500;

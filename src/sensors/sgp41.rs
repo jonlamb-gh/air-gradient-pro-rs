@@ -1,3 +1,4 @@
+use crate::sensors::sht31;
 use core::fmt;
 use sgp41::error::Error;
 use stm32f4xx_hal::hal::blocking::{
@@ -11,7 +12,15 @@ pub struct Measurement {
     pub nox_ticks: u16,
 }
 
+pub const fn default_compensation() -> sht31::RawMeasurement {
+    sht31::RawMeasurement {
+        humidity_ticks: 0x8000,
+        temperature_ticks: 0x6666,
+    }
+}
+
 pub struct Sgp41<I2C, D> {
+    sn: u64,
     drv: sgp41::sgp41::Sgp41<I2C, D>,
 }
 
@@ -22,24 +31,39 @@ where
 {
     pub fn new(i2c: I2C, delay: D) -> Result<Self, Error<E>> {
         let mut drv = sgp41::sgp41::Sgp41::new(i2c, delay);
-
-        // TODO
-        // self test here or as methods...
-        //drv.soft_reset()?;
-
-        Ok(Sgp41 { drv })
+        // TODO - do what the arduino lib does for configs and startup procedure
+        //
+        // tvocInterval = 1000 ms
+        //
+        // do conditioning for 10 sec (NOx conditioning)
+        //   sgp41.executeConditioning(compensationRh, compensationT, srawVoc);
+        // then
+        //   sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox)
+        //
+        // TVOC = voc_algorithm.process(srawVoc);
+        // NOX = nox_algorithm.process(srawNox);
+        drv.turn_heater_off()?;
+        drv.execute_self_test()?;
+        let sn = drv.get_serial_number()?;
+        Ok(Sgp41 { sn, drv })
     }
 
-    // TODO - figure out what methods needed
-    pub fn self_test(&mut self) -> Result<(), Error<E>> {
-        // TODO why is this not using Command::ExecuteSelfTest ??
-        self.drv.execute_self_test()
+    pub fn serial_number(&self) -> u64 {
+        self.sn
     }
 
-    // TODO - measure_raw vs measure_raw_compensated
-    // see what the arduino firmware does
-    pub fn measure(&mut self) -> Result<Measurement, Error<E>> {
-        self.drv.measure_raw().map(Measurement::from)
+    pub fn execute_conditioning(&mut self) -> Result<(), Error<E>> {
+        let _raw_voc = self.drv.execute_conditioning()?;
+        Ok(())
+    }
+
+    pub fn measure(
+        &mut self,
+        compensation: &sht31::RawMeasurement,
+    ) -> Result<Measurement, Error<E>> {
+        self.drv
+            .measure_raw_compensated(compensation.humidity_ticks, compensation.temperature_ticks)
+            .map(Measurement::from)
     }
 }
 
@@ -56,7 +80,7 @@ impl fmt::Display for Measurement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "SGP41 Measurement voc_ticks: {}, nox_ticks: {}",
+            "SGP41 voc_ticks: {}, nox_ticks: {}",
             self.voc_ticks, self.nox_ticks,
         )
     }

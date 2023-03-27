@@ -276,9 +276,9 @@ checksum = "6548a0ad5d2549e111e1f6a11a6c2e2d00ce6a3dafe22948d67c2b443f775e52"
 
 [[package]]
 name = "cxx"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9c00419335c41018365ddf7e4d5f1c12ee3659ddcf3e01974650ba1de73d038"
+checksum = "f61f1b6389c3fe1c316bf8a4dccc90a38208354b330925bce1f74a6c4756eb93"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -288,9 +288,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb8307ad413a98fff033c8545ecf133e3257747b3bae935e7602aab8aa92d4ca"
+checksum = "12cee708e8962df2aeb38f594aae5d827c022b6460ac71a7a3e2c3c2aae5a07b"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -303,15 +303,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc52e2eb08915cb12596d29d55f0b5384f00d697a646dbd269b6ecb0fbd9d31"
+checksum = "7944172ae7e4068c533afbb984114a56c46e9ccddda550499caa222902c7f7bb"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "631569015d0d8d54e6c241733f944042623ab6df7bc3be7466874b05fcdb1c5f"
+checksum = "2345488264226bf682893e25de0769f3360aac9957980ec49361b083ddaa5bc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -388,6 +388,7 @@ checksum = "723dce4e9f25b6e6c5f35628e144794e5b459216ed7da97b7c4b66cdb3fa82ca"
 [[package]]
 name = "enc28j60"
 version = "0.3.0"
+source = "git+https://github.com/jonlamb-gh/enc28j60.git?branch=cleanup#b0066357a852b96a891d7afd1997c9cb51f0f3bf"
 dependencies = [
  "as-slice",
  "byteorder",
@@ -727,9 +728,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.53"
+version = "1.0.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba466839c78239c09faf015484e5cc04860f88242cff4d03eb038f04b4699b73"
+checksum = "e472a104799c74b514a57226160104aa483546de37e839ec50e3c2e41dd87534"
 dependencies = [
  "unicode-ident",
 ]
@@ -868,7 +869,7 @@ dependencies = [
 [[package]]
 name = "sgp41"
 version = "0.1.1"
-source = "git+https://github.com/jonlamb-gh/sgp41.git?branch=various-changes#dfde52c31dfb22e0e37deb0c4541aed638ff55b7"
+source = "git+https://github.com/jonlamb-gh/sgp41.git?branch=various-changes#b8aa20323f58c0e9e0da8feba4f115b35da084a9"
 dependencies = [
  "embedded-hal 0.2.7",
  "sensirion-i2c",
@@ -899,7 +900,7 @@ dependencies = [
 [[package]]
 name = "sht3x"
 version = "0.1.1"
-source = "git+https://github.com/miek/sht3x-rs.git?branch=master#e0485ab8ae4f4d76ee416907431511231b8d5f06"
+source = "git+https://github.com/jonlamb-gh/sht3x-rs.git?branch=various-changes#e2678e994d004fea3a464bd64f071eb618105431"
 dependencies = [
  "bitflags",
  "embedded-hal 0.2.7",

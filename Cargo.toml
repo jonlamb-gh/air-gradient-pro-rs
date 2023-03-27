@@ -24,14 +24,18 @@ path = "libraries/wire-protocols"
 
 # TODO - upstream these changes
 [dependencies.sgp41]
-#sgp41 = "0.1"
 git = "https://github.com/jonlamb-gh/sgp41.git"
 branch = "various-changes"
 
-# TODO - use crates.io once available
+# TODO - upstream these changes
 [dependencies.sht3x]
-git = "https://github.com/miek/sht3x-rs.git"
-branch = "master"
+git = "https://github.com/jonlamb-gh/sht3x-rs.git"
+branch = "various-changes"
+
+# TODO - upstream these changes
+[dependencies.enc28j60]
+git = "https://github.com/jonlamb-gh/enc28j60.git"
+branch = "cleanup"
 
 [dependencies.stm32f4xx-hal]
 version = "0.15"
@@ -50,12 +54,6 @@ features = [
     #"log",
     #"verbose"
 ]
-
-# TODO
-[dependencies.enc28j60]
-#git = "https://github.com/jonlamb-gh/enc28j60.git"
-#branch = "cleanup"
-path = "../enc28j60"
 
 [dependencies.embedded-graphics]
 version = "0.7"
