@@ -16,7 +16,8 @@
 //
 // https://github.com/airgradienthq/arduino/blob/43f599a0a7d65524c49d00f546f814420aeaed6e/AirGradient.cpp#L251
 
-use pms_7003::{Error, OutputFrame, Pms7003Sensor};
+use core::fmt;
+use pms_7003::{Error, Pms7003Sensor};
 use stm32f4xx_hal::{
     gpio::{PushPull, AF7, PA2, PA3},
     hal::blocking::delay::DelayMs,
@@ -24,6 +25,12 @@ use stm32f4xx_hal::{
     pac::USART2,
     serial::Serial,
 };
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct Measurement {
+    /// PM2.5 concentration unit μ g/m3（under atmospheric environment）
+    pub pm2_5_atm: u16,
+}
 
 pub type DefaultPms5003Serial = Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>)>;
 
@@ -49,11 +56,35 @@ where
         delay.delay_ms(100_u8);
         let _ = drv.read()?;
 
-        log::info!("PMS5003: entering standy mode");
+        log::info!("PMS5003: entering standby mode");
         drv.passive()?;
         delay.delay_ms(100_u8);
-        drv.sleep()?;
+        let mut pms = Self { drv };
+        pms.enter_standby_mode()?;
 
-        Ok(Self { drv })
+        Ok(pms)
+    }
+
+    pub fn enter_standby_mode(&mut self) -> Result<(), Error> {
+        self.drv.sleep()?;
+        Ok(())
+    }
+
+    pub fn enter_active_mode(&mut self) -> Result<(), Error> {
+        self.drv.wake()?;
+        Ok(())
+    }
+
+    pub fn measure(&mut self) -> Result<Measurement, Error> {
+        let f = self.drv.read()?;
+        Ok(Measurement {
+            pm2_5_atm: f.pm2_5_atm,
+        })
+    }
+}
+
+impl fmt::Display for Measurement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PMS5003 pm2_5_atm: {}", self.pm2_5_atm)
     }
 }

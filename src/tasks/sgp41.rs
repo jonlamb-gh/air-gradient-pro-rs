@@ -1,5 +1,4 @@
-use crate::sensors::sht31;
-use crate::{app::sgp41_task, config, sensors::sgp41::default_compensation, sensors::Sgp41};
+use crate::{app::sgp41_task, config, sensors::sgp41::default_compensation, sensors::sht31};
 //use crate::tasks::SpawnArg;
 //use crate::app::{data_manager_task, sgp41_task};
 use log::{info, warn};
@@ -10,6 +9,7 @@ use stm32f4xx_hal::prelude::*;
 const CONDITIONING_ITERS_10S: u32 = (10 * 1000) / config::SGP41_MEASUREMENT_INTERVAL_MS;
 
 pub struct TaskState {
+    // TODO - use a state machine enum to represent this, like done in pms task
     conditioning_iterations: u32,
     has_valid_compensation_data: bool,
     compensation_data: sht31::RawMeasurement,
@@ -30,6 +30,7 @@ pub enum SpawnArg {
     /// Raw temperature and humidity measurement from the SHT31 sensor
     /// used for compensation.
     ConditioningData(sht31::RawMeasurement),
+
     /// Periodic measurement interval
     Measurement,
 }

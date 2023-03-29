@@ -27,7 +27,6 @@ mod app {
     use crate::sensors::{Pms5003, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     //use crate::tasks::data_manager::default_bcast_message;
-    use crate::tasks::sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState};
     use crate::tasks::{
         eth_gpio_interrupt_handler_task,
         //SpawnArg,
@@ -35,6 +34,9 @@ mod app {
         ipstack_clock_timer_task,
         ipstack_poll_task,
         ipstack_poll_timer_task,
+        pms5003::TaskState as Pms5003TaskState,
+        pms5003_task,
+        sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
         sgp41_task,
         sht31_task,
     };
@@ -130,14 +132,9 @@ mod app {
             "Setup: startup delay {} seconds",
             config::STARTUP_DELAY_SECONDS
         );
-        // TODO
-        common_delay.delay_ms(100_u8);
-        common_delay.delay_ms(100_u8);
-        common_delay.delay_ms(100_u8);
         for _ in 0..config::STARTUP_DELAY_SECONDS {
             for _ in 0..10 {
-                // TODO
-                //common_delay.delay_ms(100_u8);
+                common_delay.delay_ms(100_u8);
             }
         }
 
@@ -300,6 +297,7 @@ mod app {
 
         sht31_task::spawn().unwrap();
         sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
+        pms5003_task::spawn().unwrap();
 
         (
             Shared {
@@ -328,6 +326,11 @@ mod app {
     extern "Rust" {
         #[task(local = [state: Sgp41TaskState = Sgp41TaskState::new()], shared = [i2c_devices], capacity = 4)]
         fn sgp41_task(ctx: sgp41_task::Context, arg: Sgp41SpawnArg);
+    }
+
+    extern "Rust" {
+        #[task(local = [state: Pms5003TaskState = Pms5003TaskState::new(), pms])]
+        fn pms5003_task(ctx: pms5003_task::Context);
     }
 
     /*

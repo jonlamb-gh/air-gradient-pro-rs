@@ -1,5 +1,7 @@
 // TODO do something like quartiq/stabilizer's panic_handler
 // https://github.com/quartiq/stabilizer/blob/488cc2171b4c32ad516f68094c3b5cd91b663597/src/hardware/mod.rs#L81
+//
+// abort/reset-with-watchdog
 
 use core::{
     panic::PanicInfo,

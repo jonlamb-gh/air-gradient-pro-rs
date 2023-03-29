@@ -1,5 +1,7 @@
 # air-gradient-pro-rs
 
+try out https://github.com/rtic-scope
+
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
 https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board
