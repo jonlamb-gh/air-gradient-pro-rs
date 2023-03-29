@@ -24,7 +24,7 @@ mod app {
     use crate::display::Display;
     use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
-    use crate::sensors::{Sgp41, Sht31};
+    use crate::sensors::{Pms5003, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     //use crate::tasks::data_manager::default_bcast_message;
     use crate::tasks::sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState};
@@ -75,12 +75,11 @@ mod app {
     struct Local {
         net_clock_timer: SysCounterUs,
         ipstack_poll_timer: CounterHz<TIM3>,
+        pms: Pms5003,
         //rtc: Rtc,
 
         // TODO
         s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
-        // TODO
-        pms_serial: Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>), u8>,
     }
 
     // TODO
@@ -131,9 +130,14 @@ mod app {
             "Setup: startup delay {} seconds",
             config::STARTUP_DELAY_SECONDS
         );
+        // TODO
+        common_delay.delay_ms(100_u8);
+        common_delay.delay_ms(100_u8);
+        common_delay.delay_ms(100_u8);
         for _ in 0..config::STARTUP_DELAY_SECONDS {
             for _ in 0..10 {
-                common_delay.delay_ms(100_u8);
+                // TODO
+                //common_delay.delay_ms(100_u8);
             }
         }
 
@@ -155,18 +159,7 @@ mod app {
             .USART2
             .serial((tx, rx), 9600.bps(), &clocks)
             .unwrap();
-        info!("PMS5003: entering standy mode");
-        // TODO - just putting into standby mode for now
-        let cmd = [0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73];
-        common_delay.delay_ms(20_u8);
-        pms_serial.bwrite_all(&cmd).unwrap();
-        pms_serial.bflush().unwrap();
-        common_delay.delay_ms(20_u8);
-        pms_serial.bwrite_all(&cmd).unwrap();
-        pms_serial.bflush().unwrap();
-        common_delay.delay_ms(20_u8);
-        pms_serial.bwrite_all(&cmd).unwrap();
-        pms_serial.bflush().unwrap();
+        let pms = Pms5003::new(pms_serial, &mut common_delay).unwrap();
 
         /*
         // DS3231 RTC on I2C1
@@ -319,9 +312,9 @@ mod app {
             Local {
                 net_clock_timer,
                 ipstack_poll_timer,
+                pms,
                 //rtc,
                 s8_serial,
-                pms_serial,
             },
             init::Monotonics(mono),
         )

@@ -23,6 +23,11 @@ sh1106 = "0.4"
 path = "libraries/wire-protocols"
 
 # TODO - upstream these changes
+[dependencies.pms-7003]
+git = "https://github.com/jonlamb-gh/pms-7003.git"
+branch = "various-changes"
+
+# TODO - upstream these changes
 [dependencies.sgp41]
 git = "https://github.com/jonlamb-gh/sgp41.git"
 branch = "various-changes"

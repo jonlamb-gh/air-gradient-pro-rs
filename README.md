@@ -34,6 +34,7 @@ https://github.com/slowtec/modbus-core
 PMS5003
 https://crates.io/crates/pms-7003
 https://crates.io/crates/pms700x
+https://www.aqmd.gov/docs/default-source/aq-spec/resources-page/plantower-pms5003-manual_v2-3.pdf
 
 SGP41 TVOC
 https://crates.io/crates/sgp41
