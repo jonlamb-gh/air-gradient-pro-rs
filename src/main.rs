@@ -24,7 +24,7 @@ mod app {
     use crate::display::Display;
     use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
     use crate::rtc::Rtc;
-    use crate::sensors::{Pms5003, Sgp41, Sht31};
+    use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     //use crate::tasks::data_manager::default_bcast_message;
     use crate::tasks::{
@@ -36,6 +36,7 @@ mod app {
         ipstack_poll_timer_task,
         pms5003::TaskState as Pms5003TaskState,
         pms5003_task,
+        s8lp_task,
         sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
         sgp41_task,
         sht31_task,
@@ -47,10 +48,9 @@ mod app {
         wire::EthernetAddress,
     };
     use stm32f4xx_hal::{
-        gpio::{Edge, Output, PushPull, Speed as GpioSpeed, AF7, PA10, PA2, PA3, PA9, PC13},
-        pac::{self, TIM10, TIM11, TIM3, USART1, USART2},
+        gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
+        pac::{self, TIM10, TIM11, TIM3},
         prelude::*,
-        serial::Serial,
         spi::Spi,
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
@@ -78,10 +78,8 @@ mod app {
         net_clock_timer: SysCounterUs,
         ipstack_poll_timer: CounterHz<TIM3>,
         pms: Pms5003,
+        s8lp: S8Lp,
         //rtc: Rtc,
-
-        // TODO
-        s8_serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>), u8>,
     }
 
     // TODO
@@ -138,7 +136,6 @@ mod app {
             }
         }
 
-        // TODO
         info!("Setup: S8 LP");
         let tx = gpioa.pa9.into_alternate();
         let rx = gpioa.pa10.into_alternate();
@@ -147,11 +144,12 @@ mod app {
             .USART1
             .serial((tx, rx), 9600.bps(), &clocks)
             .unwrap();
+        let s8lp = S8Lp::new(s8_serial);
 
         info!("Setup: PMS5003");
         let tx = gpioa.pa2.into_alternate();
         let rx = gpioa.pa3.into_alternate();
-        let mut pms_serial = ctx
+        let pms_serial = ctx
             .device
             .USART2
             .serial((tx, rx), 9600.bps(), &clocks)
@@ -298,6 +296,7 @@ mod app {
         sht31_task::spawn().unwrap();
         sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
         pms5003_task::spawn().unwrap();
+        s8lp_task::spawn().unwrap();
 
         (
             Shared {
@@ -311,8 +310,8 @@ mod app {
                 net_clock_timer,
                 ipstack_poll_timer,
                 pms,
+                s8lp,
                 //rtc,
-                s8_serial,
             },
             init::Monotonics(mono),
         )
@@ -331,6 +330,11 @@ mod app {
     extern "Rust" {
         #[task(local = [state: Pms5003TaskState = Pms5003TaskState::new(), pms])]
         fn pms5003_task(ctx: pms5003_task::Context);
+    }
+
+    extern "Rust" {
+        #[task(local = [s8lp])]
+        fn s8lp_task(ctx: s8lp_task::Context);
     }
 
     /*

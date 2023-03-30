@@ -1,6 +1,7 @@
 //pub mod data_manager;
 pub mod net;
 pub mod pms5003;
+pub mod s8lp;
 pub mod sgp41;
 pub mod sht31;
 
@@ -10,5 +11,6 @@ pub(crate) use self::net::{
     ipstack_poll_timer_task,
 };
 pub(crate) use self::pms5003::pms5003_task;
+pub(crate) use self::s8lp::s8lp_task;
 pub(crate) use self::sgp41::sgp41_task;
 pub(crate) use self::sht31::sht31_task;

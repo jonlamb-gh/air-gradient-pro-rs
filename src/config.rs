@@ -13,6 +13,7 @@ pub const STARTUP_DELAY_SECONDS: u8 = 5;
 
 pub const SGP41_MEASUREMENT_INTERVAL_MS: u32 = 1000;
 pub const SHT31_MEASUREMENT_INTERVAL_MS: u32 = 2500;
+pub const S8LP_MEASUREMENT_INTERVAL_MS: u32 = 5000;
 
 /// PMS sensor is woken up for measurements every 5 minutes
 /// to conserve lifespan, it also needs to warm up for at
