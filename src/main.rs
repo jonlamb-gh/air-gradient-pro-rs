@@ -9,7 +9,6 @@ mod display;
 mod logger;
 mod net;
 mod panic_handler;
-mod rtc;
 mod sensors;
 mod shared_i2c;
 mod tasks;
@@ -23,7 +22,6 @@ mod app {
     use crate::config::{self, SOCKET_BUFFER_LEN};
     use crate::display::Display;
     use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
-    use crate::rtc::Rtc;
     use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     //use crate::tasks::data_manager::default_bcast_message;
@@ -79,7 +77,6 @@ mod app {
         ipstack_poll_timer: CounterHz<TIM3>,
         pms: Pms5003,
         s8lp: S8Lp,
-        //rtc: Rtc,
     }
 
     // TODO
@@ -155,17 +152,6 @@ mod app {
             .serial((tx, rx), 9600.bps(), &clocks)
             .unwrap();
         let pms = Pms5003::new(pms_serial, &mut common_delay).unwrap();
-
-        /*
-        // DS3231 RTC on I2C1
-        // TODO - does it have an on-board pull-up?
-        info!("Setup: I2C1");
-        let scl = gpiob.pb6.into_alternate().set_open_drain();
-        let sda = gpiob.pb7.into_alternate().set_open_drain();
-        let i2c1 = ctx.device.I2C1.i2c((scl, sda), 100.kHz(), &clocks);
-        info!("Setup: DS3231 RTC");
-        let rtc = Rtc::new(i2c1).unwrap();
-        */
 
         // Shared I2C2 bus
         info!("Setup: I2C2");
@@ -311,7 +297,6 @@ mod app {
                 ipstack_poll_timer,
                 pms,
                 s8lp,
-                //rtc,
             },
             init::Monotonics(mono),
         )
@@ -339,7 +324,7 @@ mod app {
 
     /*
     extern "Rust" {
-        #[task(local = [rtc, msg: Message = default_bcast_message()], shared = [net, sockets, udp_socket], capacity = 6)]
+        #[task(local = [msg: Message = default_bcast_message()], shared = [net, sockets, udp_socket], capacity = 6)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
     }
     */

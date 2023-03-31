@@ -16,7 +16,6 @@ cortex-m-rt = "0.7"
 rtic-monotonic = "1.0"
 cortex-m-rtic = "1.1"
 log = "0.4"
-ds323x = "0.5"
 sh1106 = "0.4"
 
 [dependencies.wire-protocols]
