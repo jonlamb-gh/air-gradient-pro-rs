@@ -29,22 +29,28 @@ mod field {
     pub const DEVICE_SERIAL_NUMBER1: Field = 17..21;
     pub const DEVICE_SERIAL_NUMBER2: Field = 21..25;
 
-    pub const DATETIME_YEAR: Field = 25..27;
-    pub const DATETIME_MONTH: usize = 27;
-    pub const DATETIME_DAY: usize = 28;
-    pub const DATETIME_HOUR: usize = 29;
-    pub const DATETIME_MINUTE: usize = 30;
-    pub const DATETIME_SECOND: usize = 31;
-    pub const UPTIME_SECONDS: Field = 32..36;
+    pub const SEQUENCE_NUMBER: Field = 25..29;
+    pub const UPTIME_SECONDS: Field = 29..33;
 
-    pub const STATUS_FLAGS: Field = 36..38;
+    pub const STATUS_FLAGS: Field = 33..35;
 
-    pub const TEMPERATURE: Field = 38..42;
-    pub const HUMIDITY: Field = 42..44;
-    pub const VOC_TICKS: Field = 44..46;
-    pub const NOX_TICKS: Field = 46..48;
+    pub const DATETIME_YEAR: Field = 35..37;
+    pub const DATETIME_MONTH: usize = 37;
+    pub const DATETIME_DAY: usize = 38;
+    pub const DATETIME_HOUR: usize = 39;
+    pub const DATETIME_MINUTE: usize = 40;
+    pub const DATETIME_SECOND: usize = 41;
 
-    pub const REST: Rest = 48..;
+    pub const TEMPERATURE: Field = 42..46;
+    pub const HUMIDITY: Field = 46..48;
+    pub const VOC_TICKS: Field = 48..50;
+    pub const NOX_TICKS: Field = 50..52;
+    pub const VOC_INDEX: Field = 52..54;
+    pub const NOX_INDEX: Field = 54..56;
+    pub const PM2_5_ATM: Field = 56..58;
+    pub const CO2: Field = 58..60;
+
+    pub const REST: Rest = 60..;
 }
 
 /// The fixed-size message length.
@@ -161,6 +167,27 @@ impl<T: AsRef<[u8]>> Message<T> {
         LittleEndian::read_u32(&data[field::DEVICE_SERIAL_NUMBER2])
     }
 
+    /// Return the sequence number field.
+    #[inline]
+    pub fn sequence_number(&self) -> u32 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u32(&data[field::SEQUENCE_NUMBER])
+    }
+
+    /// Return the uptime seconds field.
+    #[inline]
+    pub fn uptime_seconds(&self) -> u32 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u32(&data[field::UPTIME_SECONDS])
+    }
+
+    /// Return the status flags field.
+    #[inline]
+    pub fn status_flags(&self) -> u16 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u16(&data[field::STATUS_FLAGS])
+    }
+
     /// Return the date-time year field.
     #[inline]
     pub fn datetime_year(&self) -> u16 {
@@ -203,20 +230,6 @@ impl<T: AsRef<[u8]>> Message<T> {
         data[field::DATETIME_SECOND]
     }
 
-    /// Return the uptime seconds field.
-    #[inline]
-    pub fn uptime_seconds(&self) -> u32 {
-        let data = self.buffer.as_ref();
-        LittleEndian::read_u32(&data[field::UPTIME_SECONDS])
-    }
-
-    /// Return the status flags field.
-    #[inline]
-    pub fn status_flags(&self) -> u16 {
-        let data = self.buffer.as_ref();
-        LittleEndian::read_u16(&data[field::STATUS_FLAGS])
-    }
-
     /// Return the temperature field.
     #[inline]
     pub fn temperature(&self) -> i32 {
@@ -243,6 +256,34 @@ impl<T: AsRef<[u8]>> Message<T> {
     pub fn nox_ticks(&self) -> u16 {
         let data = self.buffer.as_ref();
         LittleEndian::read_u16(&data[field::NOX_TICKS])
+    }
+
+    /// Return the VOC index field.
+    #[inline]
+    pub fn voc_index(&self) -> u16 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u16(&data[field::VOC_INDEX])
+    }
+
+    /// Return the NOx index field.
+    #[inline]
+    pub fn nox_index(&self) -> u16 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u16(&data[field::NOX_INDEX])
+    }
+
+    /// Return the PM2.5 (under atmospheric environment) field.
+    #[inline]
+    pub fn pm2_5_atm(&self) -> u16 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u16(&data[field::PM2_5_ATM])
+    }
+
+    /// Return the CO2 index field.
+    #[inline]
+    pub fn co2(&self) -> u16 {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u16(&data[field::CO2])
     }
 }
 
@@ -319,6 +360,27 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Message<T> {
         LittleEndian::write_u32(&mut data[field::DEVICE_SERIAL_NUMBER2], value)
     }
 
+    /// Set the sequence number field.
+    #[inline]
+    pub fn set_sequence_number(&mut self, value: u32) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u32(&mut data[field::SEQUENCE_NUMBER], value)
+    }
+
+    /// Set the uptime seconds field.
+    #[inline]
+    pub fn set_uptime_seconds(&mut self, value: u32) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u32(&mut data[field::UPTIME_SECONDS], value)
+    }
+
+    /// Set the status flags field.
+    #[inline]
+    pub fn set_status_flags(&mut self, value: u16) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u16(&mut data[field::STATUS_FLAGS], value)
+    }
+
     /// Set the date-time year field.
     #[inline]
     pub fn set_datetime_year(&mut self, value: u16) {
@@ -361,20 +423,6 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Message<T> {
         data[field::DATETIME_SECOND] = value;
     }
 
-    /// Set the uptime seconds field.
-    #[inline]
-    pub fn set_uptime_seconds(&mut self, value: u32) {
-        let data = self.buffer.as_mut();
-        LittleEndian::write_u32(&mut data[field::UPTIME_SECONDS], value)
-    }
-
-    /// Set the status flags field.
-    #[inline]
-    pub fn set_status_flags(&mut self, value: u16) {
-        let data = self.buffer.as_mut();
-        LittleEndian::write_u16(&mut data[field::STATUS_FLAGS], value)
-    }
-
     /// Set the temperature field.
     #[inline]
     pub fn set_temperature(&mut self, value: i32) {
@@ -401,6 +449,34 @@ impl<T: AsRef<[u8]> + AsMut<[u8]>> Message<T> {
     pub fn set_nox_ticks(&mut self, value: u16) {
         let data = self.buffer.as_mut();
         LittleEndian::write_u16(&mut data[field::NOX_TICKS], value)
+    }
+
+    /// Set the VOC index field.
+    #[inline]
+    pub fn set_voc_index(&mut self, value: u16) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u16(&mut data[field::VOC_INDEX], value)
+    }
+
+    /// Set the NOx index field.
+    #[inline]
+    pub fn set_nox_index(&mut self, value: u16) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u16(&mut data[field::NOX_INDEX], value)
+    }
+
+    /// Set the PM2.5 (under atmospheric environment) index field.
+    #[inline]
+    pub fn set_pm2_5_atm(&mut self, value: u16) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u16(&mut data[field::PM2_5_ATM], value)
+    }
+
+    /// Set the CO2 index field.
+    #[inline]
+    pub fn set_co2(&mut self, value: u16) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u16(&mut data[field::CO2], value)
     }
 
     /// Return a mutable pointer to the remaining data following a message, if any.
@@ -439,14 +515,22 @@ pub struct Repr {
     pub firmware_version: FirmwareVersion,
     pub device_id: DeviceId,
     pub device_serial_number: DeviceSerialNumber,
-    pub datetime: DateTime,
+    pub sequence_number: u32,
     pub uptime_seconds: u32,
     pub status_flags: StatusFlags,
-    /// TODO ... from the SHT31 sensor, units are blah blah
+    pub datetime: DateTime,
+    /// The temperature in millidegress C
     pub temperature: i32,
+    /// The relative humidity in millipercent
     pub humidity: u16,
     pub voc_ticks: u16,
     pub nox_ticks: u16,
+    pub voc_index: u16,
+    pub nox_index: u16,
+    /// PM2.5 concentration unit μ g/m3（under atmospheric environment）
+    pub pm2_5_atm: u16,
+    /// CO2 ppm
+    pub co2: u16,
 }
 
 impl Repr {
@@ -467,6 +551,9 @@ impl Repr {
                 word1: msg.device_serial_number_word1(),
                 word2: msg.device_serial_number_word2(),
             },
+            sequence_number: msg.sequence_number(),
+            uptime_seconds: msg.uptime_seconds(),
+            status_flags: StatusFlags(msg.status_flags()),
             datetime: DateTime {
                 year: msg.datetime_year(),
                 month: msg.datetime_month(),
@@ -475,12 +562,14 @@ impl Repr {
                 minute: msg.datetime_minute(),
                 second: msg.datetime_second(),
             },
-            uptime_seconds: msg.uptime_seconds(),
-            status_flags: StatusFlags(msg.status_flags()),
             temperature: msg.temperature(),
             humidity: msg.humidity(),
             voc_ticks: msg.voc_ticks(),
             nox_ticks: msg.nox_ticks(),
+            voc_index: msg.voc_index(),
+            nox_index: msg.nox_index(),
+            pm2_5_atm: msg.pm2_5_atm(),
+            co2: msg.co2(),
         })
     }
 
@@ -500,18 +589,23 @@ impl Repr {
         msg.set_device_serial_number_word0(self.device_serial_number.word0);
         msg.set_device_serial_number_word1(self.device_serial_number.word1);
         msg.set_device_serial_number_word2(self.device_serial_number.word2);
+        msg.set_sequence_number(self.sequence_number);
+        msg.set_uptime_seconds(self.uptime_seconds);
+        msg.set_status_flags(self.status_flags.0);
         msg.set_datetime_year(self.datetime.year);
         msg.set_datetime_month(self.datetime.month);
         msg.set_datetime_day(self.datetime.day);
         msg.set_datetime_hour(self.datetime.hour);
         msg.set_datetime_minute(self.datetime.minute);
         msg.set_datetime_second(self.datetime.second);
-        msg.set_uptime_seconds(self.uptime_seconds);
-        msg.set_status_flags(self.status_flags.0);
         msg.set_temperature(self.temperature);
         msg.set_humidity(self.humidity);
         msg.set_voc_ticks(self.voc_ticks);
         msg.set_nox_ticks(self.nox_ticks);
+        msg.set_voc_index(self.voc_index);
+        msg.set_nox_index(self.nox_index);
+        msg.set_pm2_5_atm(self.pm2_5_atm);
+        msg.set_co2(self.co2);
     }
 }
 
@@ -519,11 +613,11 @@ impl Repr {
 mod tests {
     use super::*;
 
-    static MSG_BYTES: [u8; 48] = [
+    static MSG_BYTES: [u8; 60] = [
         0x42, 0x52, 0x44, 0x43, 0x01, 0x03, 0x00, 0x02, 0x00, 0x01, 0x00, 0x0D, 0x00, 0xAA, 0xAA,
-        0xAA, 0xAA, 0xBB, 0xBB, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC, 0xE7, 0x07, 0x02, 0x15, 0x10,
-        0x28, 0x37, 0x44, 0x33, 0x22, 0x11, 0xBB, 0xAA, 0xEA, 0xFF, 0xFF, 0xFF, 0xE8, 0x03, 0xAB,
-        0x00, 0xCD, 0x00,
+        0xAA, 0xAA, 0xBB, 0xBB, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC, 0x01, 0x00, 0x00, 0xFF, 0x44,
+        0x33, 0x22, 0x11, 0xBB, 0xAA, 0xE7, 0x07, 0x02, 0x15, 0x10, 0x28, 0x37, 0xEA, 0xFF, 0xFF,
+        0xFF, 0xE8, 0x03, 0xAB, 0x00, 0xCD, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
     ];
 
     #[test]
@@ -537,7 +631,7 @@ mod tests {
 
     #[test]
     fn test_construct() {
-        let mut bytes = [0xFF; 48];
+        let mut bytes = [0xFF; 60];
         let mut msg = Message::new_unchecked(&mut bytes);
         msg.set_protocol(ProtocolIdentifier::Broadcast);
         msg.set_protocol_version(1);
@@ -548,18 +642,23 @@ mod tests {
         msg.set_device_serial_number_word0(0xAAAA_AAAA);
         msg.set_device_serial_number_word1(0xBBBB_BBBB);
         msg.set_device_serial_number_word2(0xCCCC_CCCC);
+        msg.set_sequence_number(0xFF00_0001);
+        msg.set_uptime_seconds(0x11_22_33_44);
+        msg.set_status_flags(0xAA_BB);
         msg.set_datetime_year(2023);
         msg.set_datetime_month(2);
         msg.set_datetime_day(21);
         msg.set_datetime_hour(16);
         msg.set_datetime_minute(40);
         msg.set_datetime_second(55);
-        msg.set_uptime_seconds(0x11_22_33_44);
-        msg.set_status_flags(0xAA_BB);
         msg.set_temperature(-22);
         msg.set_humidity(1000);
         msg.set_voc_ticks(0xAB);
         msg.set_nox_ticks(0xCD);
+        msg.set_voc_index(0x2211);
+        msg.set_nox_index(0x4433);
+        msg.set_pm2_5_atm(0x6655);
+        msg.set_co2(0x8877);
         assert_eq!(msg.into_inner(), &MSG_BYTES[..]);
     }
 
@@ -575,18 +674,23 @@ mod tests {
         assert_eq!(msg.device_serial_number_word0(), 0xAAAA_AAAA);
         assert_eq!(msg.device_serial_number_word1(), 0xBBBB_BBBB);
         assert_eq!(msg.device_serial_number_word2(), 0xCCCC_CCCC);
+        assert_eq!(msg.sequence_number(), 0xFF00_0001);
+        assert_eq!(msg.uptime_seconds(), 0x11_22_33_44);
+        assert_eq!(msg.status_flags(), 0xAA_BB);
         assert_eq!(msg.datetime_year(), 2023);
         assert_eq!(msg.datetime_month(), 2);
         assert_eq!(msg.datetime_day(), 21);
         assert_eq!(msg.datetime_hour(), 16);
         assert_eq!(msg.datetime_minute(), 40);
         assert_eq!(msg.datetime_second(), 55);
-        assert_eq!(msg.uptime_seconds(), 0x11_22_33_44);
-        assert_eq!(msg.status_flags(), 0xAA_BB);
         assert_eq!(msg.temperature(), -22);
         assert_eq!(msg.humidity(), 1000);
         assert_eq!(msg.voc_ticks(), 0xAB);
         assert_eq!(msg.nox_ticks(), 0xCD);
+        assert_eq!(msg.voc_index(), 0x2211);
+        assert_eq!(msg.nox_index(), 0x4433);
+        assert_eq!(msg.pm2_5_atm(), 0x6655);
+        assert_eq!(msg.co2(), 0x8877);
         let _checked_msg = Message::new_checked(&MSG_BYTES[..]).unwrap();
     }
 
@@ -594,7 +698,7 @@ mod tests {
     fn test_repr_roundtrip() {
         let msg_in = Message::new_checked(&MSG_BYTES[..]).unwrap();
         let repr = Repr::parse(&msg_in).unwrap();
-        let mut bytes_out = [0xFF; 48];
+        let mut bytes_out = [0xFF; 60];
         let mut msg_out = Message::new_unchecked(&mut bytes_out);
         repr.emit(&mut msg_out);
         assert_eq!(msg_in.into_inner(), msg_out.into_inner());

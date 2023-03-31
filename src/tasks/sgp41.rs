@@ -1,6 +1,10 @@
-use crate::{app::sgp41_task, config, sensors::sgp41::default_compensation, sensors::sht31};
-//use crate::tasks::SpawnArg;
-//use crate::app::{data_manager_task, sgp41_task};
+use crate::{
+    app::{data_manager_task, sgp41_task},
+    config,
+    sensors::sgp41::default_compensation,
+    sensors::sht31,
+    tasks::data_manager::SpawnArg as DataManagerSpawnArg,
+};
 use log::{info, warn};
 use stm32f4xx_hal::prelude::*;
 
@@ -71,8 +75,8 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
                 let measurement = sensor.measure(&state.compensation_data).unwrap();
                 info!("{measurement}");
 
-                // TODO
-                //data_manager_task::spawn(SpawnArg::Sgp41Measurement(measurement)).ok();
+                data_manager_task::spawn(DataManagerSpawnArg::Sgp41Measurement(measurement))
+                    .unwrap();
             }
 
             sgp41_task::spawn_after(

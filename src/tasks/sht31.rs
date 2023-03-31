@@ -1,8 +1,7 @@
-//use crate::app::{data_manager_task, sht31_task};
-//use crate::tasks::SpawnArg;
 use crate::{
-    app::{sgp41_task, sht31_task},
+    app::{data_manager_task, sgp41_task, sht31_task},
     config,
+    tasks::data_manager::SpawnArg as DataManagerSpawnArg,
     tasks::sgp41::SpawnArg as Sgp41SpawnArg,
 };
 use log::info;
@@ -13,9 +12,7 @@ pub(crate) fn sht31_task(ctx: sht31_task::Context) {
     let (raw, measurement) = sensor.measure().unwrap();
     info!("{measurement}");
 
-    // TODO
-    //data_manager_task::spawn(SpawnArg::Sht31Measurement(measurement)).ok();
-
+    data_manager_task::spawn(DataManagerSpawnArg::Sht31Measurement(measurement)).unwrap();
     sgp41_task::spawn(Sgp41SpawnArg::ConditioningData(raw)).unwrap();
     sht31_task::spawn_after(config::SHT31_MEASUREMENT_INTERVAL_MS.millis()).unwrap();
 }

@@ -3,7 +3,7 @@ use crate::sensors::Sgp41;
 use crate::sensors::Sht31;
 use shared_bus::AtomicCheckMutex;
 use stm32f4xx_hal::{
-    gpio::{OpenDrain, AF0, AF4, AF9, PB10, PB3},
+    gpio::{OpenDrain, AF4, AF9, PB10, PB3},
     hal::blocking::i2c::Write,
     pac::I2C2,
 };

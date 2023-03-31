@@ -12,6 +12,7 @@ mod panic_handler;
 mod sensors;
 mod shared_i2c;
 mod tasks;
+mod util;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -19,27 +20,22 @@ pub mod built_info {
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
-    use crate::config::{self, SOCKET_BUFFER_LEN};
     use crate::display::Display;
     use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
     use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
-    //use crate::tasks::data_manager::default_bcast_message;
     use crate::tasks::{
-        eth_gpio_interrupt_handler_task,
-        //SpawnArg,
-        //data_manager_task,
-        ipstack_clock_timer_task,
-        ipstack_poll_task,
-        ipstack_poll_timer_task,
+        data_manager::default_bcast_message,
+        data_manager::SpawnArg as DataManagerSpawnArg,
+        data_manager_task, eth_gpio_interrupt_handler_task, ipstack_clock_timer_task,
+        ipstack_poll_task, ipstack_poll_timer_task,
         pms5003::TaskState as Pms5003TaskState,
-        pms5003_task,
-        s8lp_task,
+        pms5003_task, s8lp_task,
         sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
-        sgp41_task,
-        sht31_task,
+        sgp41_task, sht31_task,
     };
-    use log::{debug, info, warn};
+    use crate::{config, util};
+    use log::info;
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
@@ -87,7 +83,7 @@ mod app {
     #[init(local = [
         eth_storage: EthernetStorage<{Eth::MTU}> = EthernetStorage::new(),
         net_storage: NetworkStorage<1> = NetworkStorage::new(),
-        udp_socket_storage: UdpSocketStorage<SOCKET_BUFFER_LEN> = UdpSocketStorage::new(),
+        udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
         let mut syscfg = ctx.device.SYSCFG.constrain();
@@ -96,6 +92,10 @@ mod app {
 
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
+        let gpioc = ctx.device.GPIOC.split();
+
+        // Turn it off, active-low
+        let _led: LedPin = gpioc.pc13.into_push_pull_output_in_state(true.into());
 
         // Setup logging impl via USART6, Rx on PA12, Tx on PA11
         // This is also the virtual com port on the nucleo boards: stty -F /dev/ttyACM0 115200
@@ -106,6 +106,13 @@ mod app {
             .tx(log_tx_pin, 115_200.bps(), &clocks)
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
+
+        // TODO add project stuff, gen in build.rs
+        // default_bcast_message() things
+        // ProtocolVersion
+        // FirmwareVersion
+        // device id
+        // ...
 
         info!("############################################################");
         info!(
@@ -119,6 +126,13 @@ mod app {
         if let Some(gc) = crate::built_info::GIT_COMMIT_HASH {
             info!("git commit: {}", gc);
         }
+        info!("Serial number: {:X}", util::read_device_serial_number());
+        info!("Device ID: 0x{:X}", config::DEVICE_ID.as_u16());
+        info!("IP address: {}", config::SRC_IP_CIDR.address());
+        info!(
+            "MAC address: {}",
+            EthernetAddress::from_bytes(&config::SRC_MAC)
+        );
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
@@ -244,7 +258,6 @@ mod app {
 
         info!("Setup: TCP/IP");
         let mac = EthernetAddress::from_bytes(&config::SRC_MAC);
-        info!("IP: {} MAC: {}", config::SRC_IP_CIDR.address(), mac);
         let mut config = Config::new();
         config.hardware_addr = Some(mac.into());
         let mut eth_iface = Interface::new(config, &mut eth);
@@ -276,13 +289,16 @@ mod app {
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!("Initialized");
 
-        // TODO - move this to a wrapper task that schedules all the sensor tasks
-        //data_manager_task::spawn_after(2.secs(), SpawnArg::SendData).unwrap();
-
         sht31_task::spawn().unwrap();
         sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
         pms5003_task::spawn().unwrap();
         s8lp_task::spawn().unwrap();
+
+        data_manager_task::spawn_after(
+            config::BCAST_INTERVAL_SEC.secs(),
+            DataManagerSpawnArg::SendData,
+        )
+        .unwrap();
 
         (
             Shared {
@@ -322,12 +338,10 @@ mod app {
         fn s8lp_task(ctx: s8lp_task::Context);
     }
 
-    /*
     extern "Rust" {
-        #[task(local = [msg: Message = default_bcast_message()], shared = [net, sockets, udp_socket], capacity = 6)]
-        fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg);
+        #[task(local = [msg: Message = default_bcast_message()], shared = [sockets, udp_socket], capacity = 8)]
+        fn data_manager_task(ctx: data_manager_task::Context, arg: DataManagerSpawnArg);
     }
-    */
 
     extern "Rust" {
         #[task(binds = SysTick, local = [net_clock_timer])]

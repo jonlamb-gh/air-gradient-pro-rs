@@ -28,7 +28,7 @@ use stm32f4xx_hal::{
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Measurement {
-    /// PM2.5 concentration unit μ g/m3（under atmospheric environment）
+    /// PM2.5 concentration unit μ g/m3 (under atmospheric environment)
     pub pm2_5_atm: u16,
 }
 

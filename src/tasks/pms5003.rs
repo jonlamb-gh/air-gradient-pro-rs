@@ -1,4 +1,8 @@
-use crate::{app::pms5003_task, config};
+use crate::{
+    app::{data_manager_task, pms5003_task},
+    config,
+    tasks::data_manager::SpawnArg as DataManagerSpawnArg,
+};
 use stm32f4xx_hal::prelude::*;
 
 const WAKE_INTERVAL_TICKS: u32 =
@@ -79,15 +83,14 @@ pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
             let measurement = sensor.measure().unwrap();
             log::info!("{measurement}");
 
-            // TODO
-            // send to data mngr
-
             *measurements_until_standby = measurements_until_standby.saturating_sub(1);
             if *measurements_until_standby == 0 {
                 log::info!("PMS5003: entering standby mode");
                 sensor.enter_standby_mode().unwrap();
                 *state = State::init();
             }
+
+            data_manager_task::spawn(DataManagerSpawnArg::Pms5003Measurement(measurement)).unwrap();
         }
     }
 

@@ -1,5 +1,5 @@
 use core::fmt;
-use sht3x::{Address, ClockStretch, Error, Rate, Repeatability, Sht3x};
+use sht3x::{Address, Error, Rate, Repeatability, Sht3x};
 use stm32f4xx_hal::hal::blocking::{
     delay::DelayMs,
     i2c::{Read, Write, WriteRead},
