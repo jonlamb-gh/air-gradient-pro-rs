@@ -2,8 +2,8 @@
 //! (usually over UDP, on the order of seconds to minutes).
 
 use crate::{
-    DateTime, DeviceId, DeviceSerialNumber, Error, FirmwareVersion, ProtocolVersion, Result,
-    StatusFlags,
+    DateTime, DeviceId, DeviceSerialNumber, Error, FirmwareVersion, ProtocolIdentifier,
+    ProtocolVersion, Result, StatusFlags,
 };
 use byteorder::{ByteOrder, LittleEndian};
 use core::fmt;
@@ -18,32 +18,33 @@ pub struct Message<T: AsRef<[u8]>> {
 mod field {
     use crate::field::*;
 
-    pub const PROTOCOL_VERSION: usize = 0;
-    pub const FIRMWARE_VERSION_PATCH: Field = 1..3;
-    pub const FIRMWARE_VERSION_MINOR: Field = 3..5;
-    pub const FIRMWARE_VERSION_MAJOR: Field = 5..7;
+    pub const PROTOCOL: Field = 0..4;
+    pub const PROTOCOL_VERSION: usize = 4;
+    pub const FIRMWARE_VERSION_PATCH: Field = 5..7;
+    pub const FIRMWARE_VERSION_MINOR: Field = 7..9;
+    pub const FIRMWARE_VERSION_MAJOR: Field = 9..11;
 
-    pub const DEVICE_ID: Field = 7..9;
-    pub const DEVICE_SERIAL_NUMBER0: Field = 9..13;
-    pub const DEVICE_SERIAL_NUMBER1: Field = 13..17;
-    pub const DEVICE_SERIAL_NUMBER2: Field = 17..21;
+    pub const DEVICE_ID: Field = 11..13;
+    pub const DEVICE_SERIAL_NUMBER0: Field = 13..17;
+    pub const DEVICE_SERIAL_NUMBER1: Field = 17..21;
+    pub const DEVICE_SERIAL_NUMBER2: Field = 21..25;
 
-    pub const DATETIME_YEAR: Field = 21..23;
-    pub const DATETIME_MONTH: usize = 23;
-    pub const DATETIME_DAY: usize = 24;
-    pub const DATETIME_HOUR: usize = 25;
-    pub const DATETIME_MINUTE: usize = 26;
-    pub const DATETIME_SECOND: usize = 27;
-    pub const UPTIME_SECONDS: Field = 28..32;
+    pub const DATETIME_YEAR: Field = 25..27;
+    pub const DATETIME_MONTH: usize = 27;
+    pub const DATETIME_DAY: usize = 28;
+    pub const DATETIME_HOUR: usize = 29;
+    pub const DATETIME_MINUTE: usize = 30;
+    pub const DATETIME_SECOND: usize = 31;
+    pub const UPTIME_SECONDS: Field = 32..36;
 
-    pub const STATUS_FLAGS: Field = 32..34;
+    pub const STATUS_FLAGS: Field = 36..38;
 
-    pub const TEMPERATURE: Field = 34..38;
-    pub const HUMIDITY: Field = 38..40;
-    pub const VOC_TICKS: Field = 40..42;
-    pub const NOX_TICKS: Field = 42..44;
+    pub const TEMPERATURE: Field = 38..42;
+    pub const HUMIDITY: Field = 42..44;
+    pub const VOC_TICKS: Field = 44..46;
+    pub const NOX_TICKS: Field = 46..48;
 
-    pub const REST: Rest = 44..;
+    pub const REST: Rest = 48..;
 }
 
 /// The fixed-size message length.
@@ -62,6 +63,7 @@ impl<T: AsRef<[u8]>> Message<T> {
     pub fn new_checked(buffer: T) -> Result<Message<T>> {
         let packet = Self::new_unchecked(buffer);
         packet.check_len()?;
+        packet.check_protocol()?;
         Ok(packet)
     }
 
@@ -76,6 +78,16 @@ impl<T: AsRef<[u8]>> Message<T> {
         }
     }
 
+    /// Check that the message protocol matches the
+    /// expected broadcast protocol identifier.
+    pub fn check_protocol(&self) -> Result<()> {
+        if self.protocol() != ProtocolIdentifier::Broadcast {
+            Err(Error)
+        } else {
+            Ok(())
+        }
+    }
+
     /// Consumes the message, returning the underlying buffer.
     pub fn into_inner(self) -> T {
         self.buffer
@@ -84,6 +96,13 @@ impl<T: AsRef<[u8]>> Message<T> {
     /// Return the length of a message.
     pub const fn message_len() -> usize {
         MESSAGE_LEN
+    }
+
+    /// Return the protocol field.
+    #[inline]
+    pub fn protocol(&self) -> ProtocolIdentifier {
+        let data = self.buffer.as_ref();
+        LittleEndian::read_u32(&data[field::PROTOCOL]).into()
     }
 
     /// Return the protocol version field.
@@ -237,6 +256,13 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Message<&'a T> {
 }
 
 impl<T: AsRef<[u8]> + AsMut<[u8]>> Message<T> {
+    /// Set the protocol field.
+    #[inline]
+    pub fn set_protocol(&mut self, value: ProtocolIdentifier) {
+        let data = self.buffer.as_mut();
+        LittleEndian::write_u32(&mut data[field::PROTOCOL], value.into())
+    }
+
     /// Set the protocol version field.
     #[inline]
     pub fn set_protocol_version(&mut self, value: u8) {
@@ -427,6 +453,7 @@ impl Repr {
     /// Parse a message and return a high-level representation.
     pub fn parse<T: AsRef<[u8]> + ?Sized>(msg: &Message<&T>) -> Result<Repr> {
         msg.check_len()?;
+        msg.check_protocol()?;
         Ok(Repr {
             protocol_version: ProtocolVersion(msg.protocol_version()),
             firmware_version: FirmwareVersion {
@@ -464,6 +491,7 @@ impl Repr {
 
     /// Emit a high-level representation into a message.
     pub fn emit<T: AsRef<[u8]> + AsMut<[u8]>>(&self, msg: &mut Message<T>) {
+        msg.set_protocol(ProtocolIdentifier::Broadcast);
         msg.set_protocol_version(self.protocol_version.0);
         msg.set_firmware_version_patch(self.firmware_version.patch);
         msg.set_firmware_version_minor(self.firmware_version.minor);
@@ -491,10 +519,11 @@ impl Repr {
 mod tests {
     use super::*;
 
-    static MSG_BYTES: [u8; 44] = [
-        0x01, 0x03, 0x00, 0x02, 0x00, 0x01, 0x00, 0x0D, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xBB, 0xBB,
-        0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC, 0xE7, 0x07, 0x02, 0x15, 0x10, 0x28, 0x37, 0x44, 0x33,
-        0x22, 0x11, 0xBB, 0xAA, 0xEA, 0xFF, 0xFF, 0xFF, 0xE8, 0x03, 0xAB, 0x00, 0xCD, 0x00,
+    static MSG_BYTES: [u8; 48] = [
+        0x42, 0x52, 0x44, 0x43, 0x01, 0x03, 0x00, 0x02, 0x00, 0x01, 0x00, 0x0D, 0x00, 0xAA, 0xAA,
+        0xAA, 0xAA, 0xBB, 0xBB, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC, 0xE7, 0x07, 0x02, 0x15, 0x10,
+        0x28, 0x37, 0x44, 0x33, 0x22, 0x11, 0xBB, 0xAA, 0xEA, 0xFF, 0xFF, 0xFF, 0xE8, 0x03, 0xAB,
+        0x00, 0xCD, 0x00,
     ];
 
     #[test]
@@ -508,8 +537,9 @@ mod tests {
 
     #[test]
     fn test_construct() {
-        let mut bytes = [0xFF; 44];
+        let mut bytes = [0xFF; 48];
         let mut msg = Message::new_unchecked(&mut bytes);
+        msg.set_protocol(ProtocolIdentifier::Broadcast);
         msg.set_protocol_version(1);
         msg.set_firmware_version_patch(3);
         msg.set_firmware_version_minor(2);
@@ -536,6 +566,7 @@ mod tests {
     #[test]
     fn test_deconstruct() {
         let msg = Message::new_unchecked(&MSG_BYTES[..]);
+        assert_eq!(msg.protocol(), ProtocolIdentifier::Broadcast);
         assert_eq!(msg.protocol_version(), 1);
         assert_eq!(msg.firmware_version_patch(), 3);
         assert_eq!(msg.firmware_version_minor(), 2);
@@ -563,7 +594,7 @@ mod tests {
     fn test_repr_roundtrip() {
         let msg_in = Message::new_checked(&MSG_BYTES[..]).unwrap();
         let repr = Repr::parse(&msg_in).unwrap();
-        let mut bytes_out = [0xFF; 44];
+        let mut bytes_out = [0xFF; 48];
         let mut msg_out = Message::new_unchecked(&mut bytes_out);
         repr.emit(&mut msg_out);
         assert_eq!(msg_in.into_inner(), msg_out.into_inner());

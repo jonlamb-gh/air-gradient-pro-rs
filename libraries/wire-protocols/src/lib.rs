@@ -7,6 +7,7 @@ use core::fmt;
 
 pub mod broadcast;
 
+// TODO - add error variants
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Error;
 
@@ -17,6 +18,34 @@ impl fmt::Display for Error {
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum ProtocolIdentifier {
+    /// Broadcast protocol ("BRDC")
+    Broadcast,
+    /// Unknown
+    Unknown(u32),
+}
+
+impl From<u32> for ProtocolIdentifier {
+    fn from(value: u32) -> Self {
+        use ProtocolIdentifier::*;
+        match value {
+            0x43_44_52_42 => Broadcast,
+            _ => Unknown(value),
+        }
+    }
+}
+
+impl From<ProtocolIdentifier> for u32 {
+    fn from(value: ProtocolIdentifier) -> Self {
+        use ProtocolIdentifier::*;
+        match value {
+            Broadcast => 0x43_44_52_42,
+            Unknown(id) => id,
+        }
+    }
+}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct ProtocolVersion(pub u8);
@@ -105,10 +134,11 @@ bitfield! {
     /// TODO docs
     pub struct StatusFlags(u16);
     impl Debug;
-    pub temperature_valid, set_temperature_valid: 8;
-    pub humidity_valid, set_humidity_valid: 9;
-    pub voc_ticks_valid, set_voc_ticks_valid: 10;
-    pub nox_ticks_valid, set_nox_ticks_valid: 11;
+    pub datetime_valid, set_datetime_valid: 8;
+    pub temperature_valid, set_temperature_valid: 9;
+    pub humidity_valid, set_humidity_valid: 10;
+    pub voc_ticks_valid, set_voc_ticks_valid: 11;
+    pub nox_ticks_valid, set_nox_ticks_valid: 12;
 }
 
 impl StatusFlags {
