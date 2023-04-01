@@ -2,17 +2,6 @@
 
 try out https://github.com/rtic-scope
 
-test out the network/IP-stack, seeing some possibly dropped packets:
-```
-PING 192.168.1.38 (192.168.1.38) 56(84) bytes of data.
-64 bytes from 192.168.1.38: icmp_seq=2 ttl=64 time=2.47 ms
-64 bytes from 192.168.1.38: icmp_seq=3 ttl=64 time=2.45 ms
-^C
---- 192.168.1.38 ping statistics ---
-3 packets transmitted, 2 received, 33.3333% packet loss, time 2022ms
-rtt min/avg/max/mdev = 2.445/2.455/2.466/0.010 ms
-```
-
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
 https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board

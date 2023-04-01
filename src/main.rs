@@ -49,7 +49,7 @@ mod app {
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
     };
-    use wire_protocols::broadcast::Repr as Message;
+    use wire_protocols::broadcast::{self, Repr as Message};
 
     type LedPin = PC13<Output<PushPull>>;
 
@@ -133,6 +133,7 @@ mod app {
             "MAC address: {}",
             EthernetAddress::from_bytes(&config::SRC_MAC)
         );
+        info!("Broadcast protocol port: {}", broadcast::DEFAULT_PORT);
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);

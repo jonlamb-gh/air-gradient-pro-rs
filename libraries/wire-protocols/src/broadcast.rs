@@ -519,9 +519,9 @@ pub struct Repr {
     pub uptime_seconds: u32,
     pub status_flags: StatusFlags,
     pub datetime: DateTime,
-    /// The temperature in millidegress C
+    /// The temperature in centidegress C
     pub temperature: i32,
-    /// The relative humidity in millipercent
+    /// The relative humidity in centipercent
     pub humidity: u16,
     pub voc_ticks: u16,
     pub nox_ticks: u16,

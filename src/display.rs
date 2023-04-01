@@ -1,3 +1,13 @@
+use embedded_graphics::{
+    mock_display::MockDisplay,
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::{
+        Circle, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, StrokeAlignment, Triangle,
+    },
+    text::{Alignment, Text},
+};
 use sh1106::{prelude::*, Builder, Error};
 use stm32f4xx_hal::hal::blocking::i2c::Write;
 
@@ -21,6 +31,18 @@ where
         drv.init()?;
         drv.clear();
         drv.flush()?;
+
+        // TODO testing
+        let border_stroke = PrimitiveStyleBuilder::new()
+            .stroke_color(BinaryColor::On)
+            .stroke_width(8)
+            .stroke_alignment(StrokeAlignment::Inside)
+            .build();
+        drv.bounding_box()
+            .into_styled(border_stroke)
+            .draw(&mut drv)
+            .unwrap();
+
         Ok(Display { drv })
     }
 }

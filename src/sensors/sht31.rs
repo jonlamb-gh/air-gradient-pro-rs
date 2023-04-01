@@ -7,9 +7,9 @@ use stm32f4xx_hal::hal::blocking::{
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Measurement {
-    /// The temperature in millidegress C
+    /// The temperature in centidegress C
     pub temperature: i32,
-    /// The relative humidity in millipercent
+    /// The relative humidity in centipercent
     pub humidity: u16,
 }
 

@@ -27,6 +27,15 @@ pub enum ProtocolIdentifier {
     Unknown(u32),
 }
 
+impl fmt::Display for ProtocolIdentifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProtocolIdentifier::Broadcast => "broadcast".fmt(f),
+            ProtocolIdentifier::Unknown(p) => p.fmt(f),
+        }
+    }
+}
+
 impl From<u32> for ProtocolIdentifier {
     fn from(value: u32) -> Self {
         use ProtocolIdentifier::*;
@@ -62,6 +71,12 @@ impl Default for ProtocolVersion {
     }
 }
 
+impl fmt::Display for ProtocolVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct FirmwareVersion {
     pub major: u16,
@@ -76,6 +91,12 @@ impl FirmwareVersion {
             minor,
             patch,
         }
+    }
+}
+
+impl fmt::Display for FirmwareVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
@@ -95,6 +116,12 @@ impl DeviceId {
 impl fmt::Display for DeviceId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl fmt::UpperHex for DeviceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::UpperHex::fmt(&self.0, f)
     }
 }
 
@@ -172,6 +199,16 @@ impl DateTime {
             minute: 0,
             second: 0,
         }
+    }
+}
+
+impl fmt::Display for DateTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}-{}-{} {}:{}:{}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second
+        )
     }
 }
 
