@@ -1,7 +1,4 @@
-#![forbid(unsafe_code)]
-#![deny(warnings, clippy::all)]
-
-use crate::{interruptor::Interruptor, opts::Listen};
+use crate::{interruptor::Interruptor, measurement::MessageExt, opts::Listen};
 use anyhow::Result;
 use chrono::prelude::*;
 use std::{net::UdpSocket, time::Duration};
@@ -12,7 +9,7 @@ use wire_protocols::{
 
 const TIMEOUT: Duration = Duration::from_millis(100);
 
-pub fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
+pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
     println!(
         "Listening for UDP broadcast messages on {}:{}",
         cmd.address, cmd.port
@@ -96,15 +93,15 @@ pub fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
             println!(
                 "Temperature: {} mC, {:.02} °C, {:.02} °F",
                 msg.temperature,
-                raw_c_to_c(msg.temperature),
-                deg_c_to_f(raw_c_to_c(msg.temperature))
+                msg.temperature_c(),
+                msg.temperature_f(),
             );
         }
         if msg.status_flags.humidity_valid() {
             println!(
                 "Humidity: {} m%, {:.02} %",
                 msg.humidity,
-                raw_humidity_to_percent(msg.humidity)
+                msg.relative_humidity(),
             );
         }
         if msg.status_flags.voc_ticks_valid() {
@@ -120,7 +117,7 @@ pub fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
             println!("NOx index: {}", msg.nox_index);
         }
         if msg.status_flags.pm2_5_valid() {
-            println!("PM2.5: {}", msg.pm2_5_atm);
+            println!("PM2.5: {}, AQI {}", msg.pm2_5_atm, msg.pm2_5_us_aqi());
         }
         if msg.status_flags.co2_valid() {
             println!("CO2: {}", msg.co2);
@@ -137,16 +134,4 @@ pub fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
     println!("Missed messages {missed_messages}");
 
     Ok(())
-}
-
-fn raw_c_to_c(mc: i32) -> f64 {
-    f64::from(mc) / 100.0
-}
-
-fn deg_c_to_f(c: f64) -> f64 {
-    (c * 1.8) + 32.0
-}
-
-fn raw_humidity_to_percent(mp: u16) -> f64 {
-    f64::from(mp) / 100.0
 }
