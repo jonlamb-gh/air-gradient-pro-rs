@@ -40,18 +40,18 @@ pub struct InfluxRelay {
     pub port: u16,
 
     /// InfluxDB host
-    #[arg(long, default_value = "http://localhost:8086", env = "INFLUXDB_HOST")]
+    #[arg(long, default_value = "http://localhost:8086", env = "INFLUX_HOST")]
     pub host: String,
 
     /// InfluxDB organization
-    #[arg(long, short = 'g', env = "INFLUXDB_ORG")]
+    #[arg(long, short = 'g', env = "INFLUX_ORG")]
     pub org: String,
 
     /// InfluxDB bucket
-    #[arg(long, short = 'b', env = "INFLUXDB_BUCKET")]
+    #[arg(long, short = 'b', env = "INFLUX_BUCKET_NAME")]
     pub bucket: String,
 
     /// InfluxDB auth token
-    #[arg(long, short = 't', env = "INFLUXDB_TOKEN")]
+    #[arg(long, short = 't', env = "INFLUX_TOKEN")]
     pub token: String,
 }

@@ -1,34 +1,75 @@
-use influxdb2_derive::WriteDataPoint;
+use influxdb2::models::{data_point::DataPointError, DataPoint};
 use wire_protocols::broadcast::Repr as Message;
 
-#[derive(Debug, PartialEq, Clone, WriteDataPoint)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Measurement {
-    #[influxdb(timestamp)]
     pub recv_time_utc_ns: i64,
-    #[influxdb(tag)]
+    pub tags: MeasurementTags,
+    pub fields: MeasurementFields,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MeasurementTags {
     pub device_id: String,
-    #[influxdb(tag)]
     pub device_serial_number: String,
-    #[influxdb(tag)]
     pub firmware_version: String,
-    #[influxdb(field)]
-    pub sequence_number: u64,
-    #[influxdb(field)]
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MeasurementFields {
+    pub sequence_number: i64,
     pub temperature: Option<f64>,
-    #[influxdb(field)]
     pub humidity: Option<f64>,
-    #[influxdb(field)]
-    pub voc_ticks: Option<u64>,
-    #[influxdb(field)]
-    pub nox_ticks: Option<u64>,
-    #[influxdb(field)]
-    pub pm25: Option<u64>,
-    #[influxdb(field)]
-    pub aqi: Option<u64>,
-    #[influxdb(field)]
+    pub voc_ticks: Option<i64>,
+    pub nox_ticks: Option<i64>,
+    pub voc_index: Option<i64>,
+    pub nox_index: Option<i64>,
+    pub pm25: Option<i64>,
+    pub aqi: Option<i64>,
     pub aqi_level: Option<String>,
-    #[influxdb(field)]
-    pub co2: Option<u64>,
+    pub co2: Option<i64>,
+}
+
+impl Measurement {
+    pub fn into_data_point(self) -> Result<DataPoint, DataPointError> {
+        let mut dpb = DataPoint::builder("measurement")
+            .timestamp(self.recv_time_utc_ns)
+            .tag("device_id", self.tags.device_id)
+            .tag("device_serial_number", self.tags.device_serial_number)
+            .tag("firmware_version", self.tags.firmware_version)
+            .field("sequence_number", self.fields.sequence_number);
+        if let Some(v) = self.fields.temperature {
+            dpb = dpb.field("temperature", v);
+        }
+        if let Some(v) = self.fields.humidity {
+            dpb = dpb.field("humidity", v);
+        }
+        if let Some(v) = self.fields.voc_ticks {
+            dpb = dpb.field("voc_ticks", v);
+        }
+        if let Some(v) = self.fields.nox_ticks {
+            dpb = dpb.field("nox_ticks", v);
+        }
+        if let Some(v) = self.fields.voc_index {
+            dpb = dpb.field("voc_index", v);
+        }
+        if let Some(v) = self.fields.nox_index {
+            dpb = dpb.field("nox_index", v);
+        }
+        if let Some(v) = self.fields.pm25 {
+            dpb = dpb.field("pm25", v);
+        }
+        if let Some(v) = self.fields.aqi {
+            dpb = dpb.field("aqi", v);
+        }
+        if let Some(v) = self.fields.aqi_level {
+            dpb = dpb.field("aqi_level", v);
+        }
+        if let Some(v) = self.fields.co2 {
+            dpb = dpb.field("co2", v);
+        }
+        dpb.build()
+    }
 }
 
 pub trait MessageExt {

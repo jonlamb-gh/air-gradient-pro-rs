@@ -1,6 +1,6 @@
 use crate::{
     interruptor::Interruptor,
-    measurement::{Measurement, MessageExt},
+    measurement::{Measurement, MeasurementFields, MeasurementTags, MessageExt},
     opts::InfluxRelay,
 };
 use anyhow::Result;
@@ -61,8 +61,8 @@ pub async fn influx_relay(cmd: InfluxRelay, intr: Interruptor) -> Result<()> {
         let (pm25, aqi, aqi_level) = if msg.status_flags.pm2_5_valid() {
             let aqi = msg.pm2_5_us_aqi();
             (
-                u64::from(msg.pm2_5_atm).into(),
-                u64::from(aqi.aqi()).into(),
+                i64::from(msg.pm2_5_atm).into(),
+                i64::from(aqi.aqi()).into(),
                 aqi.level().to_string().into(),
             )
         } else {
@@ -71,45 +71,64 @@ pub async fn influx_relay(cmd: InfluxRelay, intr: Interruptor) -> Result<()> {
 
         let m = Measurement {
             recv_time_utc_ns: recv_utc.timestamp_nanos(),
-            device_id: msg.device_id.to_string(),
-            device_serial_number: format!("{:X}", msg.device_serial_number),
-            firmware_version: msg.firmware_version.to_string(),
-            sequence_number: msg.sequence_number.into(),
-            temperature: if msg.status_flags.temperature_valid() {
-                msg.temperature_f().into()
-            } else {
-                None
+            tags: MeasurementTags {
+                device_id: msg.device_id.to_string(),
+                device_serial_number: format!("{:X}", msg.device_serial_number),
+                firmware_version: msg.firmware_version.to_string(),
             },
-            humidity: if msg.status_flags.humidity_valid() {
-                msg.relative_humidity().into()
-            } else {
-                None
+            fields: MeasurementFields {
+                sequence_number: msg.sequence_number.into(),
+                temperature: if msg.status_flags.temperature_valid() {
+                    msg.temperature_f().into()
+                } else {
+                    None
+                },
+                humidity: if msg.status_flags.humidity_valid() {
+                    msg.relative_humidity().into()
+                } else {
+                    None
+                },
+                voc_ticks: if msg.status_flags.voc_ticks_valid() {
+                    i64::from(msg.voc_ticks).into()
+                } else {
+                    None
+                },
+                nox_ticks: if msg.status_flags.nox_ticks_valid() {
+                    i64::from(msg.nox_ticks).into()
+                } else {
+                    None
+                },
+                voc_index: if msg.status_flags.voc_index_valid() {
+                    i64::from(msg.voc_index).into()
+                } else {
+                    None
+                },
+                nox_index: if msg.status_flags.nox_index_valid() {
+                    i64::from(msg.nox_index).into()
+                } else {
+                    None
+                },
+                pm25,
+                aqi,
+                aqi_level,
+                co2: if msg.status_flags.co2_valid() {
+                    i64::from(msg.co2).into()
+                } else {
+                    None
+                },
             },
-            voc_ticks: if msg.status_flags.voc_ticks_valid() {
-                u64::from(msg.voc_ticks).into()
-            } else {
-                None
-            },
-            nox_ticks: if msg.status_flags.nox_ticks_valid() {
-                u64::from(msg.nox_ticks).into()
-            } else {
-                None
-            },
-            pm25,
-            aqi,
-            aqi_level,
-            co2: if msg.status_flags.co2_valid() {
-                u64::from(msg.nox_ticks).into()
-            } else {
-                None
-            },
-        };
+        }
+        .into_data_point()?;
 
-        client
+        if let Err(e) = client
             .write(&cmd.bucket, stream::iter(std::iter::once(m)))
-            .await?;
+            .await
+        {
+            tracing::error!(error = %e, "Failed to write measurement");
+        }
     }
 
-    // TODO
+    tracing::debug!("Exiting relay loop");
+
     Ok(())
 }

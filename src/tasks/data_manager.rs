@@ -60,10 +60,16 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
             msg.status_flags.set_nox_ticks_valid(true);
         }
         SpawnArg::GasIndices(m) => {
+            // The gas indices are valid once they are non-zero
             msg.voc_index = m.voc_index;
+            if m.voc_index != 0 {
+                msg.status_flags.set_voc_index_valid(true);
+            }
+
             msg.nox_index = m.nox_index;
-            msg.status_flags.set_voc_index_valid(true);
-            msg.status_flags.set_nox_index_valid(true);
+            if m.nox_index != 0 {
+                msg.status_flags.set_nox_index_valid(true);
+            }
         }
         SpawnArg::Pms5003Measurement(m) => {
             msg.pm2_5_atm = m.pm2_5_atm;

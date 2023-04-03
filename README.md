@@ -1,6 +1,12 @@
 # air-gradient-pro-rs
 
+do all the `rg -i todo src/`
+
 try out https://github.com/rtic-scope
+
+hook up a console for enable/disable debug logs or whatever
+https://github.com/rust-embedded-community/menu
+https://crates.io/crates/ushell
 
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 

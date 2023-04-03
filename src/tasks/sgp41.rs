@@ -95,6 +95,7 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
                     warn!("SGP41: no compensation data, using default");
                 }
                 let measurement = sensor.measure(&state.compensation_data).unwrap();
+                // TODO not valid until >0
                 let gas_indices = GasIndices {
                     voc_index: state.voc_algorithm.process(measurement.voc_ticks as _) as _,
                     nox_index: state.nox_algorithm.process(measurement.nox_ticks as _) as _,
