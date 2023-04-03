@@ -17,6 +17,7 @@ rtic-monotonic = "1.0"
 cortex-m-rtic = "1.1"
 log = "0.4"
 sh1106 = "0.4"
+gas-index-algorithm = "0.1"
 
 [dependencies.wire-protocols]
 path = "libraries/wire-protocols"

@@ -2,6 +2,7 @@ use crate::{
     app::data_manager_task,
     config,
     sensors::{pms5003, s8lp, sgp41, sht31},
+    tasks::sgp41::GasIndices,
     util,
 };
 use log::{info, warn};
@@ -20,6 +21,8 @@ pub enum SpawnArg {
     Sht31Measurement(sht31::Measurement),
     /// VOC and NOx measurement from the SGP41 sensor
     Sgp41Measurement(sgp41::Measurement),
+    /// VOC and NOx computed indices
+    GasIndices(GasIndices),
     /// PM2.5 measurement from the PMS5003 sensor
     Pms5003Measurement(pms5003::Measurement),
     /// CO2 measurement from the S8 LP sensor
@@ -50,12 +53,17 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
             msg.status_flags.set_temperature_valid(true);
             msg.status_flags.set_humidity_valid(true);
         }
-        // TODO - use the indices once the gas algorithm is impl'd
         SpawnArg::Sgp41Measurement(m) => {
             msg.voc_ticks = m.voc_ticks;
             msg.nox_ticks = m.nox_ticks;
             msg.status_flags.set_voc_ticks_valid(true);
             msg.status_flags.set_nox_ticks_valid(true);
+        }
+        SpawnArg::GasIndices(m) => {
+            msg.voc_index = m.voc_index;
+            msg.nox_index = m.nox_index;
+            msg.status_flags.set_voc_index_valid(true);
+            msg.status_flags.set_nox_index_valid(true);
         }
         SpawnArg::Pms5003Measurement(m) => {
             msg.pm2_5_atm = m.pm2_5_atm;

@@ -5,6 +5,7 @@ use crate::{
     sensors::sht31,
     tasks::data_manager::SpawnArg as DataManagerSpawnArg,
 };
+use gas_index_algorithm::{AlgorithmType, GasIndexAlgorithm};
 use log::{info, warn};
 use stm32f4xx_hal::prelude::*;
 
@@ -12,19 +13,34 @@ use stm32f4xx_hal::prelude::*;
 /// Run conditioning for the first 10 seconds (based on SGP41_MEASUREMENT_INTERVAL_MS).
 const CONDITIONING_ITERS_10S: u32 = (10 * 1000) / config::SGP41_MEASUREMENT_INTERVAL_MS;
 
+// Sample interval set to 1.0 seconds
+// TODO const_assert_eq!(config::SGP41_MEASUREMENT_INTERVAL_MS, 1000)
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct GasIndices {
+    pub voc_index: u16,
+    pub nox_index: u16,
+}
+
 pub struct TaskState {
     // TODO - use a state machine enum to represent this, like done in pms task
+    algos_init: bool,
     conditioning_iterations: u32,
     has_valid_compensation_data: bool,
     compensation_data: sht31::RawMeasurement,
+    voc_algorithm: GasIndexAlgorithm,
+    nox_algorithm: GasIndexAlgorithm,
 }
 
 impl TaskState {
     pub const fn new() -> Self {
         Self {
+            algos_init: false,
             conditioning_iterations: 0,
             has_valid_compensation_data: false,
             compensation_data: default_compensation(),
+            voc_algorithm: GasIndexAlgorithm::new_uninitialized(AlgorithmType::Voc),
+            nox_algorithm: GasIndexAlgorithm::new_uninitialized(AlgorithmType::Nox),
         }
     }
 }
@@ -50,6 +66,12 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
     let state = ctx.local.state;
     let sensor = &mut ctx.shared.i2c_devices.sgp41;
 
+    if !state.algos_init {
+        state.algos_init = true;
+        state.voc_algorithm.init_with_sampling_interval(1.0);
+        state.nox_algorithm.init_with_sampling_interval(1.0);
+    }
+
     match arg {
         SpawnArg::ConditioningData(cond_data) => {
             if !state.has_valid_compensation_data {
@@ -73,10 +95,16 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
                     warn!("SGP41: no compensation data, using default");
                 }
                 let measurement = sensor.measure(&state.compensation_data).unwrap();
+                let gas_indices = GasIndices {
+                    voc_index: state.voc_algorithm.process(measurement.voc_ticks as _) as _,
+                    nox_index: state.nox_algorithm.process(measurement.nox_ticks as _) as _,
+                };
+
                 info!("{measurement}");
 
                 data_manager_task::spawn(DataManagerSpawnArg::Sgp41Measurement(measurement))
                     .unwrap();
+                data_manager_task::spawn(DataManagerSpawnArg::GasIndices(gas_indices)).unwrap();
             }
 
             sgp41_task::spawn_after(
