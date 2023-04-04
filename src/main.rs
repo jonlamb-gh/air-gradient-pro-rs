@@ -32,7 +32,7 @@ mod app {
         pms5003::TaskState as Pms5003TaskState,
         pms5003_task, s8lp_task,
         sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
-        sgp41_task, sht31_task,
+        sgp41_task, sht31_task, watchdog_task,
     };
     use crate::{config, util};
     use log::info;
@@ -48,11 +48,10 @@ mod app {
         spi::Spi,
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
+        watchdog::IndependentWatchdog,
     };
     use wire_protocols::broadcast::{self, Repr as Message};
 
-    // TODO - blink LED every udp tx or something
-    // maybe on the watchdog task instead
     type LedPin = PC13<Output<PushPull>>;
 
     #[shared]
@@ -75,6 +74,8 @@ mod app {
         ipstack_poll_timer: CounterHz<TIM3>,
         pms: Pms5003,
         s8lp: S8Lp,
+        led: LedPin,
+        watchdog: IndependentWatchdog,
     }
 
     // TODO
@@ -88,18 +89,20 @@ mod app {
         udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
-        // TODO hook up the watchdog
-
         let mut syscfg = ctx.device.SYSCFG.constrain();
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
+
+        let mut watchdog = IndependentWatchdog::new(ctx.device.IWDG);
+        watchdog.start(config::WATCHDOG_RESET_PERIOD_MS.millis());
+        watchdog.feed();
 
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
         let gpioc = ctx.device.GPIOC.split();
 
         // Turn it off, active-low
-        let _led: LedPin = gpioc.pc13.into_push_pull_output_in_state(true.into());
+        let led: LedPin = gpioc.pc13.into_push_pull_output_in_state(true.into());
 
         // Setup logging impl via USART6, Rx on PA12, Tx on PA11
         // This is also the virtual com port on the nucleo boards: stty -F /dev/ttyACM0 115200
@@ -110,6 +113,8 @@ mod app {
             .tx(log_tx_pin, 115_200.bps(), &clocks)
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
+
+        info!("Watchdog: inerval {}", watchdog.interval());
 
         // TODO add project stuff, gen in build.rs
         // default_bcast_message() things
@@ -148,9 +153,11 @@ mod app {
         );
         for _ in 0..config::STARTUP_DELAY_SECONDS {
             for _ in 0..10 {
+                watchdog.feed();
                 common_delay.delay_ms(100_u8);
             }
         }
+        watchdog.feed();
 
         info!("Setup: S8 LP");
         let tx = gpioa.pa9.into_alternate();
@@ -293,7 +300,9 @@ mod app {
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!("Initialized");
+        watchdog.feed();
 
+        watchdog_task::spawn().unwrap();
         sht31_task::spawn().unwrap();
         sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
         pms5003_task::spawn().unwrap();
@@ -318,6 +327,8 @@ mod app {
                 ipstack_poll_timer,
                 pms,
                 s8lp,
+                led,
+                watchdog,
             },
             init::Monotonics(mono),
         )
@@ -366,5 +377,10 @@ mod app {
     extern "Rust" {
         #[task(binds = EXTI9_5, shared = [eth])]
         fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context);
+    }
+
+    extern "Rust" {
+        #[task(local = [watchdog, led])]
+        fn watchdog_task(ctx: watchdog_task::Context);
     }
 }
