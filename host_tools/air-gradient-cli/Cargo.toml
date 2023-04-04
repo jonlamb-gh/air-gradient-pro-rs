@@ -18,8 +18,10 @@ futures = "0.3"
 anyhow = "1.0"
 chrono = "0.4"
 aqi = "0.2"
-influxdb2 = "0.3"
 influxdb2-derive = "0.1"
+#influxdb2 = "0.3"
+# TODO - just running in my local network, so doing the easy thing for cross compilation
+influxdb2 = { version = "0.3", features = ["rustls"], default-features = false }
 
 [dependencies.wire-protocols]
 path = "../../libraries/wire-protocols"

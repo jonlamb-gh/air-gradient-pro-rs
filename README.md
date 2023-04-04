@@ -8,6 +8,10 @@ hook up a console for enable/disable debug logs or whatever
 https://github.com/rust-embedded-community/menu
 https://crates.io/crates/ushell
 
+maybe add a bootloader w/FOTA update stuff and CLI for it
+
+
+
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
 https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board

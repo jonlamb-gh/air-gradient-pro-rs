@@ -52,6 +52,7 @@ mod app {
     use wire_protocols::broadcast::{self, Repr as Message};
 
     // TODO - blink LED every udp tx or something
+    // maybe on the watchdog task instead
     type LedPin = PC13<Output<PushPull>>;
 
     #[shared]
