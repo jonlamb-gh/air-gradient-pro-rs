@@ -25,11 +25,9 @@ mod app {
     use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     use crate::tasks::{
-        data_manager::default_bcast_message,
-        data_manager::SpawnArg as DataManagerSpawnArg,
+        data_manager::{SpawnArg as DataManagerSpawnArg, TaskState as DataManagerTaskState},
         data_manager_task,
-        display::SpawnArg as DisplaySpawnArg,
-        display::TaskState as DisplayTaskState,
+        display::{SpawnArg as DisplaySpawnArg, TaskState as DisplayTaskState},
         display_task, eth_gpio_interrupt_handler_task, ipstack_clock_timer_task, ipstack_poll_task,
         ipstack_poll_timer_task,
         pms5003::TaskState as Pms5003TaskState,
@@ -53,7 +51,7 @@ mod app {
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
         watchdog::IndependentWatchdog,
     };
-    use wire_protocols::broadcast::{self, Repr as Message};
+    use wire_protocols::broadcast;
 
     type LedPin = PC13<Output<PushPull>>;
 
@@ -314,7 +312,7 @@ mod app {
 
         data_manager_task::spawn_after(
             config::BCAST_INTERVAL_SEC.secs(),
-            DataManagerSpawnArg::SendData,
+            DataManagerSpawnArg::SendBroadcastMessage,
         )
         .unwrap();
 
@@ -369,7 +367,7 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(local = [msg: Message = default_bcast_message()], shared = [sockets, udp_socket], capacity = 8)]
+        #[task(local = [state: DataManagerTaskState = DataManagerTaskState::new()], shared = [sockets, udp_socket], capacity = 8)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: DataManagerSpawnArg);
     }
 

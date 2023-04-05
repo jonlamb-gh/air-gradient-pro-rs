@@ -6,6 +6,7 @@ version = 3
 name = "air-gradient-pro-rs"
 version = "0.1.0"
 dependencies = [
+ "aqi",
  "built",
  "cortex-m 0.7.7",
  "cortex-m-rt",
@@ -44,6 +45,12 @@ checksum = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "aqi"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d145d81bc54aac168c5915a3fa846a091b5808e3ddc2ee7d6083a73e02c90f49"
 
 [[package]]
 name = "as-slice"

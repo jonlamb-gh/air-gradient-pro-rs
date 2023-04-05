@@ -24,6 +24,10 @@ sh1106 = "0.4"
 [dependencies.wire-protocols]
 path = "libraries/wire-protocols"
 
+[dependencies.aqi]
+version = "0.2"
+default-features = false
+
 # TODO - upstream these changes
 [dependencies.pms-7003]
 git = "https://github.com/jonlamb-gh/pms-7003.git"

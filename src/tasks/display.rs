@@ -5,6 +5,12 @@ use crate::{
 };
 use log::info;
 
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+pub enum SpawnArg {
+    Startup,
+    SystemStatus(SystemStatus),
+}
+
 pub struct TaskState {
     sys_info: SystemInfo,
     sys_status: SystemStatus,
@@ -19,20 +25,9 @@ impl TaskState {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
-pub enum SpawnArg {
-    Startup,
-    SystemStatus(SystemStatus),
-}
-
 pub(crate) fn display_task(ctx: display_task::Context, arg: SpawnArg) {
     let state = ctx.local.state;
     let display = &mut ctx.shared.i2c_devices.display;
-
-    // On startup (the initial spawn) we draw system info once
-    // and it stays rendered until ....
-    // TODO until conditioning done on sensor or until first bcast tx?
-    // clear screen between state/view changes
 
     match arg {
         SpawnArg::Startup => {

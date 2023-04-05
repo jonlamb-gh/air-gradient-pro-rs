@@ -57,10 +57,10 @@ impl SystemInfo {
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
 pub struct SystemStatus {
-    pub aqi: Option<u16>,
+    pub pm2_5: Option<u16>,
     pub co2: Option<u16>,
-    pub temp_f: Option<f32>,
-    pub rel_humidity: Option<f32>,
+    pub temp: Option<i32>,
+    pub humidity: Option<u16>,
     pub voc_index: Option<u16>,
     pub nox_index: Option<u16>,
     pub msg_seqnum: u32,
@@ -69,14 +69,36 @@ pub struct SystemStatus {
 impl SystemStatus {
     pub const fn new() -> Self {
         Self {
-            aqi: None,
+            pm2_5: None,
             co2: None,
-            temp_f: None,
-            rel_humidity: None,
+            temp: None,
+            humidity: None,
             voc_index: None,
             nox_index: None,
             msg_seqnum: 0,
         }
+    }
+
+    fn aqi(&self) -> Option<u16> {
+        self.pm2_5
+            .and_then(|concentration| aqi::pm2_5(f64::from(concentration.clamp(0, 500))).ok())
+            .map(|aqi| aqi.aqi() as u16)
+    }
+
+    fn temp_c(&self) -> Option<f32> {
+        self.temp
+            .map(f64::from)
+            .map(|centi_deg| centi_deg as f32 / 100.0)
+    }
+
+    fn temp_f(&self) -> Option<f32> {
+        self.temp_c().map(|c| (c * 1.8) + 32.0)
+    }
+
+    fn rel_humidity(&self) -> Option<f32> {
+        self.humidity
+            .map(f32::from)
+            .map(|centi_rh| centi_rh / 100.0)
     }
 }
 
@@ -181,7 +203,8 @@ where
 
         self.drv.clear();
 
-        let val = DisplayOption(&view.aqi);
+        let val = view.aqi();
+        let val = DisplayOption(&val);
         self.line_buf.clear();
         write!(&mut self.line_buf, "AQI: {}", val)?;
         Text::with_baseline(
@@ -225,7 +248,8 @@ where
         )
         .draw(&mut self.drv)?;
 
-        let val = DisplayOption(&view.temp_f);
+        let val = view.temp_f();
+        let val = DisplayOption(&val);
         self.line_buf.clear();
         write!(&mut self.line_buf, "F: {}", val)?;
         Text::with_baseline(
@@ -236,7 +260,8 @@ where
         )
         .draw(&mut self.drv)?;
 
-        let val = DisplayOption(&view.rel_humidity);
+        let val = view.rel_humidity();
+        let val = DisplayOption(&val);
         self.line_buf.clear();
         write!(&mut self.line_buf, "H: {}", val)?;
         Text::with_baseline(
@@ -263,6 +288,7 @@ where
     }
 }
 
+// TODO - this could use some cleanup
 #[repr(transparent)]
 struct DisplayOption<'a, T>(pub &'a Option<T>);
 

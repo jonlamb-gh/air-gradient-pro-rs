@@ -28,63 +28,95 @@ pub enum SpawnArg {
     Pms5003Measurement(pms5003::Measurement),
     /// CO2 measurement from the S8 LP sensor
     S8LpMeasurement(s8lp::Measurement),
-    /// Time to send the data
-    SendData,
+    /// Time to send the broadcast protocol data
+    SendBroadcastMessage,
 }
 
+pub struct TaskState {
+    msg: Message,
+    cycles_till_warmed_up: u32,
+}
+
+impl TaskState {
+    pub const fn new() -> Self {
+        Self {
+            msg: default_bcast_message(),
+            cycles_till_warmed_up: config::DATA_MANAGER_WARM_UP_PERIOD_CYCLES,
+        }
+    }
+}
+
+// TODO - state management, rtc, status bits, timeout/invalidate, etc
+// add a warm up period before starting the broadcast protocol
+// make SystemStatus msg sn Option to indicate it on display too
 pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) {
-    let msg = ctx.local.msg;
+    let state = ctx.local.state;
     let sockets = ctx.shared.sockets;
     let udp_socket_handle = ctx.shared.udp_socket;
 
     let socket = sockets.get_mut::<UdpSocket>(*udp_socket_handle);
 
-    // TODO - state management, rtc, status bits, timeout/invalidate, etc
-    if !msg.status_flags.initialized() {
-        info!("Initializing data manager state");
-        msg.device_serial_number = util::read_device_serial_number();
-        msg.status_flags.set_initialized(true);
+    if !state.msg.status_flags.initialized() {
+        info!("DM: initializing data manager state");
+        state.msg.device_serial_number = util::read_device_serial_number();
+        state.msg.status_flags.set_initialized(true);
     }
 
     let mut send_msg = false;
     match arg {
         SpawnArg::Sht31Measurement(m) => {
-            msg.temperature = m.temperature;
-            msg.humidity = m.humidity;
-            msg.status_flags.set_temperature_valid(true);
-            msg.status_flags.set_humidity_valid(true);
+            state.msg.temperature = m.temperature;
+            state.msg.humidity = m.humidity;
+            state.msg.status_flags.set_temperature_valid(true);
+            state.msg.status_flags.set_humidity_valid(true);
         }
         SpawnArg::Sgp41Measurement(m) => {
-            msg.voc_ticks = m.voc_ticks;
-            msg.nox_ticks = m.nox_ticks;
-            msg.status_flags.set_voc_ticks_valid(true);
-            msg.status_flags.set_nox_ticks_valid(true);
+            state.msg.voc_ticks = m.voc_ticks;
+            state.msg.nox_ticks = m.nox_ticks;
+            state.msg.status_flags.set_voc_ticks_valid(true);
+            state.msg.status_flags.set_nox_ticks_valid(true);
         }
         SpawnArg::GasIndices(m) => {
             // The gas indices are valid once they are non-zero
-            msg.voc_index = m.voc_index;
+            state.msg.voc_index = m.voc_index;
             if m.voc_index != 0 {
-                msg.status_flags.set_voc_index_valid(true);
+                state.msg.status_flags.set_voc_index_valid(true);
             }
 
-            msg.nox_index = m.nox_index;
+            state.msg.nox_index = m.nox_index;
             if m.nox_index != 0 {
-                msg.status_flags.set_nox_index_valid(true);
+                state.msg.status_flags.set_nox_index_valid(true);
             }
         }
         SpawnArg::Pms5003Measurement(m) => {
-            msg.pm2_5_atm = m.pm2_5_atm;
-            msg.status_flags.set_pm2_5_valid(true);
+            state.msg.pm2_5_atm = m.pm2_5_atm;
+            state.msg.status_flags.set_pm2_5_valid(true);
         }
         SpawnArg::S8LpMeasurement(m) => {
-            msg.co2 = m.co2;
-            msg.status_flags.set_co2_valid(true);
+            state.msg.co2 = m.co2;
+            state.msg.status_flags.set_co2_valid(true);
         }
-        SpawnArg::SendData => {
+        SpawnArg::SendBroadcastMessage => {
             // TODO
             // invalidate stale fields
-            send_msg = true;
-            msg.uptime_seconds += config::BCAST_INTERVAL_SEC;
+
+            if state.cycles_till_warmed_up != 0 {
+                state.cycles_till_warmed_up = state.cycles_till_warmed_up.saturating_sub(1);
+
+                if state.cycles_till_warmed_up == 0 {
+                    info!("DM: warm up period complete");
+                }
+            } else {
+                send_msg = true;
+            }
+
+            state.msg.uptime_seconds += config::BCAST_INTERVAL_SEC;
+
+            data_manager_task::spawn_after(
+                config::BCAST_INTERVAL_SEC.secs(),
+                SpawnArg::SendBroadcastMessage,
+            )
+            .unwrap();
         }
     }
 
@@ -95,17 +127,17 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
 
         if socket.can_send() {
             match socket.send(
-                msg.message_len(),
+                state.msg.message_len(),
                 (Ipv4Address::BROADCAST, broadcast::DEFAULT_PORT).into(),
             ) {
                 Err(e) => warn!("Failed to send. {e:?}"),
                 Ok(buf) => {
                     let mut wire = WireMessage::new_unchecked(buf);
-                    msg.emit(&mut wire);
-                    info!("DM: Sent message");
+                    state.msg.emit(&mut wire);
+                    info!("DM: Sent message sn {}", state.msg.sequence_number);
 
                     // TODO
-                    msg.sequence_number = msg.sequence_number.wrapping_add(1);
+                    state.msg.sequence_number = state.msg.sequence_number.wrapping_add(1);
                 }
             }
         } else {
@@ -116,23 +148,44 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
         // TODO - From/convert msg to SystemStatus
         // make some TaskState to store it maybe
         let sys_status = SystemStatus {
-            co2: if msg.status_flags.co2_valid() {
-                msg.co2.into()
+            pm2_5: if state.msg.status_flags.pm2_5_valid() {
+                state.msg.pm2_5_atm.into()
             } else {
                 None
             },
-            msg_seqnum: msg.sequence_number,
-            ..Default::default()
+            temp: if state.msg.status_flags.temperature_valid() {
+                state.msg.temperature.into()
+            } else {
+                None
+            },
+            humidity: if state.msg.status_flags.humidity_valid() {
+                state.msg.humidity.into()
+            } else {
+                None
+            },
+            co2: if state.msg.status_flags.co2_valid() {
+                state.msg.co2.into()
+            } else {
+                None
+            },
+            voc_index: if state.msg.status_flags.voc_index_valid() {
+                state.msg.voc_index.into()
+            } else {
+                None
+            },
+            nox_index: if state.msg.status_flags.nox_index_valid() {
+                state.msg.nox_index.into()
+            } else {
+                None
+            },
+            msg_seqnum: state.msg.sequence_number,
         };
         display_task::spawn(DisplaySpawnArg::SystemStatus(sys_status)).unwrap();
-
-        data_manager_task::spawn_after(config::BCAST_INTERVAL_SEC.secs(), SpawnArg::SendData)
-            .unwrap();
     }
 }
 
 // TODO - build.rs should generate some of these
-pub const fn default_bcast_message() -> Message {
+const fn default_bcast_message() -> Message {
     Message {
         protocol_version: ProtocolVersion::v1(),
         firmware_version: config::FIRMWARE_VERSION,
