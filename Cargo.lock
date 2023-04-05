@@ -13,8 +13,10 @@ dependencies = [
  "embedded-graphics",
  "enc28j60",
  "gas-index-algorithm",
+ "heapless",
  "log",
  "pms-7003",
+ "profont",
  "rtic-monotonic",
  "sgp41",
  "sh1106",
@@ -749,6 +751,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b63bdb0cd06f1f4dedf69b254734f9b45af66e4a031e42a7480257d9898b435"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "profont"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd908932b251e9f146130df7566e8f7c5b0c6ddb29f6d67571f3579f59043c36"
+dependencies = [
+ "embedded-graphics",
 ]
 
 [[package]]

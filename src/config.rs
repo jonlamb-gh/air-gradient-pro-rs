@@ -6,6 +6,7 @@ use wire_protocols::{DeviceId, FirmwareVersion};
 
 pub const DEVICE_ID: DeviceId = DeviceId::new(0x10);
 // gen this in build.rs
+// like crate::built_info::PKG_VERSION
 pub const FIRMWARE_VERSION: FirmwareVersion = FirmwareVersion::new(0, 1, 0);
 
 pub const SRC_MAC: [u8; 6] = [0x02, 0x00, 0x04, 0x03, 0x07, 0x02];

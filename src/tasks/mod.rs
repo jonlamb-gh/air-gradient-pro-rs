@@ -1,4 +1,5 @@
 pub mod data_manager;
+pub mod display;
 pub mod net;
 pub mod pms5003;
 pub mod s8lp;
@@ -7,6 +8,7 @@ pub mod sht31;
 pub mod watchdog;
 
 pub(crate) use self::data_manager::data_manager_task;
+pub(crate) use self::display::display_task;
 pub(crate) use self::net::{
     eth_gpio_interrupt_handler_task, ipstack_clock_timer_task, ipstack_poll_task,
     ipstack_poll_timer_task,

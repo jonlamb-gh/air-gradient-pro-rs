@@ -27,8 +27,11 @@ mod app {
     use crate::tasks::{
         data_manager::default_bcast_message,
         data_manager::SpawnArg as DataManagerSpawnArg,
-        data_manager_task, eth_gpio_interrupt_handler_task, ipstack_clock_timer_task,
-        ipstack_poll_task, ipstack_poll_timer_task,
+        data_manager_task,
+        display::SpawnArg as DisplaySpawnArg,
+        display::TaskState as DisplayTaskState,
+        display_task, eth_gpio_interrupt_handler_task, ipstack_clock_timer_task, ipstack_poll_task,
+        ipstack_poll_timer_task,
         pms5003::TaskState as Pms5003TaskState,
         pms5003_task, s8lp_task,
         sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
@@ -127,7 +130,7 @@ mod app {
         info!(
             "{} {} ({})",
             crate::built_info::PKG_NAME,
-            crate::built_info::PKG_VERSION,
+            config::FIRMWARE_VERSION,
             crate::built_info::PROFILE
         );
         info!("Build date: {}", crate::built_info::BUILT_TIME_UTC);
@@ -303,6 +306,7 @@ mod app {
         watchdog.feed();
 
         watchdog_task::spawn().unwrap();
+        display_task::spawn(DisplaySpawnArg::Startup).unwrap();
         sht31_task::spawn().unwrap();
         sgp41_task::spawn(Sgp41SpawnArg::Measurement).unwrap();
         pms5003_task::spawn().unwrap();
@@ -332,6 +336,16 @@ mod app {
             },
             init::Monotonics(mono),
         )
+    }
+
+    extern "Rust" {
+        #[task(local = [watchdog, led])]
+        fn watchdog_task(ctx: watchdog_task::Context);
+    }
+
+    extern "Rust" {
+        #[task(local = [state: DisplayTaskState = DisplayTaskState::new()], shared = [i2c_devices], capacity = 4)]
+        fn display_task(ctx: display_task::Context, arg: DisplaySpawnArg);
     }
 
     extern "Rust" {
@@ -377,10 +391,5 @@ mod app {
     extern "Rust" {
         #[task(binds = EXTI9_5, shared = [eth])]
         fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context);
-    }
-
-    extern "Rust" {
-        #[task(local = [watchdog, led])]
-        fn watchdog_task(ctx: watchdog_task::Context);
     }
 }

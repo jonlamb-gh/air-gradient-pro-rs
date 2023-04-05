@@ -1,8 +1,9 @@
 use crate::{
-    app::data_manager_task,
+    app::{data_manager_task, display_task},
     config,
+    display::SystemStatus,
     sensors::{pms5003, s8lp, sgp41, sht31},
-    tasks::sgp41::GasIndices,
+    tasks::{display::SpawnArg as DisplaySpawnArg, sgp41::GasIndices},
     util,
 };
 use log::{info, warn};
@@ -111,6 +112,19 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
             warn!("Socket cannot send");
             socket.close();
         }
+
+        // TODO - From/convert msg to SystemStatus
+        // make some TaskState to store it maybe
+        let sys_status = SystemStatus {
+            co2: if msg.status_flags.co2_valid() {
+                msg.co2.into()
+            } else {
+                None
+            },
+            msg_seqnum: msg.sequence_number,
+            ..Default::default()
+        };
+        display_task::spawn(DisplaySpawnArg::SystemStatus(sys_status)).unwrap();
 
         data_manager_task::spawn_after(config::BCAST_INTERVAL_SEC.secs(), SpawnArg::SendData)
             .unwrap();

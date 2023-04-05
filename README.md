@@ -10,6 +10,8 @@ https://crates.io/crates/ushell
 
 maybe add a bootloader w/FOTA update stuff and CLI for it
 
+add AQI on-device for display and in the protocol
+https://github.com/kelnos/aqi-rs
 
 reset happened:
 ```
