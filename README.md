@@ -11,6 +11,15 @@ https://crates.io/crates/ushell
 maybe add a bootloader w/FOTA update stuff and CLI for it
 
 
+reset happened:
+```
+2023-04-04T19:08:00Z,27,sequence_number
+2023-04-05T09:12:00Z,10074,sequence_number
+**
+2023-04-05T09:16:00Z,8,sequence_number
+2023-04-05T09:20:00Z,55
+```
+
 
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
