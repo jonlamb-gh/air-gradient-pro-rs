@@ -3,7 +3,17 @@ use crate::{
     config,
     tasks::data_manager::SpawnArg as DataManagerSpawnArg,
 };
+use static_assertions::{const_assert, const_assert_eq};
 use stm32f4xx_hal::prelude::*;
+
+// This task requires 1 second cycles
+const_assert_eq!(config::PMS5003_MEASUREMENT_INTERVAL_MS, 1000);
+
+// At least 30 seconds required to warm up
+const_assert!(config::PMS5003_WARM_UP_PERIOD_MS >= 30_000);
+
+// Should be in standby for longer that the warmup
+const_assert!(config::PMS5003_WAKE_INTERVAL_MS > config::PMS5003_WARM_UP_PERIOD_MS);
 
 const WAKE_INTERVAL_TICKS: u32 =
     config::PMS5003_WAKE_INTERVAL_MS / config::PMS5003_MEASUREMENT_INTERVAL_MS;

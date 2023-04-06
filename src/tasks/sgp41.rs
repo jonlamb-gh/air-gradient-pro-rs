@@ -7,14 +7,15 @@ use crate::{
 };
 use gas_index_algorithm::{AlgorithmType, GasIndexAlgorithm};
 use log::{debug, warn};
+use static_assertions::const_assert_eq;
 use stm32f4xx_hal::prelude::*;
+
+// SGP41 task requires 1 second cycles
+const_assert_eq!(config::SGP41_MEASUREMENT_INTERVAL_MS, 1000);
 
 /// Number of measurement update cycles to perform conditioning.
 /// Run conditioning for the first 10 seconds (based on SGP41_MEASUREMENT_INTERVAL_MS).
 const CONDITIONING_ITERS_10S: u32 = (10 * 1000) / config::SGP41_MEASUREMENT_INTERVAL_MS;
-
-// Sample interval set to 1.0 seconds
-// TODO const_assert_eq!(config::SGP41_MEASUREMENT_INTERVAL_MS, 1000)
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct GasIndices {
