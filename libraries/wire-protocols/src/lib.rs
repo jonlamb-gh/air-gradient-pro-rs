@@ -104,12 +104,18 @@ impl fmt::Display for FirmwareVersion {
 pub struct DeviceId(pub u16);
 
 impl DeviceId {
+    pub const DEFAULT: Self = DeviceId(0xFFFF);
+
     pub const fn new(id: u16) -> Self {
         DeviceId(id)
     }
 
     pub fn as_u16(self) -> u16 {
         self.0
+    }
+
+    pub fn is_default(&self) -> bool {
+        self.0 == Self::DEFAULT.0
     }
 }
 

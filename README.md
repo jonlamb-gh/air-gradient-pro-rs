@@ -22,6 +22,15 @@ reset happened:
 2023-04-05T09:20:00Z,55
 ```
 
+```
+config section
+env vars
+AIR_GRADIENT_IP_ADDRESS
+AIR_GRADIENT_MAC_ADDRESS
+AIR_GRADIENT_DEVICE_ID
+AIR_GRADIENT_BROADCAST_PORT
+AIR_GRADIENT_BROADCAST_ADDRESS
+```
 
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 

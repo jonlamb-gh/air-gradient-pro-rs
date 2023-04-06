@@ -40,7 +40,7 @@ mod app {
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
-        wire::EthernetAddress,
+        wire::{EthernetAddress, Ipv4Address},
     };
     use stm32f4xx_hal::{
         gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
@@ -51,7 +51,6 @@ mod app {
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
         watchdog::IndependentWatchdog,
     };
-    use wire_protocols::broadcast;
 
     type LedPin = PC13<Output<PushPull>>;
 
@@ -136,13 +135,21 @@ mod app {
             info!("git commit: {}", gc);
         }
         info!("Serial number: {:X}", util::read_device_serial_number());
-        info!("Device ID: 0x{:X}", config::DEVICE_ID.as_u16());
-        info!("IP address: {}", config::SRC_IP_CIDR.address());
+        info!(
+            "Device ID: 0x{:X} ({})",
+            config::DEVICE_ID,
+            config::DEVICE_ID
+        );
+        info!("IP address: {}", config::IP_CIDR.address());
         info!(
             "MAC address: {}",
-            EthernetAddress::from_bytes(&config::SRC_MAC)
+            EthernetAddress::from_bytes(&config::MAC_ADDRESS)
         );
-        info!("Broadcast protocol port: {}", broadcast::DEFAULT_PORT);
+        info!("Broadcast protocol port: {}", config::BROADCAST_PORT);
+        info!(
+            "Broadcast protocol address: {}",
+            Ipv4Address(config::BROADCAST_ADDRESS)
+        );
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
@@ -253,7 +260,7 @@ mod app {
                 enc28j60::Unconnected,
                 &mut common_delay,
                 7168,
-                config::SRC_MAC,
+                config::MAC_ADDRESS,
             )
             .unwrap();
 
@@ -267,12 +274,12 @@ mod app {
         };
 
         info!("Setup: TCP/IP");
-        let mac = EthernetAddress::from_bytes(&config::SRC_MAC);
+        let mac = EthernetAddress::from_bytes(&config::MAC_ADDRESS);
         let mut config = Config::new();
         config.hardware_addr = Some(mac.into());
         let mut eth_iface = Interface::new(config, &mut eth);
         eth_iface.update_ip_addrs(|addr| {
-            addr.push(config::SRC_IP_CIDR.into()).unwrap();
+            addr.push(config::IP_CIDR.into()).unwrap();
         });
         let mut sockets = SocketSet::new(&mut ctx.local.net_storage.sockets[..]);
         let udp_rx_buf = UdpPacketBuffer::new(

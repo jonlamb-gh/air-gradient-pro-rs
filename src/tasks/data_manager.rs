@@ -10,7 +10,7 @@ use log::{debug, warn};
 use smoltcp::{socket::udp::Socket as UdpSocket, wire::Ipv4Address};
 use stm32f4xx_hal::prelude::*;
 use wire_protocols::{
-    broadcast::{self, Message as WireMessage, Repr as Message},
+    broadcast::{Message as WireMessage, Repr as Message},
     DateTime, DeviceSerialNumber, ProtocolVersion, StatusFlags,
 };
 
@@ -128,7 +128,11 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
         if socket.can_send() {
             match socket.send(
                 state.msg.message_len(),
-                (Ipv4Address::BROADCAST, broadcast::DEFAULT_PORT).into(),
+                (
+                    Ipv4Address(config::BROADCAST_ADDRESS),
+                    config::BROADCAST_PORT,
+                )
+                    .into(),
             ) {
                 Err(e) => warn!("Failed to send. {e:?}"),
                 Ok(buf) => {
@@ -184,7 +188,6 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
     }
 }
 
-// TODO - build.rs should generate some of these
 const fn default_bcast_message() -> Message {
     Message {
         protocol_version: ProtocolVersion::v1(),

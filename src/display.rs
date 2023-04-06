@@ -48,8 +48,8 @@ impl SystemInfo {
         Self {
             device_id: config::DEVICE_ID,
             firmware_version: config::FIRMWARE_VERSION,
-            ip: config::SRC_IP_CIDR.address(),
-            mac: EthernetAddress(config::SRC_MAC),
+            ip: config::IP_CIDR.address(),
+            mac: EthernetAddress(config::MAC_ADDRESS),
             device_serial_number: DeviceSerialNumber::zero(),
         }
     }
