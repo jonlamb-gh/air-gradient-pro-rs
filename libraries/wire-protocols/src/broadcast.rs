@@ -519,16 +519,31 @@ pub struct Repr {
     pub uptime_seconds: u32,
     pub status_flags: StatusFlags,
     pub datetime: DateTime,
-    /// The temperature in centidegress C
+
+    /// The temperature in centi-degress C.
+    /// Valid when TODO ref link to satus bits getter method here...
     pub temperature: i32,
-    /// The relative humidity in centipercent
+
+    /// The relative humidity in centi-percent
     pub humidity: u16,
+
+    /// Raw VOC ticks sensor value.
     pub voc_ticks: u16,
+
+    /// Raw NOx ticks sensor value.
     pub nox_ticks: u16,
+
+    /// Calculated VOC gas index value.
+    /// Zero during initial blackout period and 1..500 afterwards.
     pub voc_index: u16,
+
+    /// Calculated VOC gas index value.
+    /// Zero during initial blackout period and 1..500 afterwards.
     pub nox_index: u16,
+
     /// PM2.5 concentration unit μ g/m3（under atmospheric environment）
     pub pm2_5_atm: u16,
+
     /// CO2 ppm
     pub co2: u16,
 }

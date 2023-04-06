@@ -163,10 +163,7 @@ impl DeviceSerialNumber {
 
 impl fmt::Display for DeviceSerialNumber {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for c in self.to_le_bytes().into_iter() {
-            c.fmt(f)?;
-        }
-        Ok(())
+        fmt::UpperHex::fmt(self, f)
     }
 }
 
@@ -215,18 +212,19 @@ impl fmt::Display for DateTime {
 bitfield! {
     #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
     /// TODO docs
+    /// Message status flags.
     pub struct StatusFlags(u16);
     impl Debug;
-    pub initialized, set_initialized: 6;
-    pub datetime_valid, set_datetime_valid: 7;
-    pub temperature_valid, set_temperature_valid: 8;
-    pub humidity_valid, set_humidity_valid: 9;
-    pub voc_ticks_valid, set_voc_ticks_valid: 10;
-    pub nox_ticks_valid, set_nox_ticks_valid: 11;
-    pub voc_index_valid, set_voc_index_valid: 12;
-    pub nox_index_valid, set_nox_index_valid: 13;
-    pub pm2_5_valid, set_pm2_5_valid: 14;
-    pub co2_valid, set_co2_valid: 15;
+    pub initialized, set_initialized: 1;
+    pub datetime_valid, set_datetime_valid: 4;
+    pub temperature_valid, set_temperature_valid: 5;
+    pub humidity_valid, set_humidity_valid: 6;
+    pub voc_ticks_valid, set_voc_ticks_valid: 7;
+    pub nox_ticks_valid, set_nox_ticks_valid: 8;
+    pub voc_index_valid, set_voc_index_valid: 9;
+    pub nox_index_valid, set_nox_index_valid: 10;
+    pub pm2_5_valid, set_pm2_5_valid: 11;
+    pub co2_valid, set_co2_valid: 12;
 }
 
 impl StatusFlags {
