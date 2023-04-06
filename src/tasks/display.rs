@@ -3,7 +3,7 @@ use crate::{
     display::{SystemInfo, SystemStatus},
     util,
 };
-use log::info;
+use log::debug;
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum SpawnArg {
@@ -32,7 +32,7 @@ pub(crate) fn display_task(ctx: display_task::Context, arg: SpawnArg) {
     match arg {
         SpawnArg::Startup => {
             if state.sys_info.device_serial_number.is_zero() {
-                info!("Initializing display state");
+                debug!("Initializing display state");
                 state.sys_info.device_serial_number = util::read_device_serial_number();
                 display.render_system_info(&state.sys_info).unwrap();
             }

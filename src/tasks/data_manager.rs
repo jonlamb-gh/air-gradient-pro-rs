@@ -6,7 +6,7 @@ use crate::{
     tasks::{display::SpawnArg as DisplaySpawnArg, sgp41::GasIndices},
     util,
 };
-use log::{info, warn};
+use log::{debug, warn};
 use smoltcp::{socket::udp::Socket as UdpSocket, wire::Ipv4Address};
 use stm32f4xx_hal::prelude::*;
 use wire_protocols::{
@@ -57,7 +57,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
     let socket = sockets.get_mut::<UdpSocket>(*udp_socket_handle);
 
     if !state.msg.status_flags.initialized() {
-        info!("DM: initializing data manager state");
+        debug!("DM: initializing data manager state");
         state.msg.device_serial_number = util::read_device_serial_number();
         state.msg.status_flags.set_initialized(true);
     }
@@ -104,7 +104,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
                 state.cycles_till_warmed_up = state.cycles_till_warmed_up.saturating_sub(1);
 
                 if state.cycles_till_warmed_up == 0 {
-                    info!("DM: warm up period complete");
+                    debug!("DM: warm up period complete");
                 }
             } else {
                 send_msg = true;
@@ -134,7 +134,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
                 Ok(buf) => {
                     let mut wire = WireMessage::new_unchecked(buf);
                     state.msg.emit(&mut wire);
-                    info!("DM: Sent message sn {}", state.msg.sequence_number);
+                    debug!("DM: Sent message sn {}", state.msg.sequence_number);
 
                     // TODO
                     state.msg.sequence_number = state.msg.sequence_number.wrapping_add(1);

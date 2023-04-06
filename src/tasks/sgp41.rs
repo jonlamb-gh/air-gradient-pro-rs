@@ -6,7 +6,7 @@ use crate::{
     tasks::data_manager::SpawnArg as DataManagerSpawnArg,
 };
 use gas_index_algorithm::{AlgorithmType, GasIndexAlgorithm};
-use log::{info, warn};
+use log::{debug, warn};
 use stm32f4xx_hal::prelude::*;
 
 /// Number of measurement update cycles to perform conditioning.
@@ -75,7 +75,7 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
     match arg {
         SpawnArg::ConditioningData(cond_data) => {
             if !state.has_valid_compensation_data {
-                info!("SGP41: received compensation data");
+                debug!("SGP41: received compensation data");
             }
             state.compensation_data = cond_data;
             state.has_valid_compensation_data = true;
@@ -83,12 +83,12 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
         SpawnArg::Measurement => {
             if state.conditioning_iterations < CONDITIONING_ITERS_10S {
                 if state.conditioning_iterations == 0 {
-                    info!("SGP41: start conditioning");
+                    debug!("SGP41: start conditioning");
                 }
                 sensor.execute_conditioning().unwrap();
                 state.conditioning_iterations += 1;
                 if state.conditioning_iterations == CONDITIONING_ITERS_10S {
-                    info!("SGP41: conditioning complete, starting measurements");
+                    debug!("SGP41: conditioning complete, starting measurements");
                 }
             } else {
                 if !state.has_valid_compensation_data {
@@ -101,7 +101,7 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
                     nox_index: state.nox_algorithm.process(measurement.nox_ticks as _) as _,
                 };
 
-                info!("{measurement}");
+                debug!("{measurement}");
 
                 data_manager_task::spawn(DataManagerSpawnArg::Sgp41Measurement(measurement))
                     .unwrap();

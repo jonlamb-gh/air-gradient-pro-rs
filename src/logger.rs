@@ -17,7 +17,7 @@ static mut LOGGER: LoggerUsart6 = LoggerUsart6::uninit();
 pub(crate) unsafe fn init_logging(tx: Tx<USART6>) {
     LOGGER.write(Logger(Mutex::new(RefCell::new(tx))));
     log::set_logger(&*LOGGER.as_ptr())
-        .map(|()| log::set_max_level(log::LevelFilter::Trace))
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
         .unwrap();
 }
 
@@ -35,7 +35,7 @@ impl log::Log for Logger<USART6> {
             interrupt::free(|cs| {
                 writeln!(
                     self.0.borrow(cs).borrow_mut(),
-                    "[{}] {}\r",
+                    "{} {}\r",
                     level_marker(record.level()),
                     record.args()
                 )
@@ -63,10 +63,10 @@ impl fmt::Write for Logger<USART6> {
 const fn level_marker(level: log::Level) -> &'static str {
     use log::Level::*;
     match level {
-        Error => "E",
-        Warn => "W",
-        Info => "I",
-        Debug => "D",
-        Trace => "T",
+        Error => "[E]",
+        Warn => "[W]",
+        Info => "[I]",
+        Debug => "[D]",
+        Trace => "[T]",
     }
 }

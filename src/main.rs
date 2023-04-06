@@ -36,7 +36,7 @@ mod app {
         sgp41_task, sht31_task, watchdog_task,
     };
     use crate::{config, util};
-    use log::info;
+    use log::{debug, info};
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
@@ -115,7 +115,7 @@ mod app {
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
 
-        info!("Watchdog: inerval {}", watchdog.interval());
+        debug!("Watchdog: inerval {}", watchdog.interval());
 
         // TODO add project stuff, gen in build.rs
         // default_bcast_message() things
@@ -198,10 +198,10 @@ mod app {
             let display = Display::new(bus_manager.acquire_i2c()).unwrap();
             info!("Setup: SHT31");
             let sht31 = Sht31::new(bus_manager.acquire_i2c(), sht31_delay).unwrap();
-            info!("SHT31: serial number {}", sht31.serial_number());
+            debug!("SHT31: serial number {}", sht31.serial_number());
             info!("Setup: SGP41");
             let sgp41 = Sgp41::new(bus_manager.acquire_i2c(), sgp41_delay).unwrap();
-            info!("SGP41: serial number {}", sgp41.serial_number());
+            debug!("SGP41: serial number {}", sgp41.serial_number());
 
             I2cDevices {
                 display,
@@ -300,7 +300,7 @@ mod app {
         ipstack_poll_timer.listen(Event::Update);
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
-        info!("Initialized");
+        info!(">>> Initialized <<<");
         watchdog.feed();
 
         watchdog_task::spawn().unwrap();

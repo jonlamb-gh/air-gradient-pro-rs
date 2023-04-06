@@ -67,7 +67,7 @@ pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
             // TODO
             *ticks_until_wake_up = ticks_until_wake_up.saturating_sub(1);
             if *ticks_until_wake_up == 0 {
-                log::info!("PMS5003: entering active mode");
+                log::debug!("PMS5003: entering active mode");
                 sensor.enter_active_mode().unwrap();
                 *state = State::WarmingUp(WARM_UP_PERIOD_TICKS);
             }
@@ -75,17 +75,17 @@ pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
         State::WarmingUp(ticks_until_measurement) => {
             *ticks_until_measurement = ticks_until_measurement.saturating_sub(1);
             if *ticks_until_measurement == 0 {
-                log::info!("PMS5003: begin measuring");
+                log::debug!("PMS5003: begin measuring");
                 *state = State::Measuring(config::PMS5003_MEASUREMENT_COUNT);
             }
         }
         State::Measuring(measurements_until_standby) => {
             let measurement = sensor.measure().unwrap();
-            log::info!("{measurement}");
+            log::debug!("{measurement}");
 
             *measurements_until_standby = measurements_until_standby.saturating_sub(1);
             if *measurements_until_standby == 0 {
-                log::info!("PMS5003: entering standby mode");
+                log::debug!("PMS5003: entering standby mode");
                 sensor.enter_standby_mode().unwrap();
                 *state = State::init();
             }

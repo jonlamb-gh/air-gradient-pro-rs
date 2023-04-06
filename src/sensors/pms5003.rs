@@ -56,7 +56,7 @@ where
         delay.delay_ms(100_u8);
         let _ = drv.read()?;
 
-        log::info!("PMS5003: entering standby mode");
+        log::debug!("PMS5003: entering standby mode");
         drv.passive()?;
         delay.delay_ms(100_u8);
         let mut pms = Self { drv };
