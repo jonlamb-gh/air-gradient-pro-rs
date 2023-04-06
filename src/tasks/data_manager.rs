@@ -97,8 +97,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
             state.msg.status_flags.set_co2_valid(true);
         }
         SpawnArg::SendBroadcastMessage => {
-            // TODO
-            // invalidate stale fields
+            // TODO invalidate stale fields on timer or keep valid?
 
             if state.cycles_till_warmed_up != 0 {
                 state.cycles_till_warmed_up = state.cycles_till_warmed_up.saturating_sub(1);
@@ -139,8 +138,6 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
                     let mut wire = WireMessage::new_unchecked(buf);
                     state.msg.emit(&mut wire);
                     debug!("DM: Sent message sn {}", state.msg.sequence_number);
-
-                    // TODO
                     state.msg.sequence_number = state.msg.sequence_number.wrapping_add(1);
                 }
             }
@@ -149,39 +146,33 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
             socket.close();
         }
 
-        // TODO - From/convert msg to SystemStatus
-        // make some TaskState to store it maybe
         let sys_status = SystemStatus {
-            pm2_5: if state.msg.status_flags.pm2_5_valid() {
-                state.msg.pm2_5_atm.into()
-            } else {
-                None
-            },
-            temp: if state.msg.status_flags.temperature_valid() {
-                state.msg.temperature.into()
-            } else {
-                None
-            },
-            humidity: if state.msg.status_flags.humidity_valid() {
-                state.msg.humidity.into()
-            } else {
-                None
-            },
-            co2: if state.msg.status_flags.co2_valid() {
-                state.msg.co2.into()
-            } else {
-                None
-            },
-            voc_index: if state.msg.status_flags.voc_index_valid() {
-                state.msg.voc_index.into()
-            } else {
-                None
-            },
-            nox_index: if state.msg.status_flags.nox_index_valid() {
-                state.msg.nox_index.into()
-            } else {
-                None
-            },
+            pm2_5: state
+                .msg
+                .status_flags
+                .pm2_5_valid()
+                .then_some(state.msg.pm2_5_atm),
+            temp: state
+                .msg
+                .status_flags
+                .temperature_valid()
+                .then_some(state.msg.temperature),
+            humidity: state
+                .msg
+                .status_flags
+                .humidity_valid()
+                .then_some(state.msg.humidity),
+            co2: state.msg.status_flags.co2_valid().then_some(state.msg.co2),
+            voc_index: state
+                .msg
+                .status_flags
+                .voc_index_valid()
+                .then_some(state.msg.voc_index),
+            nox_index: state
+                .msg
+                .status_flags
+                .nox_index_valid()
+                .then_some(state.msg.nox_index),
             msg_seqnum: state.msg.sequence_number,
         };
         display_task::spawn(DisplaySpawnArg::SystemStatus(sys_status)).unwrap();

@@ -70,8 +70,7 @@ impl TaskState {
 pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
     let state = &mut ctx.local.state.state;
     let sensor = ctx.local.pms;
-    // TODO
-    // improve this state machine methods on State, tick/update
+    // TODO improve this state machine methods on State, tick/update
     match state {
         State::StandbyMode(ticks_until_wake_up) => {
             *ticks_until_wake_up = ticks_until_wake_up.saturating_sub(1);

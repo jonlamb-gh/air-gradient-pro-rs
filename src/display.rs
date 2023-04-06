@@ -288,7 +288,6 @@ where
     }
 }
 
-// TODO - this could use some cleanup
 #[repr(transparent)]
 struct DisplayOption<'a, T>(pub &'a Option<T>);
 
