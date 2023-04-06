@@ -35,7 +35,7 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
         };
         let recv_utc: DateTime<Utc> = Utc::now();
 
-        println!("Received {bytes_recvd} from {src_addr}");
+        println!("Received {bytes_recvd} bytes from {src_addr}");
         println!("UTC: {recv_utc}");
 
         // TODO - walk entire buffer for possible multiple messages
@@ -67,10 +67,10 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
         println!("Protocol: {}", ProtocolIdentifier::Broadcast);
         println!("Protocol version: {}", msg.protocol_version);
         println!("Firmware version: {}", msg.firmware_version);
-        println!("Device ID: 0x{:X}", msg.device_id);
+        println!("Device ID: 0x{:X} ({})", msg.device_id, msg.device_id);
         println!("Device serial number: {:X}", msg.device_serial_number);
         println!("Sequence number: {}", msg.sequence_number);
-        println!("Uptime seconds: {}", msg.uptime_seconds);
+        println!("Uptime seconds: {} | {}", msg.uptime_seconds, msg.uptime());
         println!("Status flags: 0x{:X}", msg.status_flags.0);
         println!("  initialized: {}", msg.status_flags.initialized());
         println!("  datetime_valid: {}", msg.status_flags.datetime_valid());
@@ -91,7 +91,7 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
         }
         if msg.status_flags.temperature_valid() {
             println!(
-                "Temperature: {} mC, {:.02} °C, {:.02} °F",
+                "Temperature: {} cC | {:.02} °C | {:.02} °F",
                 msg.temperature,
                 msg.temperature_c(),
                 msg.temperature_f(),
@@ -99,7 +99,7 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
         }
         if msg.status_flags.humidity_valid() {
             println!(
-                "Humidity: {} m%, {:.02} %",
+                "Humidity: {} c% | {:.02} %",
                 msg.humidity,
                 msg.relative_humidity(),
             );
@@ -117,7 +117,7 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
             println!("NOx index: {}", msg.nox_index);
         }
         if msg.status_flags.pm2_5_valid() {
-            println!("PM2.5: {}, AQI {}", msg.pm2_5_atm, msg.pm2_5_us_aqi());
+            println!("PM2.5: {} | {}", msg.pm2_5_atm, msg.pm2_5_us_aqi());
         }
         if msg.status_flags.co2_valid() {
             println!("CO2: {}", msg.co2);

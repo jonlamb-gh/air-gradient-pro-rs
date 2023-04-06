@@ -1,4 +1,4 @@
-//#![deny(warnings, clippy::all)]
+#![deny(warnings, clippy::all)]
 
 use crate::{interruptor::Interruptor, opts::Command};
 use anyhow::Result;

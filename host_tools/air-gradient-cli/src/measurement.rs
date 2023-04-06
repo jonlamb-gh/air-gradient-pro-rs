@@ -82,6 +82,8 @@ pub trait MessageExt {
     fn relative_humidity(&self) -> f64;
 
     fn pm2_5_us_aqi(&self) -> aqi::AirQuality;
+
+    fn uptime(&self) -> humantime::FormattedDuration;
 }
 
 impl MessageExt for Message {
@@ -97,5 +99,9 @@ impl MessageExt for Message {
         // Should already be clamped
         let concentration = self.pm2_5_atm.clamp(0, 500);
         aqi::pm2_5(f64::from(concentration)).expect("PM2.5 concentration out of range")
+    }
+
+    fn uptime(&self) -> humantime::FormattedDuration {
+        humantime::format_duration(std::time::Duration::from_secs(self.uptime_seconds.into()))
     }
 }

@@ -8,6 +8,11 @@ edition = "2021"
 name = "air-gradient"
 path = "src/main.rs"
 
+[features]
+default = ["native-tls"]
+native-tls = ["influxdb2/native-tls"]
+rustls = ["influxdb2/rustls"]
+
 [dependencies]
 clap = { version = "4.2", features = ["derive", "env", "color", "string"] }
 ctrlc = { version = "3.2", features=["termination"] }
@@ -19,9 +24,11 @@ anyhow = "1.0"
 chrono = "0.4"
 aqi = "0.2"
 influxdb2-derive = "0.1"
-#influxdb2 = "0.3"
-# TODO - just running in my local network, so doing the easy thing for cross compilation
-influxdb2 = { version = "0.3", features = ["rustls"], default-features = false }
+humantime = "2.1"
+
+[dependencies.influxdb2]
+version = "0.3"
+default-features = false
 
 [dependencies.wire-protocols]
 path = "../../libraries/wire-protocols"
