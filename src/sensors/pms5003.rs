@@ -1,21 +1,3 @@
-// TODO
-// split rx/tx
-// make rx int driven
-// isr feeds into task or this module
-//
-// or just use blocking mode, doesn't have that much traffic...
-// https://github.com/g-bartoszek/pms-7003
-//
-// the task will put the device in sleep mode for some time
-// then wake and measure
-// periodically
-//
-// probably use passive mode
-//
-// https://forum.airgradient.com/t/extending-the-life-span-of-the-pms5003-sensor/114
-//
-// https://github.com/airgradienthq/arduino/blob/43f599a0a7d65524c49d00f546f814420aeaed6e/AirGradient.cpp#L251
-
 use core::fmt;
 use pms_7003::{Error, Pms7003Sensor};
 use stm32f4xx_hal::{

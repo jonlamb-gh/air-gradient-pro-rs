@@ -71,10 +71,9 @@ pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
     let state = &mut ctx.local.state.state;
     let sensor = ctx.local.pms;
     // TODO
-    // methods on State, tick/update
+    // improve this state machine methods on State, tick/update
     match state {
         State::StandbyMode(ticks_until_wake_up) => {
-            // TODO
             *ticks_until_wake_up = ticks_until_wake_up.saturating_sub(1);
             if *ticks_until_wake_up == 0 {
                 log::debug!("PMS5003: entering active mode");
