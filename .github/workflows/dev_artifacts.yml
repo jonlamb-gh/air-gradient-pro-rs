@@ -1,0 +1,104 @@
+name: Development Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ip_address:
+        description: 'Sets the build env var AIR_GRADIENT_IP_ADDRESS'
+        type: string
+        required: false
+      mac_address:
+        description: 'Sets the build env var AIR_GRADIENT_MAC_ADDRESS'
+        type: string
+        required: false
+      device_id:
+        description: 'Sets the build env var AIR_GRADIENT_DEVICE_ID'
+        type: string
+        required: false
+      broadcast_port:
+        description: 'Sets the build env var AIR_GRADIENT_BROADCAST_PORT'
+        type: string
+        required: false
+      broadcast_address:
+        description: 'Sets the build env var AIR_GRADIENT_BROADCAST_ADDRESS'
+        type: string
+        required: false
+
+jobs:
+  build_fw:
+    name: Build Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Install binutils
+        run: cargo install cargo-binutils
+
+      - name: Setup environment variable 'AIR_GRADIENT_IP_ADDRESS'
+        if: "${{ github.event.inputs.ip_address != '' }}"
+        run: |
+          AIR_GRADIENT_IP_ADDRESS=${{ github.event.inputs.ip_address }}
+          echo "AIR_GRADIENT_IP_ADDRESS=$AIR_GRADIENT_IP_ADDRESS"
+          echo AIR_GRADIENT_IP_ADDRESS=${AIR_GRADIENT_IP_ADDRESS} >> $GITHUB_ENV
+
+      - name: Setup environment variable 'AIR_GRADIENT_MAC_ADDRESS'
+        if: "${{ github.event.inputs.mac_address != '' }}"
+        run: |
+          AIR_GRADIENT_MAC_ADDRESS=${{ github.event.inputs.mac_address }}
+          echo "AIR_GRADIENT_MAC_ADDRESS=$AIR_GRADIENT_MAC_ADDRESS"
+          echo AIR_GRADIENT_MAC_ADDRESS=${AIR_GRADIENT_MAC_ADDRESS} >> $GITHUB_ENV
+
+      - name: Setup environment variable 'AIR_GRADIENT_DEVICE_ID'
+        if: "${{ github.event.inputs.device_id != '' }}"
+        run: |
+          AIR_GRADIENT_DEVICE_ID=${{ github.event.inputs.device_id }}
+          echo "AIR_GRADIENT_DEVICE_ID=$AIR_GRADIENT_DEVICE_ID"
+          echo AIR_GRADIENT_DEVICE_ID=${AIR_GRADIENT_DEVICE_ID} >> $GITHUB_ENV
+
+      - name: Setup environment variable 'AIR_GRADIENT_BROADCAST_PORT'
+        if: "${{ github.event.inputs.broadcast_port != '' }}"
+        run: |
+          AIR_GRADIENT_BROADCAST_PORT=${{ github.event.inputs.broadcast_port }}
+          echo "AIR_GRADIENT_BROADCAST_PORT=$AIR_GRADIENT_BROADCAST_PORT"
+          echo AIR_GRADIENT_BROADCAST_PORT=${AIR_GRADIENT_BROADCAST_PORT} >> $GITHUB_ENV
+
+      - name: Setup environment variable 'AIR_GRADIENT_BROADCAST_ADDRESS'
+        if: "${{ github.event.inputs.broadcast_address != '' }}"
+        run: |
+          AIR_GRADIENT_BROADCAST_ADDRESS=${{ github.event.inputs.broadcast_address }}
+          echo "AIR_GRADIENT_BROADCAST_ADDRESS=$AIR_GRADIENT_BROADCAST_ADDRESS"
+          echo AIR_GRADIENT_BROADCAST_ADDRESS=${AIR_GRADIENT_BROADCAST_ADDRESS} >> $GITHUB_ENV
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Print firmware size
+        run: cargo size --release
+
+  build_cli:
+    name: Build CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Install aarch64-unknown-linux-musl gcc toolchain
+        run: |
+          sudo wget --no-verbose --quiet https://musl.cc/aarch64-linux-musl-cross.tgz -O /usr/local/src/aarch64-linux-musl-cross.tgz
+          sudo tar -xf /usr/local/src/aarch64-linux-musl-cross.tgz /usr/local/bin/
+          echo CC_aarch64_unknown_linux_musl=/usr/local/bin/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc >> $GITHUB_ENV
+
+      - name: Build release CLI for x86_64-unknown-linux-gnu
+        run: cargo build --release --target x86_64-unknown-linux-gnu --features "native-tls" --no-default-features
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Build release CLI for aarch64-unknown-linux-musl
+        run: cargo build --release --target x86_64-unknown-linux-gnu --features "rustls" --no-default-features
+        working-directory: host_tools/air-gradient-cli

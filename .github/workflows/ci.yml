@@ -40,11 +40,17 @@ jobs:
       - name: Install toolchain and components
         run: rustup component add rustfmt clippy
 
+      - name: Install binutils
+        run: cargo install cargo-binutils
+
       - name: Build debug binary
         run: cargo build
 
       - name: Build release binary
         run: cargo build --release
+
+      - name: Print firmware size
+        run: cargo size --release
 
   lint_cli:
     name: Lint CLI
@@ -82,11 +88,11 @@ jobs:
         run: rustup component add rustfmt clippy
 
       - name: Build debug binary
-        run: cargo build
+        run: cargo build --all-features
         working-directory: host_tools/air-gradient-cli
 
       - name: Build release binary
-        run: cargo build --release
+        run: cargo build --release --all-features
         working-directory: host_tools/air-gradient-cli
 
   test_cli:
