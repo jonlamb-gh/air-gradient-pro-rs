@@ -31,17 +31,6 @@ where
 {
     pub fn new(i2c: I2C, delay: D) -> Result<Self, Error<E>> {
         let mut drv = sgp41::sgp41::Sgp41::new(i2c, delay);
-        // TODO - do what the arduino lib does for configs and startup procedure
-        //
-        // tvocInterval = 1000 ms
-        //
-        // do conditioning for 10 sec (NOx conditioning)
-        //   sgp41.executeConditioning(compensationRh, compensationT, srawVoc);
-        // then
-        //   sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox)
-        //
-        // TVOC = voc_algorithm.process(srawVoc);
-        // NOX = nox_algorithm.process(srawNox);
         drv.turn_heater_off()?;
         drv.execute_self_test()?;
         let sn = drv.get_serial_number()?;

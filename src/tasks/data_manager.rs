@@ -78,13 +78,13 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
         }
         SpawnArg::GasIndices(m) => {
             // The gas indices are valid once they are non-zero
-            state.msg.voc_index = m.voc_index;
-            if m.voc_index != 0 {
+            if let Some(i) = m.voc_index {
+                state.msg.voc_index = i.get();
                 state.msg.status_flags.set_voc_index_valid(true);
             }
 
-            state.msg.nox_index = m.nox_index;
-            if m.nox_index != 0 {
+            if let Some(i) = m.nox_index {
+                state.msg.nox_index = i.get();
                 state.msg.status_flags.set_nox_index_valid(true);
             }
         }

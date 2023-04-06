@@ -5,6 +5,7 @@ use crate::{
     sensors::sht31,
     tasks::data_manager::SpawnArg as DataManagerSpawnArg,
 };
+use core::num::NonZeroU16;
 use gas_index_algorithm::{AlgorithmType, GasIndexAlgorithm};
 use log::{debug, warn};
 use static_assertions::const_assert_eq;
@@ -19,8 +20,13 @@ const CONDITIONING_ITERS_10S: u32 = (10 * 1000) / config::SGP41_MEASUREMENT_INTE
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct GasIndices {
-    pub voc_index: u16,
-    pub nox_index: u16,
+    /// Calculated VOC gas index value.
+    /// Zero during initial blackout period and 1..500 afterwards.
+    pub voc_index: Option<NonZeroU16>,
+
+    /// Calculated VOC gas index value.
+    /// Zero during initial blackout period and 1..500 afterwards.
+    pub nox_index: Option<NonZeroU16>,
 }
 
 pub struct TaskState {
@@ -56,14 +62,7 @@ pub enum SpawnArg {
     Measurement,
 }
 
-// TODO - needs a spawn arg for sht31 vs measurement update
 pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
-    // TODO
-    // do the voc/nox algorithm processing here for converting
-    // raw signals to index values
-    //
-    // do conditioning for the first 10 seconds, then do raw signal measurements
-    // requires temp/humid data from sht31
     let state = ctx.local.state;
     let sensor = &mut ctx.shared.i2c_devices.sgp41;
 
@@ -96,10 +95,13 @@ pub(crate) fn sgp41_task(ctx: sgp41_task::Context, arg: SpawnArg) {
                     warn!("SGP41: no compensation data, using default");
                 }
                 let measurement = sensor.measure(&state.compensation_data).unwrap();
-                // TODO not valid until >0
                 let gas_indices = GasIndices {
-                    voc_index: state.voc_algorithm.process(measurement.voc_ticks as _) as _,
-                    nox_index: state.nox_algorithm.process(measurement.nox_ticks as _) as _,
+                    voc_index: NonZeroU16::new(
+                        state.voc_algorithm.process(measurement.voc_ticks as _) as u16,
+                    ),
+                    nox_index: NonZeroU16::new(
+                        state.nox_algorithm.process(measurement.nox_ticks as _) as u16,
+                    ),
                 };
 
                 debug!("{measurement}");
