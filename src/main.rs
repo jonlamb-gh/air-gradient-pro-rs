@@ -1,6 +1,4 @@
-//#![deny(warnings, clippy::all)]
-// TODO
-//#![forbid(unsafe_code)]
+#![deny(warnings, clippy::all)]
 #![no_main]
 #![no_std]
 
