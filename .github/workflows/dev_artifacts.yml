@@ -1,5 +1,6 @@
 name: Development Artifacts
 
+# TODO - surface choice for max log level
 on:
   workflow_dispatch:
     inputs:
@@ -24,6 +25,9 @@ on:
         type: string
         required: false
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   build_fw:
     name: Build Firmware
@@ -33,10 +37,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install toolchain and components
-        run: rustup component add rustfmt clippy
+        run: rustup component add rustfmt clippy llvm-tools-preview
 
-      - name: Install binutils
-        run: cargo install cargo-binutils
+      - name: Install binutils, flip-link
+        run: cargo install cargo-binutils flip-link
 
       - name: Setup environment variable 'AIR_GRADIENT_IP_ADDRESS'
         if: "${{ github.event.inputs.ip_address != '' }}"
@@ -79,6 +83,20 @@ jobs:
       - name: Print firmware size
         run: cargo size --release
 
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts
+          cp target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: air-gradient-artifacts-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            artifacts/air-gradient-pro
+
   build_cli:
     name: Build CLI
     runs-on: ubuntu-latest
@@ -89,10 +107,13 @@ jobs:
       - name: Install toolchain and components
         run: rustup component add rustfmt clippy
 
-      - name: Install aarch64-unknown-linux-musl gcc toolchain
+      - name: Install aarch64 toolchains
         run: |
+          sudo apt-get install gcc-aarch64-linux-gnu
+
+          sudo mkdir -p /usr/local/src /usr/local/bin
           sudo wget --no-verbose --quiet https://musl.cc/aarch64-linux-musl-cross.tgz -O /usr/local/src/aarch64-linux-musl-cross.tgz
-          sudo tar -xf /usr/local/src/aarch64-linux-musl-cross.tgz /usr/local/bin/
+          sudo tar -xf /usr/local/src/aarch64-linux-musl-cross.tgz -C /usr/local/bin/
           echo CC_aarch64_unknown_linux_musl=/usr/local/bin/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc >> $GITHUB_ENV
 
       - name: Build release CLI for x86_64-unknown-linux-gnu
@@ -100,5 +121,21 @@ jobs:
         working-directory: host_tools/air-gradient-cli
 
       - name: Build release CLI for aarch64-unknown-linux-musl
-        run: cargo build --release --target x86_64-unknown-linux-gnu --features "rustls" --no-default-features
+        run: cargo build --release --target aarch64-unknown-linux-musl --features "rustls" --no-default-features
         working-directory: host_tools/air-gradient-cli
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts
+          cp host_tools/air-gradient-cli/target/x86_64-unknown-linux-gnu/release/air-gradient artifacts/air-gradient-x86_64
+          cp host_tools/air-gradient-cli/target/aarch64-unknown-linux-musl/release/air-gradient artifacts/air-gradient-aarch64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: air-gradient-artifacts-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            artifacts/air-gradient-x86_64
+            artifacts/air-gradient-aarch64

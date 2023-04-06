@@ -1,6 +1,10 @@
 # air-gradient-pro-rs
 
-do all the `rg -i todo src/`
+do all the `rg -i todo .`
+
+make gh issues for things
+
+bring back renode emulation support
 
 try out https://github.com/rtic-scope
 
@@ -31,6 +35,11 @@ AIR_GRADIENT_DEVICE_ID
 AIR_GRADIENT_BROADCAST_PORT
 AIR_GRADIENT_BROADCAST_ADDRESS
 ```
+
+
+instructions for build+flash via `cargo embed --release`
+and download+flash via `probe-rs ...`
+
 
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
