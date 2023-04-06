@@ -238,7 +238,10 @@ mod app {
             int.trigger_on_edge(&mut ctx.device.EXTI, Edge::Falling);
 
             let mut reset = gpiob.pb1.into_push_pull_output_in_state(true.into());
-            // Hard reset
+
+            // Perform a hard reset first, then let the driver
+            // perform a soft reset by provided enc28j60::Unconnected
+            // instead of the actual reset pin
             reset.set_low();
             common_delay.delay_ms(5_u8);
             reset.set_high();
@@ -248,11 +251,6 @@ mod app {
                 eth_spi,
                 ncs,
                 int,
-                // Provide Unconnected so that a soft-reset also happens
-                // TODO - still debugging why it occasionally gets into
-                // CorruptRxBuffer and no more data
-                // Probably just panic/reset when it happens until I
-                // look into it more
                 enc28j60::Unconnected,
                 &mut common_delay,
                 7168,
