@@ -31,13 +31,6 @@ where
     D: DelayMs<u8>,
 {
     pub fn new(i2c: I2C, mut delay: D) -> Result<Self, Error<E>> {
-        // TODO - do what the arduino lib does for configs and startup procedure
-        // periodicStart(SHT3XD_REPEATABILITY_HIGH, SHT3XD_FREQUENCY_10HZ);
-        // read sn
-        // tempHumInterval = 2500 ms
-        // periodicFetchData in the loop
-        //   SHT3XD_CMD_FETCH_DATA
-        //   readTemperatureAndHumidity
         let mut drv = Sht3x::new(i2c, Address::Low);
         drv.stop(&mut delay)?;
         delay.delay_ms(20);
