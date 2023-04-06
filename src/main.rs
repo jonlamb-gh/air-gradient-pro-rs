@@ -115,13 +115,6 @@ mod app {
 
         debug!("Watchdog: inerval {}", watchdog.interval());
 
-        // TODO add project stuff, gen in build.rs
-        // default_bcast_message() things
-        // ProtocolVersion
-        // FirmwareVersion
-        // device id
-        // ...
-
         info!("############################################################");
         info!(
             "{} {} ({})",
