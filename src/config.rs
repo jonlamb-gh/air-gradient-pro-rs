@@ -7,7 +7,7 @@ mod generated_confg {
 
 pub const IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(IP_ADDRESS), 24);
 
-pub const SOCKET_BUFFER_LEN: usize = 256;
+pub const SOCKET_BUFFER_LEN: usize = wire_protocols::broadcast::MESSAGE_LEN * 4;
 
 pub const STARTUP_DELAY_SECONDS: u8 = 5;
 
