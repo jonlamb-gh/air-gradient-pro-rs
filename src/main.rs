@@ -79,8 +79,7 @@ mod app {
         watchdog: IndependentWatchdog,
     }
 
-    // TODO
-    //#[monotonic(binds = TIM2, priority = 3, default = true)]
+    /// TIM2 is a 32-bit timer, defaults to having the highest interrupt priority
     #[monotonic(binds = TIM2, default = true)]
     type MicrosecMono = MonoTimerUs<pac::TIM2>;
 
