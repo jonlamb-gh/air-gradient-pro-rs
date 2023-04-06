@@ -1,0 +1,90 @@
+name: CI
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  lint_fw:
+    name: Lint Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Check
+        run: cargo check --all-features
+
+      - name: Clippy
+        run: cargo clippy --all-features
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Doc Generation
+        run: cargo doc --workspace --bins --examples --all-features --no-deps
+
+  build_fw:
+    name: Build Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Build debug binary
+        run: cargo build
+
+      - name: Build release binary
+        run: cargo build --release
+
+  lint_cli:
+    name: Lint CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Check
+        run: cargo check --all-features
+
+      - name: Clippy
+        run: cargo clippy --all-features
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Format
+        run: cargo fmt --all -- --check
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Doc Generation
+        run: cargo doc --workspace --bins --examples --all-features --no-deps
+        working-directory: host_tools/air-gradient-cli
+
+  build_cli:
+    name: Build CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Build debug binary
+        run: cargo build
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Build release binary
+        run: cargo build --release
+        working-directory: host_tools/air-gradient-cli
