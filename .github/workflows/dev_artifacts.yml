@@ -81,7 +81,12 @@ jobs:
         run: cargo build --release
 
       - name: Print firmware size
-        run: cargo size --release
+        run: |
+          cargo size --release
+          echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo size --release >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Prepare artifacts
         run: |

@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Print version
         run: |
@@ -46,7 +48,12 @@ jobs:
         run: cargo build --release
 
       - name: Print firmware size
-        run: cargo size --release >> $GITHUB_STEP_SUMMARY
+        run: |
+          cargo size --release
+          echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo size --release >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Build release CLI for x86_64-unknown-linux-gnu
         run: cargo build --release --target x86_64-unknown-linux-gnu --features "native-tls" --no-default-features
@@ -63,15 +70,19 @@ jobs:
           cp host_tools/air-gradient-cli/target/x86_64-unknown-linux-gnu/release/air-gradient artifacts/air-gradient-x86_64
           cp host_tools/air-gradient-cli/target/aarch64-unknown-linux-musl/release/air-gradient artifacts/air-gradient-aarch64
 
+          echo '## Firmware size' >> release_notes.md
+          echo '```' >> release_notes.md
+          cargo size --release >> release_notes.md
+          echo '```' >> release_notes.md
+
       - name: Create github release
         id: create_release
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           draft: true
           prerelease: false
           name: Release ${{ env.RELEASE_VERSION }}
+          body_path: release_notes.md
           files: |
             artifacts/air-gradient-pro
             artifacts/air-gradient-x86_64
