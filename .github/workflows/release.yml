@@ -1,0 +1,78 @@
+name: Release
+
+# Push events to matching v*, i.e. v1.0, v20.15.10
+on:
+  push:
+    tags:
+    - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print version
+        run: |
+          RELEASE_TAG=${{ github.ref }}
+          RELEASE_TAG="${RELEASE_TAG#refs/tags/}"
+          RELEASE_VERSION="${RELEASE_TAG#v}"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          echo "Release tag: $RELEASE_TAG"
+          echo "Release version: $RELEASE_VERSION"
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install aarch64 toolchains
+        run: |
+          sudo apt-get install gcc-aarch64-linux-gnu
+
+          sudo mkdir -p /usr/local/src /usr/local/bin
+          sudo wget --no-verbose --quiet https://musl.cc/aarch64-linux-musl-cross.tgz -O /usr/local/src/aarch64-linux-musl-cross.tgz
+          sudo tar -xf /usr/local/src/aarch64-linux-musl-cross.tgz -C /usr/local/bin/
+          echo CC_aarch64_unknown_linux_musl=/usr/local/bin/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc >> $GITHUB_ENV
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy llvm-tools-preview
+
+      - name: Install binutils, flip-link
+        run: cargo install cargo-binutils flip-link
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Print firmware size
+        run: cargo size --release >> $GITHUB_STEP_SUMMARY
+
+      - name: Build release CLI for x86_64-unknown-linux-gnu
+        run: cargo build --release --target x86_64-unknown-linux-gnu --features "native-tls" --no-default-features
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Build release CLI for aarch64-unknown-linux-musl
+        run: cargo build --release --target aarch64-unknown-linux-musl --features "rustls" --no-default-features
+        working-directory: host_tools/air-gradient-cli
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts
+          cp target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+          cp host_tools/air-gradient-cli/target/x86_64-unknown-linux-gnu/release/air-gradient artifacts/air-gradient-x86_64
+          cp host_tools/air-gradient-cli/target/aarch64-unknown-linux-musl/release/air-gradient artifacts/air-gradient-aarch64
+
+      - name: Create github release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: false
+          name: Release ${{ env.RELEASE_VERSION }}
+          files: |
+            artifacts/air-gradient-pro
+            artifacts/air-gradient-x86_64
+            artifacts/air-gradient-aarch64

@@ -93,7 +93,7 @@ jobs:
         with:
           name: air-gradient-artifacts-${{ github.sha }}
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 2
           path: |
             artifacts/air-gradient-pro
 
@@ -135,7 +135,7 @@ jobs:
         with:
           name: air-gradient-artifacts-${{ github.sha }}
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 2
           path: |
             artifacts/air-gradient-x86_64
             artifacts/air-gradient-aarch64

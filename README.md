@@ -26,8 +26,6 @@ Significant differences from stock:
 * Configuration for network and device settings
 * OLED display
 
-TODO maybe some pictures here
-
 ## Configuration
 
 The [build.rs](./build.rs) file handles generating build-time configuration values based
@@ -45,7 +43,8 @@ The following environment variables can be set:
 You can flash the board is currently done via SWD and an st-link.
 
 You can use the [Development Artifacts](https://github.com/jonlamb-gh/air-gradient-pro-rs/actions/workflows/dev_artifacts.yml)
-github action to build a custom-configurated firmware image in CI too (click "Run workflow" and set the configuration fields).
+github action to build a custom-configurated firmware image in CI (click "Run workflow" and set the configuration fields)
+or grab the latest release with the default configuration from the [Releases page](https://github.com/jonlamb-gh/air-gradient-pro-rs/releases).
 
 ### Using a github release artifact
 
