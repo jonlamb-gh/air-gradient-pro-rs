@@ -16,7 +16,7 @@ I've modified an AirGradient PRO kit ([PCB Version 3.7](https://www.airgradient.
 
 Significant differences from stock:
 * Replace the Wemos D1 Mini v4 with an stm32f411 "black pill" board
-* Add a ENC28J60 Ethernet boarda
+* Add a ENC28J60 Ethernet board
 * Custom Rust firmware
 
 ## Features
@@ -40,10 +40,10 @@ The following environment variables can be set:
 
 ## Flashing
 
-You can flash the board is currently done via SWD and an st-link.
+Flashing the board is currently done via SWD and an st-link.
 
 You can use the [Development Artifacts](https://github.com/jonlamb-gh/air-gradient-pro-rs/actions/workflows/dev_artifacts.yml)
-github action to build a custom-configurated firmware image in CI (click "Run workflow" and set the configuration fields)
+github action to build a custom-configured firmware image in CI (click "Run workflow" and set the configuration fields)
 or grab the latest release with the default configuration from the [Releases page](https://github.com/jonlamb-gh/air-gradient-pro-rs/releases).
 
 ### Using a github release artifact
@@ -99,7 +99,7 @@ Log messages are available on pin PA11 (USART6 Tx), you should see output like t
 
 ## Hardware
 
-* STM32F411 "back pill"
+* STM32F411 "black pill"
   - [WeActStudio github](https://github.com/WeActStudio/WeActStudio.MiniSTM32F4x1#stm32f411ceu6-core-board)
   - [pinout diagram](https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png)
   - [refman](https://www.st.com/resource/en/reference_manual/dm00119316-stm32f411xc-e-advanced-arm-based-32-bit-mcus-stmicroelectronics.pdf)
