@@ -141,23 +141,3 @@ Log messages are available on pin PA11 (USART6 Tx), you should see output like t
 | PA8   | GPIO Input    | NC | ENC28J60 Eth INT |
 | PB1   | GPIO Output   | NC | ENC28J60 Eth RESET |
 | PC13  | GPIO Output   | NC | On-board LED |
-
-
-## TODOs
-
-do all the `rg -i todo .`
-
-make gh issues for things
-
-bring back renode emulation support
-
-try out https://github.com/rtic-scope
-
-hook up a console for enable/disable debug logs or whatever
-https://github.com/rust-embedded-community/menu
-https://crates.io/crates/ushell
-
-maybe add a bootloader w/FOTA update stuff and CLI for it
-
-add AQI on-device for display and in the protocol
-https://github.com/kelnos/aqi-rs
