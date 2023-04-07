@@ -1,64 +1,70 @@
 # air-gradient-pro-rs
 
-do all the `rg -i todo .`
+Firmware and tools for the [AirGradient PRO](https://www.airgradient.com/open-airgradient/kits/) kit
+with some modifications.
 
-make gh issues for things
+The firmware is written in Rust and uses the [RTIC](https://rtic.rs/1/book/en/) framework.
 
-bring back renode emulation support
+## Overview
 
-try out https://github.com/rtic-scope
+I've modified an AirGradient PRO kit ([PCB Version 3.7](https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/)) mainly so I can have a wired ethernet connection.
 
-hook up a console for enable/disable debug logs or whatever
-https://github.com/rust-embedded-community/menu
-https://crates.io/crates/ushell
+Significant differences from stock:
+* Replace the Wemos D1 Mini v4 with an stm32f411 "black pill" board
+* Add a ENC28J60 Ethernet boarda
+* Custom Rust firmware
 
-maybe add a bootloader w/FOTA update stuff and CLI for it
+## Features
 
-add AQI on-device for display and in the protocol
-https://github.com/kelnos/aqi-rs
+* TCP/IP stack, comes with a lightweight [broadcast protocol](libraries/wire-protocols/src/broadcast.rs)
+* CLI with command-line tools and InfluxDB relaying, see the [air-gradient-cli README](host_tools/air-gradient-cli/README.md)
+* Configuration for network and device settings
+* OLED display
 
-reset happened:
-```
-2023-04-04T19:08:00Z,27,sequence_number
-2023-04-05T09:12:00Z,10074,sequence_number
-**
-2023-04-05T09:16:00Z,8,sequence_number
-2023-04-05T09:20:00Z,55
-```
+TODO maybe some pictures here
 
-```
-********************************
-PANIC
-panicked at 'assertion failed: buffer.as_slice().len() >= usize(self.len())', ~/.cargo/git/checkouts/enc28j60-53056b08aeec0867/b006635/src/lib.rs:764:9
-********************************
+## Configuration
 
-NextPacket::read
-assert!(buffer.as_slice().len() >= usize(self.len()));
-```
+The [build.rs](./build.rs) file handles generating build-time configuration values based
+on the github repository and host environment variables.
 
+The following environment variables can be set:
+* `AIR_GRADIENT_IP_ADDRESS` : The deivce's IP address, default is `192.168.1.38`
+* `AIR_GRADIENT_MAC_ADDRESS` : The device's MAC address, default is `02:00:04:03:07:02`
+* `AIR_GRADIENT_DEVICE_ID` : An arbitrary 16-bit identifier, default is `0xFFFF` (`DeviceId::DEFAULT`)
+* `AIR_GRADIENT_BROADCAST_PORT` : The port number to send the broadcast protocol data on, default is `32100`
+* `AIR_GRADIENT_BROADCAST_ADDRESS` : The IP address to send the broadcast protocol data to, default is `255.255.255.255`
 
-```
-# send-huge-packet.sh 
-# this repro's it
+## Flashing
 
-dd if=/dev/zero bs=1024 count=32 | perl -MIO::Socket::INET -e \
-   'IO::Socket::INET->new(PeerAddr => q[192.168.1.38:1234], Proto => q[udp])->send(do { local $/; <STDIN> })'
-```
+You can flash the board is currently done via SWD and an st-link.
 
-```
-config section
-env vars
-AIR_GRADIENT_IP_ADDRESS
-AIR_GRADIENT_MAC_ADDRESS
-AIR_GRADIENT_DEVICE_ID
-AIR_GRADIENT_BROADCAST_PORT
-AIR_GRADIENT_BROADCAST_ADDRESS
-```
+You can use the [Development Artifacts](https://github.com/jonlamb-gh/air-gradient-pro-rs/actions/workflows/dev_artifacts.yml)
+github action to build a custom-configurated firmware image in CI too (click "Run workflow" and set the configuration fields).
 
+### Using a github release artifact
 
-instructions for build+flash via `cargo embed --release`
-and download+flash via `probe-rs ...`
+1. Install [probe-rs-cli](https://crates.io/crates/probe-rs-cli)
+  ```bash
+  cargo install probe-rs-cli
+  ```
+2. Flash the target
+  ```bash
+  probe-rs-cli run --chip STM32F411CEUx --protocol swd path/to/air-gradient-pro
+  ```
 
+### Building from source
+
+1. Install [cargo-embed](https://crates.io/crates/cargo-embed) and [flip-link](https://crates.io/crates/flip-link)
+  ```bash
+  cargo install cargo-embed flip-link
+  ```
+2. Build the firmware and flash the target
+  ```bash
+  cargo embed --release
+  ```
+
+Log messages are available on pin PA11 (USART6 Tx), you should see output like the following:
 
 ```
 [I] ############################################################
@@ -87,70 +93,71 @@ and download+flash via `probe-rs ...`
 [I] >>> Initialized <<<
 ```
 
+## Hardware
 
-https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
+* STM32F411 "back pill"
+  - [WeActStudio github](https://github.com/WeActStudio/WeActStudio.MiniSTM32F4x1#stm32f411ceu6-core-board)
+  - [pinout diagram](https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png)
+  - [refman](https://www.st.com/resource/en/reference_manual/dm00119316-stm32f411xc-e-advanced-arm-based-32-bit-mcus-stmicroelectronics.pdf)
+  - [datasheet](https://www.st.com/resource/en/datasheet/stm32f411ce.pdf)
+* ENC28J60 Ethernet board
+  - [Waveshare wiki](https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board)
+  - [datasheet](https://www.waveshare.com/w/upload/7/7f/ENC28J60.pdf)
+* AirGradient PRO V3.7 kit
+  - [kit page](https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/)
+  - [schematic](https://www.airgradient.com/images/diy/schematicpro37.png)
+  - [Arduino code github](https://github.com/airgradienthq/arduino)
+  - [Factory firmware](https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino)
+* SH1106 OLED
+  - [datasheet](https://www.velleman.eu/downloads/29/infosheets/sh1106_datasheet.pdf)
+* Sensirion SHT31 (temperature/humidity sensor)
+  - [datasheet](https://www.mouser.com/datasheet/2/682/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital-971521.pdf)
+* Senseair S8 LP (CO2 sensor)
+  - [product page](https://senseair.com/products/size-counts/s8-lp/)
+  - [doc](https://rmtplusstoragesenseair.blob.core.windows.net/docs/publicerat/PSP126.pdf)
+  - [doc](https://rmtplusstoragesenseair.blob.core.windows.net/docs/Dev/publicerat/TDE2067.pdf)
+* PMS5003 (particle concentration sensor)
+  - [manual](https://www.aqmd.gov/docs/default-source/aq-spec/resources-page/plantower-pms5003-manual_v2-3.pdf)
+* Sensirion SGP41 (TVOC/NOx sensor)
+  - [product page](https://sensirion.com/products/catalog/SGP41/)
+  - [datasheet](https://www.mouser.com/datasheet/2/682/Sensirion_Gas_Sensors_Datasheet_SGP41-2604356.pdf)
 
-https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board
+### Pins
 
-https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/
-https://www.airgradient.com/images/diy/schematicpro37.png
-https://github.com/airgradienthq/arduino
-https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino
+| Pin   | Peripheral    | Board D1 Mini Header Pin | Description |
+| :---  |    :---       |     :---                 |   :---      |
+| PA11  | USART6 Tx     | TX | Console/logger/panic-handler output |
+| PA12  | USART6 Rx     | RX | Console input |
+| PA9   | USART1 Tx     | D3 | senseAir S8 Rx |
+| PA10  | USART1 Rx     | D4 | senseAir S8 Tx |
+| PA2   | USART2 Tx     | D6 | PMS5003 Rx |
+| PA3   | USART2 Rx     | D5 | PMS5003 Tx |
+| PB3   | I2C2 SDA      | D1 | Shared I2C SCL : SH1106, SHT31, SGP41 |
+| PB10  | I2C2 SCL      | D2 | Shared I2C SDA : SH1106, SHT31, SGP41 |
+| PB13  | SPI2 SCK      | NC | ENC28J60 Eth SCK |
+| PB14  | SPI2 MISO     | NC | ENC28J60 Eth MISO |
+| PB15  | SPI2 MOSI     | NC | ENC28J60 Eth MOSI |
+| PB12  | GPIO Output   | NC | ENC28J60 Eth CS |
+| PA8   | GPIO Input    | NC | ENC28J60 Eth INT |
+| PB1   | GPIO Output   | NC | ENC28J60 Eth RESET |
+| PC13  | GPIO Output   | NC | On-board LED |
 
-use their defaults:
-https://github.com/airgradienthq/arduino/blob/master/examples/DIY_PRO_V3_7/DIY_PRO_V3_7.ino#L267
 
-128x64 display U8G2 SH1106
-https://github.com/olikraus/u8g2
-https://crates.io/crates/sh1106
-https://www.velleman.eu/downloads/29/infosheets/sh1106_datasheet.pdf
+## TODOs
 
-SHT31
-https://crates.io/crates/sht3x
-https://www.mouser.com/datasheet/2/682/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital-971521.pdf
-https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/I2C/SHT21.cs
+do all the `rg -i todo .`
 
-senseAir S8 LP
-CO2 sensor
-serial modbus
-https://senseair.com/products/size-counts/s8-lp/
-https://rmtplusstoragesenseair.blob.core.windows.net/docs/publicerat/PSP126.pdf
-https://rmtplusstoragesenseair.blob.core.windows.net/docs/Dev/publicerat/TDE2067.pdf
-https://github.com/alttch/rmodbus
-https://github.com/slowtec/modbus-core
+make gh issues for things
 
-PMS5003
-https://crates.io/crates/pms-7003
-https://crates.io/crates/pms700x
-https://www.aqmd.gov/docs/default-source/aq-spec/resources-page/plantower-pms5003-manual_v2-3.pdf
+bring back renode emulation support
 
-SGP41 TVOC
-https://crates.io/crates/sgp41
-uses https://crates.io/crates/sensirion-i2c
-https://sensirion.com/products/catalog/SGP41/
-https://www.mouser.com/datasheet/2/682/Sensirion_Gas_Sensors_Datasheet_SGP41-2604356.pdf
-https://github.com/Sensirion/arduino-i2c-sgp41
-https://github.com/Sensirion/gas-index-algorithm
-https://github.com/Sensirion/arduino-gas-index-algorithm
+try out https://github.com/rtic-scope
 
-## Pins
+hook up a console for enable/disable debug logs or whatever
+https://github.com/rust-embedded-community/menu
+https://crates.io/crates/ushell
 
-| Pin   | Peripheral    | Description |
-| :---  |    :---       |        ---: |
-| PA11  | USART6 Tx     | Console/logger/panic-handler output |
-| PA12  | USART6 Rx     | Console input |
-| PA9   | USART1 Tx     | senseAir S8 Rx |
-| PA10  | USART1 Rx     | senseAir S8 Tx |
-| PA2   | USART2 Tx     | PMS5003 Rx |
-| PA3   | USART2 Rx     | PMS5003 Tx |
-| PB6   | I2C1 SCL      | DS3231 RTC SCL |
-| PB7   | I2C1 SDA      | DS3231 RTC SDA |
-| PB3   | I2C2 SDA      | Shared I2C SCL : SH1106, SHT31, SGP41 |
-| PB10  | I2C2 SCL      | Shared I2C SDA : SH1106, SHT31, SGP41 |
-| PB13  | SPI2 SCK      | ENC28J60 Eth SCK |
-| PB14  | SPI2 MISO     | ENC28J60 Eth MISO |
-| PB15  | SPI2 MOSI     | ENC28J60 Eth MOSI |
-| PB12  | GPIO Output   | ENC28J60 Eth CS |
-| PA8   | GPIO Input    | ENC28J60 Eth INT |
-| PB1   | GPIO Output   | ENC28J60 Eth RESET |
-| PC13  | GPIO Output   | On-board LED |
+maybe add a bootloader w/FOTA update stuff and CLI for it
+
+add AQI on-device for display and in the protocol
+https://github.com/kelnos/aqi-rs
