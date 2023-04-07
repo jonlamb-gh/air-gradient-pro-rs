@@ -1,4 +1,5 @@
 use enc28j60::Enc28j60;
+use log::{debug, error, warn};
 use smoltcp::phy::{self, Device, DeviceCapabilities, Medium};
 use smoltcp::time::Instant;
 use stm32f4xx_hal::{
@@ -28,9 +29,15 @@ pub struct Eth<'buf> {
 }
 
 impl<'buf> Eth<'buf> {
+    // TODO - should be 1514 ? query the driver
     pub const MTU: usize = 1500;
 
     pub fn new(drv: Drv, rx_buffer: &'buf mut [u8], tx_buffer: &'buf mut [u8]) -> Self {
+        debug!(
+            "ENC28J60: buffer length, rx {}, tx {}",
+            rx_buffer.len(),
+            tx_buffer.len()
+        );
         Eth {
             drv,
             rx_buffer,
@@ -50,8 +57,16 @@ impl<'buf> Device for Eth<'buf> {
     fn receive(&mut self, _timestamp: Instant) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
         match self.drv.next_packet() {
             Ok(Some(packet)) => {
-                if let Err(e) = packet.read(&mut self.rx_buffer[..]) {
-                    log::error!("Failed to read next packet. {e:?}");
+                if packet.len() as usize > self.rx_buffer.len() {
+                    warn!(
+                        "Dropping rx packet, too big, len {}, cap {}",
+                        packet.len(),
+                        self.rx_buffer.len()
+                    );
+                    packet.ignore().unwrap();
+                    None
+                } else if let Err(e) = packet.read(&mut self.rx_buffer[..]) {
+                    error!("Failed to read next packet. {e:?}");
                     None
                 } else {
                     Some((
@@ -65,7 +80,7 @@ impl<'buf> Device for Eth<'buf> {
             }
             Ok(None) => None,
             Err(e) => {
-                log::error!("Failed to receive next packet. {e:?}");
+                error!("Failed to receive next packet. {e:?}");
                 None
             }
         }
@@ -110,7 +125,7 @@ impl<'a> phy::TxToken for TxToken<'a> {
     {
         let result = f(&mut self.buf[..len]);
         if let Err(e) = self.phy.transmit(&self.buf[..len]) {
-            log::error!("Failed to transmit packet. {e:?}");
+            error!("Failed to transmit packet. {e:?}");
         }
         result
     }

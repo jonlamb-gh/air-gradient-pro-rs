@@ -27,6 +27,25 @@ reset happened:
 ```
 
 ```
+********************************
+PANIC
+panicked at 'assertion failed: buffer.as_slice().len() >= usize(self.len())', ~/.cargo/git/checkouts/enc28j60-53056b08aeec0867/b006635/src/lib.rs:764:9
+********************************
+
+NextPacket::read
+assert!(buffer.as_slice().len() >= usize(self.len()));
+```
+
+
+```
+# send-huge-packet.sh 
+# this repro's it
+
+dd if=/dev/zero bs=1024 count=32 | perl -MIO::Socket::INET -e \
+   'IO::Socket::INET->new(PeerAddr => q[192.168.1.38:1234], Proto => q[udp])->send(do { local $/; <STDIN> })'
+```
+
+```
 config section
 env vars
 AIR_GRADIENT_IP_ADDRESS
