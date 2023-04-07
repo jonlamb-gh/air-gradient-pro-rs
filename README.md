@@ -60,6 +60,34 @@ instructions for build+flash via `cargo embed --release`
 and download+flash via `probe-rs ...`
 
 
+```
+[I] ############################################################
+[I] air-gradient-pro-rs 0.1.0 (release)
+[I] Build date: Fri, 07 Apr 2023 10:00:13 +0000
+[I] rustc 1.68.2 (9eb3afe9e 2023-03-27)
+[I] git commit: 709ce69ea2a86585e58f07684f0def66e5f79010
+[I] Serial number: 303233313036517042018
+[I] Device ID: 0x1 (1)
+[I] IP address: 192.168.1.38
+[I] MAC address: 02-00-04-03-07-02
+[I] Broadcast protocol port: 32100
+[I] Broadcast protocol address: 255.255.255.255
+[I] ############################################################
+[I] Setup: startup delay 5 seconds
+[I] Setup: S8 LP
+[I] Setup: PMS5003
+[I] Setup: I2C2
+[I] Setup: SH1106
+[I] Setup: SHT31
+[I] Setup: SGP41
+[I] Setup: ETH
+[I] Setup: TCP/IP
+[I] Setup: net clock timer
+[I] Setup: net poll timer
+[I] >>> Initialized <<<
+```
+
+
 https://raw.githubusercontent.com/WeActStudio/WeActStudio.MiniSTM32F4x1/master/images/STM32F4x1_PinoutDiagram_RichardBalint.png
 
 https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board
