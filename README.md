@@ -5,6 +5,11 @@ with some modifications.
 
 The firmware is written in Rust and uses the [RTIC](https://rtic.rs/1/book/en/) framework.
 
+![dashboard](resources/dashboard.png)
+![startup](resources/startup.jpg)
+![display.jpg](resources/display.jpg)
+![prototype.jpg](resources/prototype.jpg)
+
 ## Overview
 
 I've modified an AirGradient PRO kit ([PCB Version 3.7](https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/)) mainly so I can have a wired ethernet connection.
