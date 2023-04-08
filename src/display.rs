@@ -251,7 +251,7 @@ where
         let val = view.temp_f();
         let val = DisplayOption(&val);
         self.line_buf.clear();
-        write!(&mut self.line_buf, "F: {}", val)?;
+        write!(&mut self.line_buf, "  F: {}", val)?;
         Text::with_baseline(
             self.line_buf.as_str(),
             Point::new(X_C0, Y_R2),
@@ -263,7 +263,7 @@ where
         let val = view.rel_humidity();
         let val = DisplayOption(&val);
         self.line_buf.clear();
-        write!(&mut self.line_buf, "H: {}", val)?;
+        write!(&mut self.line_buf, "  H: {}", val)?;
         Text::with_baseline(
             self.line_buf.as_str(),
             Point::new(X_C1, Y_R2),
@@ -304,7 +304,7 @@ impl<'a> fmt::Display for DisplayOption<'a, f32> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             None => f.write_str("NA"),
-            Some(v) => write!(f, "{v:.02}"),
+            Some(v) => write!(f, "{v:.0}"),
         }
     }
 }
