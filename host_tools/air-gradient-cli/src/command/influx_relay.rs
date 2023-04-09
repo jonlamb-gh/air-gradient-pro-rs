@@ -118,7 +118,7 @@ pub async fn influx_relay(cmd: InfluxRelay, intr: Interruptor) -> Result<()> {
                 },
             },
         }
-        .into_data_point()?;
+        .into_data_point(&cmd.measurement_name)?;
 
         if let Err(e) = client
             .write(&cmd.bucket, stream::iter(std::iter::once(m)))

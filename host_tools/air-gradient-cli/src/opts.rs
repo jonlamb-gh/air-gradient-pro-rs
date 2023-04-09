@@ -54,4 +54,8 @@ pub struct InfluxRelay {
     /// InfluxDB auth token
     #[arg(long, short = 't', env = "INFLUX_TOKEN")]
     pub token: String,
+
+    /// InfluxDB measurement name
+    #[arg(long, short = 'm', default_value = "measurement")]
+    pub measurement_name: String,
 }

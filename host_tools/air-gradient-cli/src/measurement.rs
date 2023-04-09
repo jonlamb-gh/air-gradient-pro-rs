@@ -31,8 +31,8 @@ pub struct MeasurementFields {
 }
 
 impl Measurement {
-    pub fn into_data_point(self) -> Result<DataPoint, DataPointError> {
-        let mut dpb = DataPoint::builder("measurement")
+    pub fn into_data_point(self, measurement_name: &str) -> Result<DataPoint, DataPointError> {
+        let mut dpb = DataPoint::builder(measurement_name)
             .timestamp(self.recv_time_utc_ns)
             .tag("device_id", self.tags.device_id)
             .tag("device_serial_number", self.tags.device_serial_number)
