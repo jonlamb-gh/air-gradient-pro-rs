@@ -1,0 +1,15 @@
+[package]
+name = "env-config"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jon Lamb"]
+
+[dependencies]
+
+[dependencies.smoltcp]
+version = "0.9"
+default-features = false
+features = ["medium-ethernet", "proto-ipv4", "socket-raw"]
+
+[dependencies.wire-protocols]
+path = "../wire-protocols"

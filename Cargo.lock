@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "air-gradient-pro-rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aqi",
  "built",
@@ -13,6 +13,7 @@ dependencies = [
  "cortex-m-rtic",
  "embedded-graphics",
  "enc28j60",
+ "env-config",
  "gas-index-algorithm",
  "heapless",
  "log",
@@ -396,6 +397,14 @@ dependencies = [
  "cast",
  "embedded-hal 0.2.7",
  "owning-slice",
+]
+
+[[package]]
+name = "env-config"
+version = "0.1.0"
+dependencies = [
+ "smoltcp",
+ "wire-protocols",
 ]
 
 [[package]]

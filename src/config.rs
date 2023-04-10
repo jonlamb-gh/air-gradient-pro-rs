@@ -2,7 +2,7 @@ use smoltcp::wire::{Ipv4Address, Ipv4Cidr};
 
 pub use self::generated_confg::*;
 mod generated_confg {
-    include!(concat!(env!("OUT_DIR"), "/generated_config.rs"));
+    include!(concat!(env!("OUT_DIR"), "/env_config.rs"));
 }
 
 pub const IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(IP_ADDRESS), 24);
