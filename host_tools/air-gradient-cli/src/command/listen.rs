@@ -1,10 +1,10 @@
 use crate::{interruptor::Interruptor, measurement::MessageExt, opts::Listen};
 use anyhow::Result;
 use chrono::prelude::*;
-use std::{net::UdpSocket, time::Duration};
+use std::{collections::BTreeMap, net::UdpSocket, time::Duration};
 use wire_protocols::{
     broadcast::{Message as WireMessage, Repr as Message, MESSAGE_LEN},
-    ProtocolIdentifier,
+    DeviceId, ProtocolIdentifier,
 };
 
 const TIMEOUT: Duration = Duration::from_millis(100);
@@ -18,10 +18,9 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
     let socket = UdpSocket::bind((cmd.address.as_str(), cmd.port))?;
     socket.set_read_timeout(TIMEOUT.into())?;
 
-    let mut missed_messages = 0_u64;
-    let mut total_messages = 0_u64;
-    let mut prev_sn = None;
     let mut buf = vec![0; MESSAGE_LEN * 10];
+
+    let mut stats = BTreeMap::new();
 
     println!();
     loop {
@@ -56,13 +55,32 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
             }
         };
 
-        if let Some(psn) = prev_sn {
-            if msg.sequence_number != (psn + 1) {
-                eprintln!("** Missed message sequence number {}", psn + 1);
-                missed_messages += 1;
+        let device_stats = stats
+            .entry(msg.device_serial_number)
+            .or_insert(DeviceStats {
+                device_id: msg.device_id,
+                last_seqnum: msg.sequence_number,
+                total_messages: 0,
+                missed_messages: 0,
+            });
+
+        if device_stats.total_messages != 0 {
+            if msg.sequence_number == device_stats.last_seqnum {
+                eprintln!(
+                    "** Duplicate message sequence number {}",
+                    msg.sequence_number
+                );
+            }
+
+            if msg.sequence_number != (device_stats.last_seqnum + 1) {
+                eprintln!(
+                    "** Missed message sequence number {} (current {})",
+                    device_stats.last_seqnum + 1,
+                    msg.sequence_number
+                );
+                device_stats.missed_messages += 1;
             }
         }
-        prev_sn = Some(msg.sequence_number);
 
         println!("Protocol: {}", ProtocolIdentifier::Broadcast);
         println!("Protocol version: {}", msg.protocol_version);
@@ -125,13 +143,33 @@ pub async fn listen(cmd: Listen, intr: Interruptor) -> Result<()> {
 
         println!();
 
-        total_messages += 1;
+        device_stats.total_messages += 1;
+        device_stats.last_seqnum = msg.sequence_number;
     }
+
+    let total_messages: u64 = stats.values().map(|v| v.total_messages).sum();
+    let missed_messages: u64 = stats.values().map(|v| v.missed_messages).sum();
 
     println!();
     println!("Summary");
     println!("Total messages: {total_messages}");
     println!("Missed messages {missed_messages}");
+    println!("Devices: {}", stats.len());
+    for (dev_sn, dev_stats) in stats.into_iter() {
+        println!("  * Device SN: {:X}", dev_sn);
+        println!("    Device ID: {}", dev_stats.device_id);
+        println!("    Last message seqnum: {}", dev_stats.last_seqnum);
+        println!("    Total messages: {}", dev_stats.total_messages);
+        println!("    Missed messages {}", dev_stats.missed_messages);
+    }
 
     Ok(())
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+struct DeviceStats {
+    device_id: DeviceId,
+    last_seqnum: u32,
+    total_messages: u64,
+    missed_messages: u64,
 }
