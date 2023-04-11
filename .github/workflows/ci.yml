@@ -21,11 +21,11 @@ jobs:
 
       - name: Check
         working-directory: libraries/${{ matrix.library }}
-        run: cargo check --all-features
+        run: cargo check --all-features --target x86_64-unknown-linux-gnu
 
       - name: Clippy
         working-directory: libraries/${{ matrix.library }}
-        run: cargo clippy --all-features
+        run: cargo clippy --all-features --target x86_64-unknown-linux-gnu
 
       - name: Format
         working-directory: libraries/${{ matrix.library }}
@@ -33,7 +33,7 @@ jobs:
 
       - name: Doc Generation
         working-directory: libraries/${{ matrix.library }}
-        run: cargo doc --workspace --bins --examples --all-features --no-deps
+        run: cargo doc --workspace --bins --examples --all-features --no-deps --target x86_64-unknown-linux-gnu
 
   test_libs:
     name: Test Libraries
