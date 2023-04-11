@@ -6,6 +6,52 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  lint_libs:
+    name: Lint Libraries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [wire-protocols, env-config]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Check
+        working-directory: host_tools/libraries/${{ matrix.library }}
+        run: cargo check --all-features
+
+      - name: Clippy
+        working-directory: host_tools/libraries/${{ matrix.library }}
+        run: cargo clippy --all-features
+
+      - name: Format
+        working-directory: host_tools/libraries/${{ matrix.library }}
+        run: cargo fmt --all -- --check
+
+      - name: Doc Generation
+        working-directory: host_tools/libraries/${{ matrix.library }}
+        run: cargo doc --workspace --bins --examples --all-features --no-deps
+
+  test_libs:
+    name: Test Libraries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [wire-protocols, env-config]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy
+
+      - name: Test
+        working-directory: host_tools/libraries/${{ matrix.library }}
+        run: cargo test --target x86_64-unknown-linux-gnu
+
   lint_fw:
     name: Lint Firmware
     runs-on: ubuntu-latest
