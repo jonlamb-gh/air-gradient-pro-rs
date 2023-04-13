@@ -29,8 +29,7 @@ pub struct Eth<'buf> {
 }
 
 impl<'buf> Eth<'buf> {
-    // TODO - should be 1514 ? query the driver
-    pub const MTU: usize = 1500;
+    pub const MTU: usize = 1514;
 
     pub fn new(drv: Drv, rx_buffer: &'buf mut [u8], tx_buffer: &'buf mut [u8]) -> Self {
         debug!(
