@@ -40,6 +40,12 @@ The following environment variables can be set:
 
 ## Flashing
 
+TODO
+TODO
+TODO
+TODO
+TODO
+
 Flashing the board is currently done via SWD and an st-link.
 
 You can use the [Development Artifacts](https://github.com/jonlamb-gh/air-gradient-pro-rs/actions/workflows/dev_artifacts.yml)
