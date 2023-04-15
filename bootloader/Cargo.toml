@@ -10,6 +10,10 @@ build = "build.rs"
 name = "bootloader"
 path = "src/main.rs"
 
+[lib]
+name = "bootloader_lib"
+path = "src/lib.rs"
+
 [dependencies]
 cortex-m = "0.7"
 cortex-m-rt = "0.7"

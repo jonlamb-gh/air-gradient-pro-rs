@@ -3,20 +3,12 @@
 #![no_std]
 #![no_main]
 
-mod boot_config;
 mod config;
 mod logger;
 mod panic_handler;
-mod reset_reason;
 
-use crate::boot_config::{BootConfig, DEFAULT_CONFIG};
-use crate::reset_reason::ResetReason;
-use core::{mem, ptr};
-use core::{
-    sync::atomic::{compiler_fence, Ordering::SeqCst},
-    sync::atomic::{AtomicBool, Ordering},
-};
-use cortex_m::{asm, peripheral::SCB, register::msp};
+use bootloader_lib::{BootConfig, ResetReason, DEFAULT_CONFIG};
+use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 use cortex_m_rt::entry;
 use log::{debug, info};
 use stm32f4xx_hal::rcc::Enable;
@@ -37,7 +29,7 @@ mod built_info {
 
 #[entry]
 fn main() -> ! {
-    let mut cp = cortex_m::Peripherals::take().unwrap();
+    let cp = cortex_m::Peripherals::take().unwrap();
     let mut dp = pac::Peripherals::take().unwrap();
 
     let reset_reason = ResetReason::read_and_clear(&mut dp.RCC);
@@ -141,7 +133,7 @@ fn main() -> ! {
 
     // TODO
     loop {
-        asm::nop();
+        cortex_m::asm::nop();
         //watchdog.feed();
     }
 }

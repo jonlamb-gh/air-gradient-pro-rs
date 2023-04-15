@@ -41,9 +41,8 @@ impl fmt::Display for ResetReason {
 }
 
 impl ResetReason {
-    pub fn read_and_clear(rcc: &mut RCC) -> Self {
+    pub fn read(rcc: &RCC) -> Self {
         let reason = rcc.csr.read();
-        rcc.csr.modify(|_, w| w.rmvf().set_bit());
         if reason.lpwrrstf().bit_is_set() {
             ResetReason::LowPowerReset
         } else if reason.wwdgrstf().bit_is_set() {
@@ -61,5 +60,11 @@ impl ResetReason {
         } else {
             ResetReason::Unknown(reason.bits())
         }
+    }
+
+    pub fn read_and_clear(rcc: &mut RCC) -> Self {
+        let reason = Self::read(rcc);
+        rcc.csr.modify(|_, w| w.rmvf().set_bit());
+        reason
     }
 }

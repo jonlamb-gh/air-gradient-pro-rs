@@ -50,8 +50,6 @@ impl BootConfig {
             Self::FLASH_SECTOR_OFFSET
         );
 
-        // NOTE: since we're repr(c) and packed, we could cast/transumte
-        // from raw bytes...
         let cfg_bytes = &flash.read()[Self::FLASH_SECTOR_OFFSET as usize..];
         let cfg = BootConfig {
             magic: u32::from_le_bytes(cfg_bytes[0..4].try_into().unwrap()),
