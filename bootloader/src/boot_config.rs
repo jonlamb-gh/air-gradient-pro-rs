@@ -16,9 +16,8 @@ pub enum BootSlot {
 
 pub static DEFAULT_CONFIG: BootConfig = BootConfig {
     magic: 0,
-    // TODO
-    firmware_boot_slot: BootSlot::Slot1,
-    //firmware_boot_slot: BootSlot::Slot0,
+    version: 0,
+    firmware_boot_slot: BootSlot::Slot0,
     checksum: 0,
 };
 
@@ -29,7 +28,8 @@ pub static DEFAULT_CONFIG: BootConfig = BootConfig {
 #[derive(Copy, Clone)]
 pub struct BootConfig {
     magic: u32,
-    pub firmware_boot_slot: BootSlot,
+    version: u32,
+    firmware_boot_slot: BootSlot,
     checksum: u32,
 }
 
@@ -39,7 +39,7 @@ impl BootConfig {
     const FLASH_SECTOR: usize = 3;
     const FLASH_SECTOR_OFFSET: u32 = 0xC000;
 
-    const SIZE_IN_FLASH: usize = 12;
+    const SIZE_IN_FLASH: usize = 16;
 
     const MAGIC: u32 = 0xFEEDC0DE;
 
@@ -53,10 +53,11 @@ impl BootConfig {
         let cfg_bytes = &flash.read()[Self::FLASH_SECTOR_OFFSET as usize..];
         let cfg = BootConfig {
             magic: u32::from_le_bytes(cfg_bytes[0..4].try_into().unwrap()),
+            version: u32::from_le_bytes(cfg_bytes[4..8].try_into().unwrap()),
             firmware_boot_slot: BootSlot::from_u32(u32::from_le_bytes(
-                cfg_bytes[4..8].try_into().unwrap(),
+                cfg_bytes[8..12].try_into().unwrap(),
             )),
-            checksum: u32::from_le_bytes(cfg_bytes[8..12].try_into().unwrap()),
+            checksum: u32::from_le_bytes(cfg_bytes[12..16].try_into().unwrap()),
         };
 
         if cfg.magic != Self::MAGIC {
@@ -68,7 +69,7 @@ impl BootConfig {
             let expected_crc = crc.update_bytes(&cfg_bytes[..Self::SIZE_IN_FLASH - 4]);
             if cfg.checksum != expected_crc {
                 debug!(
-                    "Config has invalid checksum 0x{:X} (expected 0x{expected_crc:X}",
+                    "Config has invalid checksum 0x{:X} (expected 0x{expected_crc:X})",
                     cfg.checksum
                 );
                 None
@@ -82,6 +83,7 @@ impl BootConfig {
         crc.init();
         self.magic = Self::MAGIC;
         crc.update(&[self.magic]);
+        crc.update(&[self.version]);
         let crc = crc.update(&[self.firmware_boot_slot.into_u32()]);
         self.checksum = crc;
 
@@ -93,12 +95,18 @@ impl BootConfig {
             .unwrap()
     }
 
+    pub fn firmware_boot_slot(&self) -> BootSlot {
+        self.firmware_boot_slot
+    }
+
     fn convert_to_le_bytes(&self) -> [u8; Self::SIZE_IN_FLASH] {
         let a = self.magic.to_le_bytes();
-        let b = self.firmware_boot_slot.into_u32().to_le_bytes();
-        let c = self.checksum.to_le_bytes();
+        let b = self.version.to_le_bytes();
+        let c = self.firmware_boot_slot.into_u32().to_le_bytes();
+        let d = self.checksum.to_le_bytes();
         [
-            a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3],
+            a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3], d[0], d[1],
+            d[2], d[3],
         ]
     }
 }

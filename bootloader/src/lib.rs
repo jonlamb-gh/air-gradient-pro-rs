@@ -5,7 +5,7 @@ mod boot_config;
 mod reset_reason;
 mod ucs;
 
-pub use crate::boot_config::{BootConfig, DEFAULT_CONFIG};
+pub use crate::boot_config::{BootConfig, BootSlot, DEFAULT_CONFIG};
 pub use crate::reset_reason::ResetReason;
 pub use crate::ucs::UpdateConfigAndStatus;
 

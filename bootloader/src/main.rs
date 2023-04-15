@@ -104,10 +104,10 @@ fn main() -> ! {
         }
     };
 
-    info!("BC.firmware_boot_slot = {}", boot_cfg.firmware_boot_slot);
+    info!("BC.firmware_boot_slot = {}", boot_cfg.firmware_boot_slot());
 
     if reset_reason == ResetReason::PowerOnReset {
-        if let Some(fw_address) = boot_cfg.firmware_boot_slot.application_flash_address() {
+        if let Some(fw_address) = boot_cfg.firmware_boot_slot().application_flash_address() {
             info!("Booting firmware at address 0x{fw_address:X}");
 
             //watchdog.feed();

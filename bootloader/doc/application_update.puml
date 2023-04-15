@@ -43,6 +43,11 @@ group Application Update | complete pending update after reboot
         UCS.update_valid = MAGIC_TRUE;
 
         :Trigger SW reset;
+        note left
+            The bootloader will see
+            this ACK and write
+            the BC to FLASH
+        end note
 
         stop
     elseif (UCS.update_pending AND reset_reason != SW) then(failed update reboot)
