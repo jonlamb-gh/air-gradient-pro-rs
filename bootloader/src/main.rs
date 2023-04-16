@@ -7,14 +7,13 @@ mod config;
 mod logger;
 mod panic_handler;
 
-use bootloader_lib::{BootConfig, ResetReason, DEFAULT_CONFIG};
+use bootloader_lib::{BootConfig, ResetReason, UpdateConfigAndStatus, DEFAULT_CONFIG};
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 use cortex_m_rt::entry;
-use log::{debug, info};
+use log::{debug, error, info, warn};
 use stm32f4xx_hal::rcc::Enable;
 use stm32f4xx_hal::{
     crc32::Crc32,
-    flash::{flash_sectors, FlashExt},
     gpio::{Output, PushPull, PC13},
     pac,
     prelude::*,
@@ -30,18 +29,17 @@ mod built_info {
 #[entry]
 fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
-    let reset_reason = ResetReason::read_and_clear(&mut dp.RCC);
+    let reset_reason = ResetReason::read(&dp.RCC);
 
     // NOTE: keep this consistent with the application config
     let rcc = dp.RCC.constrain();
     let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
 
-    // TODO add watchdog back in
-    //    let mut watchdog = IndependentWatchdog::new(dp.IWDG);
-    //    watchdog.start(config::WATCHDOG_RESET_PERIOD_MS.millis());
-    //    watchdog.feed();
+    let mut watchdog = IndependentWatchdog::new(dp.IWDG);
+    watchdog.start(config::WATCHDOG_RESET_PERIOD_MS.millis());
+    watchdog.feed();
 
     let gpioa = dp.GPIOA.split();
     let gpioc = dp.GPIOC.split();
@@ -54,6 +52,28 @@ fn main() -> ! {
     let log_tx_pin = gpioa.pa11.into_alternate();
     let log_tx = dp.USART6.tx(log_tx_pin, 115_200.bps(), &clocks).unwrap();
     unsafe { crate::logger::init_logging(log_tx) };
+
+    let mut flash = dp.FLASH;
+    let mut crc = Crc32::new(dp.CRC);
+    let mut boot_cfg = match BootConfig::read(&flash, &mut crc) {
+        Some(cfg) => {
+            debug!("Valid boot config");
+            cfg
+        }
+        None => {
+            debug!("Invalid boot config, using default");
+
+            // TODO clear the UCS RAM words too?
+            UpdateConfigAndStatus::clear();
+
+            debug!("Writing config to flash");
+            let mut cfg = DEFAULT_CONFIG;
+            cfg.write(&mut flash, &mut crc);
+            cfg
+        }
+    };
+
+    debug!("Watchdog: inerval {}", watchdog.interval());
 
     info!("############################################################");
     info!(
@@ -68,72 +88,81 @@ fn main() -> ! {
         info!("git commit: {}", gc);
     }
     info!("Reset reason: {reset_reason}");
+    info!("Boot config slot: {}", boot_cfg.firmware_boot_slot());
     info!("############################################################");
 
-    //debug!("Watchdog: inerval {}", watchdog.interval());
+    let update_pending = UpdateConfigAndStatus::update_pending();
+    let update_valid = UpdateConfigAndStatus::update_valid();
 
-    let mut flash = dp.FLASH;
-    debug!("Flash addr: 0x{:X}", flash.address());
-    debug!("Flash size: {} ({}K)", flash.len(), flash.len() / 1024);
-    debug!("Flash dual-bank: {}", flash.dual_bank());
-    for sector in flash_sectors(flash.len(), flash.dual_bank()) {
-        debug!(
-            "  sector {} @ 0x{:X}, LEN = {} ({}K)",
-            sector.number,
-            sector.offset,
-            sector.size,
-            sector.size / 1024
-        );
-    }
-
-    let mut crc = Crc32::new(dp.CRC);
-    let boot_cfg = match BootConfig::read(&flash, &mut crc) {
-        Some(cfg) => {
-            debug!("Valid boot config");
-            cfg
+    const NOT_PENDING: bool = false;
+    const IS_PENDING: bool = true;
+    const NOT_VALID: bool = false;
+    const IS_VALID: bool = true;
+    let boot_slot = match (update_pending, update_valid, reset_reason) {
+        (IS_PENDING, IS_VALID, ResetReason::SoftwareReset) => {
+            // The newly booted updated application marked the update
+            // as valid
+            debug!("Pending update now complete");
+            UpdateConfigAndStatus::clear();
+            boot_cfg.swap_firmware_boot_slot();
+            debug!("Writing new config slot: {}", boot_cfg.firmware_boot_slot());
+            boot_cfg.write(&mut flash, &mut crc);
+            boot_cfg.firmware_boot_slot()
         }
-        None => {
-            debug!("Invalid boot config, using default");
-            // TODO only if reset_reason is sw??
-            // clear the RAM words too?
-            debug!("Writing config to flash");
-
-            let mut cfg = DEFAULT_CONFIG;
-            cfg.write(&mut flash, &mut crc);
-            cfg
+        (IS_PENDING, IS_VALID, _) => {
+            warn!("The application marked the pending update as valid, but wrong reset reason, aborting");
+            UpdateConfigAndStatus::clear();
+            boot_cfg.firmware_boot_slot()
+        }
+        (IS_PENDING, NOT_VALID, ResetReason::SoftwareReset) => {
+            // TODO - do the application_flash_address() checks first
+            debug!("The application has a pending update, selecting it for boot");
+            let current_slot = boot_cfg.firmware_boot_slot();
+            current_slot.other()
+        }
+        (IS_PENDING, NOT_VALID, _) => {
+            warn!("The application has a pending update, but wrong reset reason, aborting");
+            UpdateConfigAndStatus::clear();
+            boot_cfg.firmware_boot_slot()
+        }
+        (NOT_PENDING, IS_VALID, _) => {
+            warn!("UCS.update_valid is true but UCS.update_pending is not, aborting and pending update");
+            UpdateConfigAndStatus::clear();
+            boot_cfg.firmware_boot_slot()
+        }
+        (NOT_PENDING, NOT_VALID, _) => {
+            debug!("Normal boot");
+            UpdateConfigAndStatus::clear();
+            boot_cfg.firmware_boot_slot()
         }
     };
 
-    info!("BC.firmware_boot_slot = {}", boot_cfg.firmware_boot_slot());
+    if let Some(valid_app_address) = boot_slot.application_flash_address() {
+        debug!("Booting firmware at slot {boot_slot} address 0x{valid_app_address:X}");
 
-    if reset_reason == ResetReason::PowerOnReset {
-        if let Some(fw_address) = boot_cfg.firmware_boot_slot().application_flash_address() {
-            info!("Booting firmware at address 0x{fw_address:X}");
+        watchdog.feed();
 
-            //watchdog.feed();
+        // de-init
+        // SAFETY: don't use logger/peripherals beyond this point
+        unsafe {
+            logger::flush_logger();
 
-            // de-init
-            // SAFETY: don't use logger/peripherals beyond this point
-            unsafe {
-                logger::flush_logger();
-
-                let rcc = &(*pac::RCC::ptr());
-                let _ = crc;
-                pac::CRC::disable(rcc);
-                pac::USART6::disable(rcc);
-            }
-
-            compiler_fence(SeqCst);
-            unsafe {
-                cp.SCB.vtor.write(fw_address);
-                cortex_m::asm::bootload(fw_address as *const u32);
-            }
+            let rcc = &(*pac::RCC::ptr());
+            let _ = crc;
+            pac::CRC::disable(rcc);
+            pac::USART6::disable(rcc);
         }
-    }
 
-    // TODO
-    loop {
-        cortex_m::asm::nop();
-        //watchdog.feed();
+        compiler_fence(SeqCst);
+        unsafe {
+            cp.SCB.vtor.write(valid_app_address);
+            cortex_m::asm::bootload(valid_app_address as *const u32);
+        }
+    } else {
+        // TODO do something else? just boot loop...
+        error!("The application at boot slot {boot_slot} is invalid!");
+        loop {
+            cortex_m::asm::nop();
+        }
     }
 }

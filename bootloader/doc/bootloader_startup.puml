@@ -46,7 +46,6 @@ if (UCS.update_pending AND reset_reason == SW) then(reboot from update)
     slot = BC.firmware_boot_slot.other();
 
     if (UCS.update_valid) then(yes)
-        :Clear reset_reason;
         :Write UCS words to RAM
         UCS.update_pending = 0
         UCS.update_valid = 0;
@@ -62,6 +61,10 @@ if (UCS.update_pending AND reset_reason == SW) then(reboot from update)
     else (no)
     endif
 else (normal boot)
+    :Write UCS words to RAM
+    UCS.update_pending = 0
+    UCS.update_valid = 0;
+
     switch (match BC.firmware_boot_slot)
     case (slot == 0)
         :Select application @ slot 0

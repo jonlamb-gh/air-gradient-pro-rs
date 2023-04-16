@@ -99,6 +99,10 @@ impl BootConfig {
         self.firmware_boot_slot
     }
 
+    pub fn swap_firmware_boot_slot(&mut self) {
+        self.firmware_boot_slot = self.firmware_boot_slot.other();
+    }
+
     fn convert_to_le_bytes(&self) -> [u8; Self::SIZE_IN_FLASH] {
         let a = self.magic.to_le_bytes();
         let b = self.version.to_le_bytes();
@@ -137,6 +141,13 @@ impl BootSlot {
             Some(addr)
         } else {
             None
+        }
+    }
+
+    pub fn other(&self) -> Self {
+        match self {
+            BootSlot::Slot0 => BootSlot::Slot1,
+            BootSlot::Slot1 => BootSlot::Slot0,
         }
     }
 
