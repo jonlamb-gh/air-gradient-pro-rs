@@ -75,6 +75,9 @@ fn main() -> ! {
 
     debug!("Watchdog: inerval {}", watchdog.interval());
 
+    let update_pending = UpdateConfigAndStatus::update_pending();
+    let update_valid = UpdateConfigAndStatus::update_valid();
+
     info!("############################################################");
     info!(
         "{} {} ({})",
@@ -89,10 +92,9 @@ fn main() -> ! {
     }
     info!("Reset reason: {reset_reason}");
     info!("Boot config slot: {}", boot_cfg.firmware_boot_slot());
+    info!("Update pending: {update_pending}");
+    info!("Update valid: {update_valid}");
     info!("############################################################");
-
-    let update_pending = UpdateConfigAndStatus::update_pending();
-    let update_valid = UpdateConfigAndStatus::update_valid();
 
     const NOT_PENDING: bool = false;
     const IS_PENDING: bool = true;

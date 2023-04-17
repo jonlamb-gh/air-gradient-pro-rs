@@ -136,7 +136,7 @@ impl BootSlot {
         // TODO - check if in RAM
         let reset_vector_ptr = unsafe { sp_ptr.offset(1) };
         let reset_vector = unsafe { ptr::read_volatile(reset_vector_ptr) };
-        debug!("sp = 0x{sp:X} rv = 0x{reset_vector:X}");
+        debug!("addr = 0x{addr:X} sp = 0x{sp:X} rv = 0x{reset_vector:X}");
         if reset_vector >= addr && reset_vector <= end {
             Some(addr)
         } else {
