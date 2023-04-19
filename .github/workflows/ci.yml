@@ -53,57 +53,57 @@ jobs:
         run: cargo test --target x86_64-unknown-linux-gnu
 
   lint_fw:
-    name: Lint Firmware
+    name: Lint Embedded
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
       - name: Install toolchain and components
-        working-directory: firmware
         run: rustup component add rustfmt clippy
 
       - name: Check
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo check --all-features
 
       - name: Clippy
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo clippy --all-features
 
       - name: Format
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo fmt --all -- --check
 
       - name: Doc Generation
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo doc --workspace --bins --examples --all-features --no-deps
 
   build_fw:
-    name: Build Firmware
+    name: Build Embedded
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
       - name: Install toolchain and components
-        working-directory: firmware
         run: rustup component add rustfmt clippy llvm-tools-preview
 
       - name: Install binutils, flip-link
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo install cargo-binutils flip-link
 
-      - name: Build debug binary
-        working-directory: firmware
-        run: cargo build
-
       - name: Build release binary
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: cargo build --release
 
       - name: Print firmware size
-        working-directory: firmware
+        working-directory: ${{ matrix.library }}
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
