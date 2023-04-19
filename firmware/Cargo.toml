@@ -23,7 +23,7 @@ heapless = "0.7"
 sh1106 = "0.4"
 
 [dependencies.wire-protocols]
-path = "libraries/wire-protocols"
+path = "../libraries/wire-protocols"
 
 [dependencies.aqi]
 version = "0.2"
@@ -81,7 +81,7 @@ version = "0.5"
 features = ["git2", "chrono"]
 
 [build-dependencies.env-config]
-path = "libraries/env-config"
+path = "../libraries/env-config"
 
 [profile.release]
 codegen-units = 1 # better optimizations

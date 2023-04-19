@@ -78,9 +78,11 @@ jobs:
           echo AIR_GRADIENT_BROADCAST_ADDRESS=${AIR_GRADIENT_BROADCAST_ADDRESS} >> $GITHUB_ENV
 
       - name: Build release binary
+        working-directory: firmware
         run: cargo build --release
 
       - name: Print firmware size
+        working-directory: firmware
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -91,7 +93,7 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts
-          cp target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+          cp firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        library: [wire-protocols, env-config]
+        library: [wire-protocols, env-config, bootloader-support]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -60,18 +60,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install toolchain and components
+        working-directory: firmware
         run: rustup component add rustfmt clippy
 
       - name: Check
+        working-directory: firmware
         run: cargo check --all-features
 
       - name: Clippy
+        working-directory: firmware
         run: cargo clippy --all-features
 
       - name: Format
+        working-directory: firmware
         run: cargo fmt --all -- --check
 
       - name: Doc Generation
+        working-directory: firmware
         run: cargo doc --workspace --bins --examples --all-features --no-deps
 
   build_fw:
@@ -82,18 +87,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install toolchain and components
+        working-directory: firmware
         run: rustup component add rustfmt clippy llvm-tools-preview
 
       - name: Install binutils, flip-link
+        working-directory: firmware
         run: cargo install cargo-binutils flip-link
 
       - name: Build debug binary
+        working-directory: firmware
         run: cargo build
 
       - name: Build release binary
+        working-directory: firmware
         run: cargo build --release
 
       - name: Print firmware size
+        working-directory: firmware
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -112,6 +122,7 @@ jobs:
         run: rustup component add rustfmt clippy
 
       - name: Check
+        working-directory: host_tools/air-gradient-cli
         run: cargo check --all-features
 
       - name: Clippy
