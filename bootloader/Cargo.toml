@@ -25,6 +25,9 @@ static_assertions = "1.1"
 version = "0.15"
 features = ["rt", "stm32f411"]
 
+[dependencies.bootloader-support]
+path = "../libraries/bootloader-support"
+
 [build-dependencies.built]
 version = "0.5"
 features = ["git2", "chrono"]

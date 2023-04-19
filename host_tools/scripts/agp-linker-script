@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+#export RUST_LOG=trace
+
+(
+    cargo run --target x86_64-unknown-linux-gnu --manifest-path host_tools/agp-linker/Cargo.toml -- "$@"
+)
+
+exit 0

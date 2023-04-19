@@ -1,0 +1,14 @@
+[package]
+name = "agp-linker"
+authors = ["Jon Lamb"]
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "agp-linker"
+path = "src/main.rs"
+
+[dependencies]
+log = "0.4"
+env_logger = { version = "0.10", default-features = false }
+cpio = "0.2"

@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path::PathBuf;
 use wire_protocols::broadcast;
 
 /// Command line tool for interacting with the air-gradient-pro firmware
@@ -16,6 +17,10 @@ pub enum Command {
 
     /// Relay the broadcast messages to InfluxDB
     InfluxRelay(InfluxRelay),
+
+    /// Subcommands for interacting with a device over the network
+    #[command(subcommand)]
+    Device(Device),
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -59,3 +64,27 @@ pub struct InfluxRelay {
     #[arg(long, short = 'm', default_value = "measurement")]
     pub measurement_name: String,
 }
+
+#[derive(Parser, Debug, Clone)]
+pub enum Device {
+    /// Request and print device info
+    Info,
+
+    /// Perform a firmware update
+    Update(DeviceUpdate),
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct DeviceUpdate {
+    /// Use the provided directory to store cached image files instead of
+    /// a temporary directory
+    #[arg(long = "cache")]
+    pub cache_dir: Option<PathBuf>,
+
+    /// Path to the 'agp_images.cpio' archive file
+    pub agp_images_cpio_file: PathBuf,
+}
+
+// TODO
+//#[derive(Parser, Debug, Clone)]
+//pub struct CommonDeviceOpts {

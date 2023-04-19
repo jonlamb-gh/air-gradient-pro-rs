@@ -1,18 +1,11 @@
-use core::{fmt, mem, ptr};
+use bootloader_support::{BootSlot, FLASH_BASE_ADDRESS};
+use core::{mem, ptr};
 use log::debug;
 use static_assertions::const_assert_eq;
 use stm32f4xx_hal::{crc32::Crc32, flash::FlashExt};
 
 const_assert_eq!(mem::align_of::<BootConfig>(), 4);
 const_assert_eq!(mem::size_of::<BootConfig>(), BootConfig::SIZE_IN_FLASH);
-
-const FLASH_BASE_ADDRESS: u32 = 0x0800_0000;
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum BootSlot {
-    Slot0,
-    Slot1,
-}
 
 pub static DEFAULT_CONFIG: BootConfig = BootConfig {
     magic: 0,
@@ -115,39 +108,27 @@ impl BootConfig {
     }
 }
 
-impl BootSlot {
-    const FLASH_SLOT0_ADDRESS: u32 = FLASH_BASE_ADDRESS + Self::FLASH_SLOT0_SECTOR_OFFSET;
-    const FLASH_SLOT1_ADDRESS: u32 = FLASH_BASE_ADDRESS + Self::FLASH_SLOT1_SECTOR_OFFSET;
-    /// Sector 4
-    const FLASH_SLOT0_SECTOR_OFFSET: u32 = 0x1_0000;
-    /// Sector 6
-    const FLASH_SLOT1_SECTOR_OFFSET: u32 = 0x4_0000;
-    const FLASH_SLOT_SIZE: u32 = (194 * 1024);
+pub trait BootSlotExt {
+    fn application_flash_address(&self) -> Option<u32>;
 
-    pub fn application_flash_address(&self) -> Option<u32> {
-        use BootSlot::*;
-        let addr = match self {
-            Slot0 => Self::FLASH_SLOT0_ADDRESS,
-            Slot1 => Self::FLASH_SLOT1_ADDRESS,
-        };
-        let end = addr + Self::FLASH_SLOT_SIZE - 1;
+    fn into_u32(self) -> u32;
+
+    fn from_u32(value: u32) -> Self;
+}
+
+impl BootSlotExt for BootSlot {
+    fn application_flash_address(&self) -> Option<u32> {
+        let addr = self.address();
         let sp_ptr = addr as *const u32;
         let sp = unsafe { ptr::read_volatile(sp_ptr) };
         // TODO - check if in RAM
         let reset_vector_ptr = unsafe { sp_ptr.offset(1) };
         let reset_vector = unsafe { ptr::read_volatile(reset_vector_ptr) };
         debug!("addr = 0x{addr:X} sp = 0x{sp:X} rv = 0x{reset_vector:X}");
-        if reset_vector >= addr && reset_vector <= end {
+        if self.contains(reset_vector) {
             Some(addr)
         } else {
             None
-        }
-    }
-
-    pub fn other(&self) -> Self {
-        match self {
-            BootSlot::Slot0 => BootSlot::Slot1,
-            BootSlot::Slot1 => BootSlot::Slot0,
         }
     }
 
@@ -164,16 +145,6 @@ impl BootSlot {
             BootSlot::Slot0
         } else {
             BootSlot::Slot1
-        }
-    }
-}
-
-impl fmt::Display for BootSlot {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use BootSlot::*;
-        match self {
-            Slot0 => f.write_str("SLOT0"),
-            Slot1 => f.write_str("SLOT1"),
         }
     }
 }
