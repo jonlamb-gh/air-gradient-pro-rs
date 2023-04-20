@@ -22,9 +22,9 @@ pub fn generate_env_config_constants() {
     )
     .unwrap();
 
-    let major = env!("CARGO_PKG_VERSION_MAJOR");
-    let minor = env!("CARGO_PKG_VERSION_MINOR");
-    let patch = env!("CARGO_PKG_VERSION_PATCH");
+    let major = env::var("CARGO_PKG_VERSION_MAJOR").unwrap();
+    let minor = env::var("CARGO_PKG_VERSION_MINOR").unwrap();
+    let patch = env::var("CARGO_PKG_VERSION_PATCH").unwrap();
     writeln!(&mut config_file, "pub const FIRMWARE_VERSION: FirmwareVersion = FirmwareVersion::new({major}, {minor}, {patch});").unwrap();
     println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION_MAJOR");
     println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION_MINOR");
