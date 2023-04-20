@@ -25,7 +25,7 @@ jobs:
 
       - name: Clippy
         working-directory: libraries/${{ matrix.library }}
-        run: cargo clippy --all-features --target x86_64-unknown-linux-gnu
+        run: cargo clippy --all-features --target x86_64-unknown-linux-gnu -- -W clippy::all -D warnings
 
       - name: Format
         working-directory: libraries/${{ matrix.library }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Clippy
         working-directory: ${{ matrix.library }}
-        run: cargo clippy --all-features
+        run: cargo clippy --all-features -- -W clippy::all -D warnings
 
       - name: Format
         working-directory: ${{ matrix.library }}
@@ -126,7 +126,7 @@ jobs:
         run: cargo check --all-features
 
       - name: Clippy
-        run: cargo clippy --all-features
+        run: cargo clippy --all-features -- -W clippy::all -D warnings
         working-directory: host_tools/air-gradient-cli
 
       - name: Format
