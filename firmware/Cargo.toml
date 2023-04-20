@@ -25,6 +25,15 @@ sh1106 = "0.4"
 [dependencies.wire-protocols]
 path = "../libraries/wire-protocols"
 
+[dependencies.bootloader-support]
+path = "../libraries/bootloader-support"
+
+[dependencies.update-manager]
+path = "../libraries/update-manager"
+
+[dependencies.agp-bootloader]
+path = "../bootloader"
+
 [dependencies.aqi]
 version = "0.2"
 default-features = false

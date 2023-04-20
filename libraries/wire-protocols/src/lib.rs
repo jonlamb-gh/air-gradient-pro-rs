@@ -6,6 +6,7 @@ use bitfield::bitfield;
 use core::fmt;
 
 pub mod broadcast;
+pub mod device;
 
 // TODO - add error variants
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

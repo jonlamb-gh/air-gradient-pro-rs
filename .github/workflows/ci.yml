@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        library: [wire-protocols, env-config, bootloader-support]
+        library: [wire-protocols, env-config, bootloader-support, update-manager]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        library: [wire-protocols, env-config, bootloader-support]
+        library: [wire-protocols, env-config, bootloader-support, update-manager]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
