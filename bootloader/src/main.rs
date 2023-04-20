@@ -7,7 +7,10 @@ mod config;
 mod logger;
 mod panic_handler;
 
-use bootloader_lib::{BootConfig, BootSlotExt, ResetReason, UpdateConfigAndStatus, DEFAULT_CONFIG};
+use bootloader_lib::{
+    BootConfig, BootSlotExt, ResetReasonExt, UpdateConfigAndStatus, DEFAULT_CONFIG,
+};
+use bootloader_support::ResetReason;
 use core::sync::atomic::{compiler_fence, Ordering::SeqCst};
 use cortex_m_rt::entry;
 use log::{debug, error, info, warn};

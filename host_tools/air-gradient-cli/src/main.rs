@@ -1,5 +1,3 @@
-// #![deny(warnings, clippy::all)]
-
 use crate::{interruptor::Interruptor, opts::Command};
 use anyhow::Result;
 use clap::Parser;

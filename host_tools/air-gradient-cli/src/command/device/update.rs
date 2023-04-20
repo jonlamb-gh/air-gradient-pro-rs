@@ -17,7 +17,7 @@ use std::{
 };
 use tracing::debug;
 
-pub async fn update(cmd: DeviceUpdate, intr: Interruptor) -> Result<()> {
+pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     if !cmd.agp_images_cpio_file.exists() {
         bail!(
             "Image archive '{}' does not exist",
@@ -71,6 +71,14 @@ pub async fn update(cmd: DeviceUpdate, intr: Interruptor) -> Result<()> {
     };
 
     let bin_data = elf2bin(boot_slot_to_update, &elf_to_use)?;
+    // TODO
+    if bin_data.len() > boot_slot_to_update.size() as usize {
+        bail!(
+            "Firmware must fit into boot slot size {}",
+            boot_slot_to_update.size()
+        );
+    }
+
     if let Some(c) = cmd.cache_dir.as_ref() {
         let bin_path = c.join(BootSlot::Slot1.bin_file_name_and_ext());
         debug!("Writing bin '{}'", bin_path.display());

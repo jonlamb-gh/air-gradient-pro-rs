@@ -4,6 +4,10 @@
 
 use core::fmt;
 
+mod reset_reason;
+
+pub use self::reset_reason::ResetReason;
+
 pub const FLASH_BASE_ADDRESS: u32 = 0x0800_0000;
 
 pub const FLASH_SLOT0_ADDRESS: u32 = FLASH_BASE_ADDRESS + FLASH_SLOT0_SECTOR_OFFSET;

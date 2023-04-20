@@ -2,12 +2,20 @@
 //! control and firmware updates, usually over TCP.
 //! Everything is little endian.
 
+use byteorder::{ByteOrder, LittleEndian};
+use core::fmt;
+
+pub const DEFAULT_PORT: u16 = 32101;
+pub const SOCKET_BUFFER_LEN: usize = 1024;
+
 /// Commands are received by the device.
 /// The device always responds with a `StatusCode`, possibly
 /// followed by a response type.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Command {
     /// Request device information.
+    /// This command also causes the device to reset its connection after sending a response.
+    /// It can be used to abort an in-progress update too.
     /// Request type: None
     /// Response type: json string
     Info,
@@ -27,15 +35,31 @@ pub enum Command {
     /// Response type: None
     WriteMemory,
 
-    /// Schedule a system reboot.
+    /// Mark the update as complete and schedule a system reboot.
+    /// If there was no update in-progress, then this simply reboots the device.
     /// Request type: None
     /// Response type: None
-    Reboot,
+    CompleteAndReboot,
 
-    /// Unknown command
+    /// Unknown command.
+    /// The device will always response with StatusCode::UnknownCommand.
     /// Request type: None
     /// Response type: None
     Unknown(u32),
+}
+
+impl Command {
+    pub fn from_le_bytes_unchecked(value: &[u8]) -> Self {
+        Command::from(LittleEndian::read_u32(value))
+    }
+
+    pub fn from_le_bytes(value: &[u8]) -> Option<Self> {
+        if value.len() >= 4 {
+            Some(Self::from_le_bytes_unchecked(value))
+        } else {
+            None
+        }
+    }
 }
 
 impl From<u32> for Command {
@@ -46,7 +70,7 @@ impl From<u32> for Command {
             2 => ReadMemory,
             3 => EraseMemory,
             4 => WriteMemory,
-            5 => Reboot,
+            5 => CompleteAndReboot,
             _ => Unknown(value),
         }
     }
@@ -60,9 +84,15 @@ impl From<Command> for u32 {
             ReadMemory => 2,
             EraseMemory => 3,
             WriteMemory => 4,
-            Reboot => 5,
+            CompleteAndReboot => 5,
             Unknown(v) => v,
         }
+    }
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -92,7 +122,22 @@ pub enum StatusCode {
     FlashError,
     NetworkError,
     InternalError,
+    CommandLengthIncorrect,
     Unknown(u32),
+}
+
+impl StatusCode {
+    pub fn from_le_bytes_unchecked(value: &[u8]) -> Self {
+        StatusCode::from(LittleEndian::read_u32(value))
+    }
+
+    pub fn from_le_bytes(value: &[u8]) -> Option<Self> {
+        if value.len() >= 4 {
+            Some(Self::from_le_bytes_unchecked(value))
+        } else {
+            None
+        }
+    }
 }
 
 impl From<u32> for StatusCode {
@@ -110,6 +155,7 @@ impl From<u32> for StatusCode {
             8 => FlashError,
             9 => NetworkError,
             10 => InternalError,
+            11 => CommandLengthIncorrect,
             _ => Unknown(value),
         }
     }
@@ -130,8 +176,15 @@ impl From<StatusCode> for u32 {
             FlashError => 8,
             NetworkError => 9,
             InternalError => 10,
+            CommandLengthIncorrect => 11,
             Unknown(v) => v,
         }
+    }
+}
+
+impl fmt::Display for StatusCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -142,7 +195,8 @@ mod tests {
     #[test]
     fn round_trip_wire_command() {
         for in_c in 0..0xFF_u32 {
-            let c = Command::from(in_c);
+            let in_c_bytes = in_c.to_le_bytes();
+            let c = Command::from_le_bytes(&in_c_bytes).unwrap();
             assert_eq!(in_c, u32::from(c));
         }
     }
@@ -150,7 +204,8 @@ mod tests {
     #[test]
     fn round_trip_status_code() {
         for in_c in 0..0xFF_u32 {
-            let c = StatusCode::from(in_c);
+            let in_c_bytes = in_c.to_le_bytes();
+            let c = StatusCode::from_le_bytes(&in_c_bytes).unwrap();
             assert_eq!(in_c, u32::from(c));
         }
     }

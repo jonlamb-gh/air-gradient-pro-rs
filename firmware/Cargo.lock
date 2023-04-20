@@ -18,7 +18,7 @@ dependencies = [
 
 [[package]]
 name = "air-gradient-pro-rs"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "agp-bootloader",
  "aqi",
@@ -1158,6 +1158,7 @@ name = "update-manager"
 version = "0.1.0"
 dependencies = [
  "bootloader-support",
+ "log",
  "smoltcp",
  "wire-protocols",
 ]
