@@ -25,15 +25,16 @@ pub enum Command {
     /// Response type: [u8]
     ReadMemory,
 
-    /// Erase a region of FLASH memory.
-    /// Request type: MemoryEraseRequest
-    /// Response type: None
-    EraseMemory,
-
     /// Write a region of FLASH memory.
     /// Request type: MemoryWriteRequest followed by [u8] data
     /// Response type: None
     WriteMemory,
+
+    /// Erase a region of FLASH memory.
+    /// Address and length must match one of the boot slots (entire region/all sectors).
+    /// Request type: MemoryEraseRequest
+    /// Response type: None
+    EraseMemory,
 
     /// Mark the update as complete and schedule a system reboot.
     /// If there was no update in-progress, then this simply reboots the device.
@@ -68,8 +69,8 @@ impl From<u32> for Command {
         match value {
             1 => Info,
             2 => ReadMemory,
-            3 => EraseMemory,
-            4 => WriteMemory,
+            3 => WriteMemory,
+            4 => EraseMemory,
             5 => CompleteAndReboot,
             _ => Unknown(value),
         }
@@ -82,8 +83,8 @@ impl From<Command> for u32 {
         match value {
             Info => 1,
             ReadMemory => 2,
-            EraseMemory => 3,
-            WriteMemory => 4,
+            WriteMemory => 3,
+            EraseMemory => 4,
             CompleteAndReboot => 5,
             Unknown(v) => v,
         }
@@ -105,9 +106,23 @@ pub struct MemoryRegion {
     pub length: u32,
 }
 
+impl MemoryRegion {
+    pub fn check_length(&self) -> Result<(), StatusCode> {
+        if self.length % 4 != 0 {
+            Err(StatusCode::LengthNotMultiple4)
+        } else if self.length > 1024 {
+            Err(StatusCode::LengthTooLong)
+        } else if self.length == 0 {
+            Err(StatusCode::DataLengthIncorrect)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 pub type MemoryReadRequest = MemoryRegion;
-pub type MemoryEraseRequest = MemoryRegion;
 pub type MemoryWriteRequest = MemoryRegion;
+pub type MemoryEraseRequest = MemoryRegion;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum StatusCode {
@@ -137,6 +152,10 @@ impl StatusCode {
         } else {
             None
         }
+    }
+
+    pub fn is_success(&self) -> bool {
+        matches!(self, StatusCode::Success)
     }
 }
 

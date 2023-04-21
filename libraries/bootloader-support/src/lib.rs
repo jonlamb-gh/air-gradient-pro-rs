@@ -57,6 +57,13 @@ impl BootSlot {
     pub fn contains(&self, address: u32) -> bool {
         self.address() <= address && address < (self.address() + self.size())
     }
+
+    pub fn sectors(&self) -> &'static [u8] {
+        match self {
+            BootSlot::Slot0 => &[4, 5],
+            BootSlot::Slot1 => &[6, 7],
+        }
+    }
 }
 
 impl fmt::Display for BootSlot {

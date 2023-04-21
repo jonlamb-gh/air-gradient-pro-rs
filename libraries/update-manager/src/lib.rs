@@ -6,10 +6,25 @@ use core::fmt::{self, Write};
 use log::{debug, warn};
 use smoltcp::socket::tcp::{self, Socket as TcpSocket};
 use wire_protocols::{
-    device::{Command, StatusCode},
+    device::{
+        Command, MemoryEraseRequest, MemoryReadRequest, MemoryRegion, MemoryWriteRequest,
+        StatusCode,
+    },
     DeviceId, DeviceSerialNumber, FirmwareVersion, ProtocolVersion,
 };
 
+pub trait Device {
+    fn info(&self) -> &DeviceInfo;
+    fn perform_reboot(&mut self) -> !;
+    fn complete_update_and_perform_reboot(&mut self) -> !;
+    // TODO
+    // StatusCode has Success... use a different error type
+    fn read_memory(&mut self, req: MemoryReadRequest) -> StatusCodeResult<&[u8]>;
+    fn write_memory(&mut self, req: MemoryWriteRequest, data: &[u8]) -> StatusCodeResult<()>;
+    fn erase_memory(&mut self, req: MemoryEraseRequest) -> StatusCodeResult<()>;
+}
+
+pub type StatusCodeResult<T> = core::result::Result<T, StatusCode>;
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -19,17 +34,7 @@ pub enum Error {
     Recv(tcp::RecvError),
     Send(tcp::SendError),
     Fmt,
-}
-
-// TODO
-//pub enum ActionToTake or State/Status? { None, ScheduleReboot , UpdatePending{}...
-//  MemoryErase(MemoryEraseRequest)...
-//
-// caller deals with flash work, or maybe take a closure or something
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum ActionToTake {
-    Reboot,
-    CompleteAndReboot,
+    Protocol,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -62,41 +67,41 @@ impl UpdateManager {
         }
     }
 
-    pub fn update(
-        &mut self,
-        dev_info: &DeviceInfo,
-        socket: &mut TcpSocket,
-    ) -> Result<Option<ActionToTake>> {
-        if let Some(action) = self.manage_reboot_schedule(socket) {
-            return Ok(Some(action));
-        }
+    pub fn reset(&mut self, socket: &mut TcpSocket) {
+        self.abort_in_progress(socket);
+    }
+
+    pub fn update<D: Device>(&mut self, device: &mut D, socket: &mut TcpSocket) -> Result<()> {
+        self.manage_reboot_schedule(device, socket);
 
         self.manage_socket(socket)?;
 
         if let Some(cmd) = self.recv_cmd(socket)? {
-            debug!("UM: recvd command {cmd}");
-            self.process_cmd(cmd, dev_info, socket)?;
+            self.process_cmd(cmd, device, socket)?;
         }
 
-        Ok(None)
+        Ok(())
     }
 
-    fn manage_reboot_schedule(&mut self, socket: &mut TcpSocket) -> Option<ActionToTake> {
+    // TODO - maybe make this the callers responsibility, add to trait
+    // easy enough to have a one-shot RTIC task
+    //
+    fn manage_reboot_schedule<D: Device>(&mut self, device: &mut D, socket: &mut TcpSocket) {
         if let Some(ticks_until_reboot) = self.ticks_until_reboot.as_mut() {
             *ticks_until_reboot = ticks_until_reboot.saturating_sub(1);
             if *ticks_until_reboot == UPDATE_TICKS_TO_CLOSE {
+                debug!("Closing connection ahead of reboot");
                 socket.close();
             } else if *ticks_until_reboot == 0 {
                 debug!("Time to reboot");
 
                 if self.update_in_progress {
-                    return Some(ActionToTake::CompleteAndReboot);
+                    device.complete_update_and_perform_reboot();
                 } else {
-                    return Some(ActionToTake::Reboot);
+                    device.perform_reboot();
                 }
             }
         }
-        None
     }
 
     fn abort_in_progress(&mut self, socket: &mut TcpSocket) {
@@ -149,14 +154,16 @@ impl UpdateManager {
         }
     }
 
-    fn process_cmd(
+    fn process_cmd<D: Device>(
         &mut self,
         cmd: Command,
-        dev_info: &DeviceInfo,
+        device: &mut D,
         socket: &mut TcpSocket,
     ) -> Result<()> {
+        debug!("UM: processing command {cmd}");
         match cmd {
             Command::Info => {
+                let dev_info = device.info();
                 self.send_status(StatusCode::Success, socket)?;
                 writeln!(socket, "{{\"protocol_version\": \"{}\", \"firmware_version\": \"{}\", \"device_id\": {}, \"device_serial_number\": \"{:X}\", \"active_boot_slot\": \"{}\", \"reset_reason\": \"{}\", \"built_time_utc\": \"{}\", \"git_commit\": \"{}\"}}",
                     dev_info.protocol_version,
@@ -170,15 +177,63 @@ impl UpdateManager {
                 )?;
 
                 socket.close();
+
+                if self.update_in_progress {
+                    self.abort_in_progress(socket);
+                }
             }
             Command::ReadMemory => {
-                // TODO
-            }
-            Command::EraseMemory => {
-                // TODO
+                let mem_region = self.read_mem_region(socket)?;
+                debug!(
+                    "Read region address=0x{:X}, len=0x{:X}",
+                    mem_region.address, mem_region.length
+                );
+
+                match device.read_memory(mem_region) {
+                    Ok(region) => {
+                        self.send_status(StatusCode::Success, socket)?;
+                        socket.send_slice(region)?;
+                    }
+                    Err(code) => {
+                        warn!("Device returned status {code}");
+                        self.send_status(code, socket)?
+                    }
+                }
             }
             Command::WriteMemory => {
-                // TODO
+                let mem_region = self.read_mem_region(socket)?;
+                debug!(
+                    "Write region address=0x{:X}, len=0x{:X}",
+                    mem_region.address, mem_region.length
+                );
+
+                match socket.recv(|buf| (buf.len(), device.write_memory(mem_region, buf))) {
+                    Ok(Ok(())) => {
+                        self.send_status(StatusCode::Success, socket)?;
+                    }
+                    Ok(Err(code)) => {
+                        warn!("Device returned status {code}");
+                        self.send_status(code, socket)?
+                    }
+                    Err(_) => self.send_status(StatusCode::NetworkError, socket)?,
+                }
+            }
+            Command::EraseMemory => {
+                let mem_region = self.read_mem_region(socket)?;
+                debug!(
+                    "Erase region address=0x{:X}, len=0x{:X}",
+                    mem_region.address, mem_region.length
+                );
+
+                match device.erase_memory(mem_region) {
+                    Ok(()) => {
+                        self.send_status(StatusCode::Success, socket)?;
+                    }
+                    Err(code) => {
+                        warn!("Device returned status {code}");
+                        self.send_status(code, socket)?
+                    }
+                }
             }
             Command::CompleteAndReboot => {
                 debug!(
@@ -193,6 +248,27 @@ impl UpdateManager {
             }
         }
         Ok(())
+    }
+
+    fn read_mem_region(&mut self, socket: &mut TcpSocket) -> Result<MemoryRegion> {
+        let mut addr = [0_u8; 4];
+        let mut len = [0_u8; 4];
+        let addr_bytes_recvd = socket.recv_slice(&mut addr);
+        let len_bytes_recvd = socket.recv_slice(&mut len);
+        if addr_bytes_recvd.is_err() || len_bytes_recvd.is_err() {
+            self.send_status(StatusCode::NetworkError, socket)?;
+            let _ = addr_bytes_recvd?;
+            let _ = len_bytes_recvd?;
+            Err(Error::Protocol)
+        } else if addr_bytes_recvd.unwrap_or(0) != 4 || len_bytes_recvd.unwrap_or(0) != 4 {
+            self.send_status(StatusCode::CommandLengthIncorrect, socket)?;
+            Err(Error::Protocol)
+        } else {
+            Ok(MemoryRegion {
+                address: u32::from_le_bytes(addr),
+                length: u32::from_le_bytes(len),
+            })
+        }
     }
 }
 

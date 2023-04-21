@@ -17,6 +17,7 @@ use std::{
 };
 use tracing::debug;
 
+// TODO - move some of this into a method and expose 'device extract-update' or something
 pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     if !cmd.agp_images_cpio_file.exists() {
         bail!(
