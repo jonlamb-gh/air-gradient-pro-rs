@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::path::PathBuf;
-use wire_protocols::broadcast;
+use std::{fmt, path::PathBuf, str::FromStr};
+use wire_protocols::{broadcast as broadcast_proto, device as device_proto};
 
 /// Command line tool for interacting with the air-gradient-pro firmware
 #[derive(Parser, Debug, Clone)]
@@ -21,6 +21,9 @@ pub enum Command {
     /// Subcommands for interacting with a device over the network
     #[command(subcommand)]
     Device(Device),
+
+    /// Extract firmware ELF files from an archive file
+    ExtractArchive(ExtractArchive),
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -30,7 +33,7 @@ pub struct Listen {
     pub address: String,
 
     /// UDP port number
-    #[arg(long, short = 'p', default_value = broadcast::DEFAULT_PORT.to_string())]
+    #[arg(long, short = 'p', default_value = broadcast_proto::DEFAULT_PORT.to_string())]
     pub port: u16,
 }
 
@@ -41,7 +44,7 @@ pub struct InfluxRelay {
     pub address: String,
 
     /// UDP port number
-    #[arg(long, short = 'p', default_value = broadcast::DEFAULT_PORT.to_string())]
+    #[arg(long, short = 'p', default_value_t = broadcast_proto::DEFAULT_PORT)]
     pub port: u16,
 
     /// InfluxDB host
@@ -68,7 +71,7 @@ pub struct InfluxRelay {
 #[derive(Parser, Debug, Clone)]
 pub enum Device {
     /// Request and print device info
-    Info,
+    Info(CommonDeviceOpts),
 
     /// Perform a firmware update
     Update(DeviceUpdate),
@@ -76,6 +79,9 @@ pub enum Device {
 
 #[derive(Parser, Debug, Clone)]
 pub struct DeviceUpdate {
+    #[clap(flatten)]
+    pub common: CommonDeviceOpts,
+
     /// Use the provided directory to store cached image files instead of
     /// a temporary directory
     #[arg(long = "cache")]
@@ -85,6 +91,61 @@ pub struct DeviceUpdate {
     pub agp_images_cpio_file: PathBuf,
 }
 
-// TODO
-//#[derive(Parser, Debug, Clone)]
-//pub struct CommonDeviceOpts {
+#[derive(Parser, Debug, Clone)]
+pub struct CommonDeviceOpts {
+    /// Address
+    #[arg(long, short = 'a')]
+    pub address: String,
+
+    /// Device protocol TCP port number
+    #[arg(long, short = 'p', default_value_t = device_proto::DEFAULT_PORT)]
+    pub port: u16,
+
+    /// Output format
+    #[arg(long, short = 'f', default_value_t = Format::Text)]
+    pub format: Format,
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct ExtractArchive {
+    /// Output directory to extract to
+    #[arg(long = "output", short = 'o', default_value = ".")]
+    pub output_dir: PathBuf,
+
+    /// Path to the 'agp_images.cpio' archive file
+    pub agp_images_cpio_file: PathBuf,
+}
+
+#[derive(Parser, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+pub enum Format {
+    #[default]
+    Text,
+    Json,
+}
+
+impl Format {
+    pub fn is_text(&self) -> bool {
+        matches!(self, Format::Text)
+    }
+}
+
+impl FromStr for Format {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.trim().to_lowercase().as_str() {
+            "text" => Format::Text,
+            "json" => Format::Json,
+            _ => return Err("Invalid format '{s}'".to_owned()),
+        })
+    }
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Format::Text => f.write_str("text"),
+            Format::Json => f.write_str("json"),
+        }
+    }
+}

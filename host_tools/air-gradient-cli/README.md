@@ -2,6 +2,8 @@
 
 Command line tool for interacting with the air-gradient-pro firmware and protocol data.
 
+TODO add all the subcommands and examples here
+
 ## listen
 
 Listen for broadcast messages

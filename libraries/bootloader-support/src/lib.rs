@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 #![deny(warnings, clippy::all)]
 
-use core::fmt;
+use core::{fmt, str};
 
 mod reset_reason;
 
@@ -76,9 +76,31 @@ impl fmt::Display for BootSlot {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct ParseBootSlotError;
+
+impl fmt::Display for ParseBootSlotError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Error parsing boot slot from str")
+    }
+}
+
+impl str::FromStr for BootSlot {
+    type Err = ParseBootSlotError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.trim() {
+            "SLOT0" => BootSlot::Slot0,
+            "SLOT1" => BootSlot::Slot1,
+            _ => return Err(ParseBootSlotError),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::str::FromStr;
 
     #[test]
     fn slot0() {
@@ -108,5 +130,12 @@ mod tests {
             true
         );
         assert_eq!(BootSlot::Slot1.contains(0x0804_0000 + (194 * 1024)), false);
+    }
+
+    #[test]
+    fn from_str() {
+        assert_eq!(BootSlot::from_str(" SLOT0  "), Ok(BootSlot::Slot0));
+        assert_eq!(BootSlot::from_str("   SLOT1  "), Ok(BootSlot::Slot1));
+        assert!(BootSlot::from_str("slot2").is_err());
     }
 }

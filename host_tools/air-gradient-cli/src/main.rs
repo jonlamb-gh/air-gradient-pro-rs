@@ -2,7 +2,9 @@ use crate::{interruptor::Interruptor, opts::Command};
 use anyhow::Result;
 use clap::Parser;
 
+mod archive_util;
 mod command;
+mod device_util;
 mod interruptor;
 mod measurement;
 mod opts;
@@ -36,6 +38,7 @@ async fn main() -> Result<()> {
             Command::Listen(c) => command::listen(c, interruptor).await,
             Command::InfluxRelay(c) => command::influx_relay(c, interruptor).await,
             Command::Device(c) => command::device(c, interruptor).await,
+            Command::ExtractArchive(c) => command::extract_archive(c, interruptor).await,
         }
     });
 
