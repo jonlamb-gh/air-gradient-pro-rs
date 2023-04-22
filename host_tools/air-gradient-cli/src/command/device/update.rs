@@ -55,6 +55,7 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
 
     let s = net::TcpStream::connect((cmd.common.address.as_str(), cmd.common.port))?;
     s.set_nonblocking(true)?;
+    s.set_nodelay(true)?;
     let mut stream = TcpStream::from_std(s)?;
 
     debug!("Requesting device info");
@@ -79,6 +80,7 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     // Re-connect after info command
     let s = net::TcpStream::connect((cmd.common.address.as_str(), cmd.common.port))?;
     s.set_nonblocking(true)?;
+    s.set_nodelay(true)?;
     let mut stream = TcpStream::from_std(s)?;
 
     let current_boot_slot_from_info = BootSlot::Slot0;
@@ -100,7 +102,7 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     if let Some(c) = cmd.cache_dir.as_ref() {
         let bin_path = c.join(BootSlot::Slot1.bin_file_name_and_ext());
         debug!("Writing bin '{}'", bin_path.display());
-        fs::write(bin_path, bin_data)?;
+        fs::write(bin_path, &bin_data)?;
     }
 
     if cmd.common.format.is_text() {
@@ -115,6 +117,35 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
         println!("Erase status: {status}");
     }
 
+    if cmd.common.format.is_text() {
+        println!(
+            "Wrting bin to boot slot {boot_slot_to_update}, {} bytes",
+            bin_data.len()
+        );
+    }
+    let mut write_address = boot_slot_to_update.address();
+    let num_chunks = bin_data.len() / MemoryRegion::MAX_CHUCK_SIZE;
+    for (chunk_idx, chunk) in bin_data.chunks(MemoryRegion::MAX_CHUCK_SIZE).enumerate() {
+        debug!(
+            "Sending bin chunk address=0x{:X}, len=0x{:X}, {} of {}",
+            write_address,
+            chunk.len(),
+            chunk_idx,
+            num_chunks
+        );
+
+        let mem_region_to_write = MemoryRegion::new_unchecked(write_address, chunk.len() as u32);
+        device_util::write_command(Command::WriteMemory, &mut stream).await?;
+        stream.write_all(&mem_region_to_write.to_le_bytes()).await?;
+        stream.write_all(chunk).await?;
+        let _status = device_util::read_status(&mut stream).await?;
+
+        write_address += mem_region_to_write.length;
+    }
+
+    if cmd.common.format.is_text() {
+        println!("Verifying image currently in {boot_slot_to_update}");
+    }
     // TODO
     // do netowrk protocol to write to slot
     // ...

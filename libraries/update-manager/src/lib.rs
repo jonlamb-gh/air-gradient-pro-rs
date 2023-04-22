@@ -207,15 +207,26 @@ impl UpdateManager {
                     mem_region.address, mem_region.length
                 );
 
+                // TODO - need to deal with incomplete buffers
+                // could peek then dequeue
+                // state for write_in_progress
+                // or just use update_in_progress
+                //   need to store the mem_region
+                //   update_in_progress: Option<MemoryWriteRequest>...
                 match socket.recv(|buf| (buf.len(), device.write_memory(mem_region, buf))) {
                     Ok(Ok(())) => {
+                        self.update_in_progress = true;
                         self.send_status(StatusCode::Success, socket)?;
                     }
                     Ok(Err(code)) => {
                         warn!("Device returned status {code}");
-                        self.send_status(code, socket)?
+                        self.send_status(code, socket)?;
+                        self.abort_in_progress(socket);
                     }
-                    Err(_) => self.send_status(StatusCode::NetworkError, socket)?,
+                    Err(_) => {
+                        self.send_status(StatusCode::NetworkError, socket)?;
+                        self.abort_in_progress(socket);
+                    }
                 }
             }
             Command::EraseMemory => {

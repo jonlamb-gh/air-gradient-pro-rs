@@ -6,7 +6,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use core::fmt;
 
 pub const DEFAULT_PORT: u16 = 32101;
-pub const SOCKET_BUFFER_LEN: usize = 1024;
+pub const SOCKET_BUFFER_LEN: usize = MemoryRegion::MAX_CHUCK_SIZE + 256;
 
 /// Commands are received by the device.
 /// The device always responds with a `StatusCode`, possibly
