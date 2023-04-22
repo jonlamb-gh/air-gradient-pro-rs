@@ -107,16 +107,30 @@ pub struct MemoryRegion {
 }
 
 impl MemoryRegion {
+    pub const MAX_CHUCK_SIZE: usize = 1024;
+
+    pub fn new_unchecked(address: u32, length: u32) -> Self {
+        Self { address, length }
+    }
+
     pub fn check_length(&self) -> Result<(), StatusCode> {
         if self.length % 4 != 0 {
             Err(StatusCode::LengthNotMultiple4)
-        } else if self.length > 1024 {
+        } else if self.length > Self::MAX_CHUCK_SIZE as u32 {
             Err(StatusCode::LengthTooLong)
         } else if self.length == 0 {
             Err(StatusCode::DataLengthIncorrect)
         } else {
             Ok(())
         }
+    }
+
+    pub fn to_le_bytes(self) -> [u8; 8] {
+        let addr = self.address.to_le_bytes();
+        let len = self.length.to_le_bytes();
+        [
+            addr[0], addr[1], addr[2], addr[3], len[0], len[1], len[2], len[3],
+        ]
     }
 }
 

@@ -6,6 +6,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
+use tracing::debug;
 use wire_protocols::device::{Command, StatusCode};
 
 #[serde_as]
@@ -35,6 +36,7 @@ pub async fn write_command(cmd: Command, s: &mut TcpStream) -> Result<()> {
 
 pub async fn read_status(s: &mut TcpStream) -> Result<StatusCode> {
     let sc = StatusCode::from(s.read_u32_le().await?);
+    debug!("Read status {sc}");
     if sc.is_success() {
         Ok(sc)
     } else {
