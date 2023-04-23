@@ -83,7 +83,7 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     s.set_nodelay(true)?;
     let mut stream = TcpStream::from_std(s)?;
 
-    let current_boot_slot_from_info = BootSlot::Slot0;
+    let current_boot_slot_from_info = info.active_boot_slot;
     let boot_slot_to_update = current_boot_slot_from_info.other();
 
     let elf_to_use = match boot_slot_to_update {
