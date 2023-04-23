@@ -75,7 +75,7 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     s.shutdown(net::Shutdown::Both)?;
     drop(s);
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
 
     // Re-connect after info command
     let s = net::TcpStream::connect((cmd.common.address.as_str(), cmd.common.port))?;
@@ -198,10 +198,11 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
         read_address += mem_region_to_read.length;
     }
 
-    // TODO
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-    // do netowrk protocol to write to slot
-    // ...
+    if cmd.common.format.is_text() {
+        println!("Update complete, issue reboot command");
+    }
+
+    device_util::write_command(Command::CompleteAndReboot, &mut stream).await?;
 
     Ok(())
 }

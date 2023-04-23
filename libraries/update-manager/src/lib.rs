@@ -258,6 +258,10 @@ impl UpdateManager {
                     "UM: scheduling a reobot {} update cycles from now",
                     UPDATE_TICKS_TO_REBOOT
                 );
+
+                // TODO - update the protocol to indicate this
+                self.update_complete = true;
+
                 self.send_status(StatusCode::Success, socket)?;
                 self.ticks_until_reboot = Some(UPDATE_TICKS_TO_REBOOT);
             }
