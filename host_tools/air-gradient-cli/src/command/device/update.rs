@@ -4,12 +4,12 @@ use crate::{
     interruptor::Interruptor,
     opts::DeviceUpdate,
 };
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use bootloader_support::BootSlot;
 use elf::{endian::LittleEndian, ElfBytes};
-use std::{fs, net};
+use std::{fs, io::Write, net};
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::TcpStream,
 };
 use tracing::debug;
@@ -124,17 +124,20 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
         );
     }
     let mut write_address = boot_slot_to_update.address();
-    let num_chunks = bin_data.len() / MemoryRegion::MAX_CHUCK_SIZE;
+    let num_chunks = divide_round_up(bin_data.len(), MemoryRegion::MAX_CHUCK_SIZE);
     for (chunk_idx, chunk) in bin_data.chunks(MemoryRegion::MAX_CHUCK_SIZE).enumerate() {
         debug!(
             "Sending bin chunk address=0x{:X}, len=0x{:X}, {} of {}",
             write_address,
             chunk.len(),
-            chunk_idx,
-            num_chunks
+            chunk_idx + 1,
+            num_chunks,
         );
 
         let mem_region_to_write = MemoryRegion::new_unchecked(write_address, chunk.len() as u32);
+        mem_region_to_write
+            .check_length()
+            .map_err(|sc| anyhow!("Memory region to write is invalid. {sc}"))?;
         device_util::write_command(Command::WriteMemory, &mut stream).await?;
         stream.write_all(&mem_region_to_write.to_le_bytes()).await?;
         stream.write_all(chunk).await?;
@@ -146,9 +149,64 @@ pub async fn update(cmd: DeviceUpdate, _intr: Interruptor) -> Result<()> {
     if cmd.common.format.is_text() {
         println!("Verifying image currently in {boot_slot_to_update}");
     }
+
+    let mut readback_file = match cmd.cache_dir.as_ref() {
+        None => None,
+        Some(c) => {
+            let bin_path = c.join("mem_readback.bin");
+            Some(fs::File::create(bin_path)?)
+        }
+    };
+
+    let mut read_address = boot_slot_to_update.address();
+    for (chunk_idx, chunk) in bin_data.chunks(MemoryRegion::MAX_CHUCK_SIZE).enumerate() {
+        debug!(
+            "Read bin chunk address=0x{:X}, len=0x{:X}, {} of {}",
+            read_address,
+            chunk.len(),
+            chunk_idx + 1,
+            num_chunks,
+        );
+
+        let mem_region_to_read = MemoryRegion::new_unchecked(read_address, chunk.len() as u32);
+        mem_region_to_read
+            .check_length()
+            .map_err(|sc| anyhow!("Memory region to read is invalid. {sc}"))?;
+        device_util::write_command(Command::ReadMemory, &mut stream).await?;
+        stream.write_all(&mem_region_to_read.to_le_bytes()).await?;
+        let _status = device_util::read_status(&mut stream).await?;
+        let mut bin_data_read_back_from_dev = vec![0_u8; chunk.len()];
+        let num_bytes_read = stream.read_exact(&mut bin_data_read_back_from_dev).await?;
+        if num_bytes_read != chunk.len() {
+            bail!(
+                "Read back {num_bytes_read} but was expecting {}",
+                chunk.len()
+            );
+        }
+
+        if let Some(f) = readback_file.as_mut() {
+            f.write_all(&bin_data_read_back_from_dev)?;
+        }
+
+        if bin_data_read_back_from_dev.as_slice() != chunk {
+            bail!(
+                "Chunk {} does not match what we sent, aborting",
+                chunk_idx + 1
+            );
+        }
+
+        read_address += mem_region_to_read.length;
+    }
+
     // TODO
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     // do netowrk protocol to write to slot
     // ...
 
     Ok(())
+}
+
+// a/b
+fn divide_round_up(a: usize, b: usize) -> usize {
+    (a + (b - 1)) / b
 }

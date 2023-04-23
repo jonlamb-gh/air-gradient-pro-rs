@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OUTPUT="${OUTPUT:=agp0.bin}"
+
+addr=0x08010000
+len=0x00030800
+
+st-flash read "${OUTPUT}" $addr $len
+
+echo "Read firmware addr=$addr len=$len file=$OUTPUT"
+
+exit 0

@@ -52,9 +52,13 @@ pub struct DeviceInfo {
 pub const UPDATE_TICKS_TO_REBOOT: usize = 10;
 pub const UPDATE_TICKS_TO_CLOSE: usize = UPDATE_TICKS_TO_REBOOT / 2;
 
+type RemainingMemoryWriteRegion = MemoryRegion;
+
 pub struct UpdateManager {
     port: u16,
+    update_complete: bool,
     update_in_progress: bool,
+    write_in_progress: Option<RemainingMemoryWriteRegion>,
     ticks_until_reboot: Option<usize>,
 }
 
@@ -62,7 +66,9 @@ impl UpdateManager {
     pub const fn new(port: u16) -> Self {
         Self {
             port,
+            update_complete: false,
             update_in_progress: false,
+            write_in_progress: None,
             ticks_until_reboot: None,
         }
     }
@@ -76,16 +82,15 @@ impl UpdateManager {
 
         self.manage_socket(socket)?;
 
-        if let Some(cmd) = self.recv_cmd(socket)? {
+        if let Some(remaining_region) = self.write_in_progress.take() {
+            self.manage_in_progress_write(remaining_region, device, socket)?;
+        } else if let Some(cmd) = self.recv_cmd(socket)? {
             self.process_cmd(cmd, device, socket)?;
         }
 
         Ok(())
     }
 
-    // TODO - maybe make this the callers responsibility, add to trait
-    // easy enough to have a one-shot RTIC task
-    //
     fn manage_reboot_schedule<D: Device>(&mut self, device: &mut D, socket: &mut TcpSocket) {
         if let Some(ticks_until_reboot) = self.ticks_until_reboot.as_mut() {
             *ticks_until_reboot = ticks_until_reboot.saturating_sub(1);
@@ -95,7 +100,7 @@ impl UpdateManager {
             } else if *ticks_until_reboot == 0 {
                 debug!("Time to reboot");
 
-                if self.update_in_progress {
+                if self.update_complete {
                     device.complete_update_and_perform_reboot();
                 } else {
                     device.perform_reboot();
@@ -105,10 +110,22 @@ impl UpdateManager {
     }
 
     fn abort_in_progress(&mut self, socket: &mut TcpSocket) {
+        if self.write_in_progress.is_some() {
+            warn!("In-progress write will be aborted");
+        }
         if self.update_in_progress {
             warn!("In-progress update will be aborted");
         }
+        debug!(
+            "Aborting socket, send_queue {} ({}), recv_queue {} ({})",
+            socket.send_queue(),
+            socket.send_capacity(),
+            socket.recv_queue(),
+            socket.recv_capacity(),
+        );
         self.update_in_progress = false;
+        self.write_in_progress = None;
+        self.update_complete = false;
         socket.abort();
     }
 
@@ -134,6 +151,16 @@ impl UpdateManager {
             let bytes = u32::from(status).to_le_bytes();
             socket.send_slice(&bytes)?;
         }
+        Ok(())
+    }
+
+    fn manage_in_progress_write<D: Device>(
+        &mut self,
+        remaining_region: MemoryRegion,
+        device: &mut D,
+        socket: &mut TcpSocket,
+    ) -> Result<()> {
+        self.handle_write_req_data(remaining_region, device, socket)?;
         Ok(())
     }
 
@@ -178,7 +205,7 @@ impl UpdateManager {
 
                 socket.close();
 
-                if self.update_in_progress {
+                if self.update_in_progress || self.write_in_progress.is_some() {
                     self.abort_in_progress(socket);
                 }
             }
@@ -207,27 +234,7 @@ impl UpdateManager {
                     mem_region.address, mem_region.length
                 );
 
-                // TODO - need to deal with incomplete buffers
-                // could peek then dequeue
-                // state for write_in_progress
-                // or just use update_in_progress
-                //   need to store the mem_region
-                //   update_in_progress: Option<MemoryWriteRequest>...
-                match socket.recv(|buf| (buf.len(), device.write_memory(mem_region, buf))) {
-                    Ok(Ok(())) => {
-                        self.update_in_progress = true;
-                        self.send_status(StatusCode::Success, socket)?;
-                    }
-                    Ok(Err(code)) => {
-                        warn!("Device returned status {code}");
-                        self.send_status(code, socket)?;
-                        self.abort_in_progress(socket);
-                    }
-                    Err(_) => {
-                        self.send_status(StatusCode::NetworkError, socket)?;
-                        self.abort_in_progress(socket);
-                    }
-                }
+                self.handle_write_req_data(mem_region, device, socket)?;
             }
             Command::EraseMemory => {
                 let mem_region = self.read_mem_region(socket)?;
@@ -280,6 +287,63 @@ impl UpdateManager {
                 length: u32::from_le_bytes(len),
             })
         }
+    }
+
+    // TODO - check for 16-byte (128 bit) alignment?
+    fn handle_write_req_data<D: Device>(
+        &mut self,
+        mem_region: MemoryRegion,
+        device: &mut D,
+        socket: &mut TcpSocket,
+    ) -> Result<()> {
+        let mut recv_handler = |buf: &[u8]| {
+            let region_size = mem_region.length as usize;
+            if buf.len() >= region_size {
+                // Can fulfil the entire write
+                (
+                    region_size,
+                    device.write_memory(mem_region, &buf[..region_size]),
+                )
+            } else {
+                // Write what's available, read the rest as it comes in
+                // TODO may need to enforce 4-byte len
+                debug!("Partial write of {} (total {})", buf.len(), region_size);
+                let partial_region_to_write = MemoryRegion {
+                    address: mem_region.address,
+                    length: buf.len() as u32,
+                };
+                let partial_region_remaining = MemoryRegion {
+                    address: mem_region.address + partial_region_to_write.length,
+                    length: mem_region.length - partial_region_to_write.length,
+                };
+
+                self.write_in_progress = Some(partial_region_remaining);
+
+                (buf.len(), device.write_memory(partial_region_to_write, buf))
+            }
+        };
+
+        match socket.recv(|buf| recv_handler(buf)) {
+            Ok(Ok(())) => {
+                self.update_in_progress = true;
+
+                // Don't send status until the write request is fulfilled
+                if self.write_in_progress.is_none() {
+                    self.send_status(StatusCode::Success, socket)?;
+                }
+            }
+            Ok(Err(code)) => {
+                warn!("Device returned status {code}");
+                self.send_status(code, socket)?;
+                self.abort_in_progress(socket);
+            }
+            Err(_) => {
+                self.send_status(StatusCode::NetworkError, socket)?;
+                self.abort_in_progress(socket);
+            }
+        }
+
+        Ok(())
     }
 }
 

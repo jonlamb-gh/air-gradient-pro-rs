@@ -94,7 +94,12 @@ impl<'buf> Device for Eth<'buf> {
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        caps.max_transmission_unit = Self::MTU;
+        // TODO - fixup the MTU logic
+        // 1514, the maximum frame length allowed by the interface
+        // 1024, buffer sizes
+        let min_buf = core::cmp::min(self.rx_buffer.len(), self.tx_buffer.len());
+        let min_iface = core::cmp::min(self.drv.mtu() as usize, Self::MTU);
+        caps.max_transmission_unit = core::cmp::min(min_buf, min_iface);
         caps.max_burst_size = Some(1);
         caps.medium = Medium::Ethernet;
         caps
