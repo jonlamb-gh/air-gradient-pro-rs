@@ -122,6 +122,10 @@ fn main() -> ! {
         (IS_PENDING, NOT_VALID, ResetReason::SoftwareReset) => {
             // TODO - do the application_flash_address() checks first
             debug!("The application has a pending update, selecting it for boot");
+
+            // Keep it set, doing the read clears it by default
+            UpdateConfigAndStatus::set_update_pending();
+
             let current_slot = boot_cfg.firmware_boot_slot();
             current_slot.other()
         }
