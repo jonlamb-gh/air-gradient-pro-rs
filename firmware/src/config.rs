@@ -7,7 +7,8 @@ mod generated_confg {
 
 pub const IP_CIDR: Ipv4Cidr = Ipv4Cidr::new(Ipv4Address(IP_ADDRESS), 24);
 
-pub const SOCKET_BUFFER_LEN: usize = wire_protocols::broadcast::MESSAGE_LEN * 4;
+pub const BCAST_PROTO_SOCKET_BUFFER_LEN: usize = wire_protocols::broadcast::MESSAGE_LEN * 4;
+pub const DEVICE_PROTO_SOCKET_BUFFER_LEN: usize = wire_protocols::device::SOCKET_BUFFER_LEN;
 
 pub const STARTUP_DELAY_SECONDS: u8 = 5;
 
@@ -37,3 +38,5 @@ pub const PMS5003_MEASUREMENT_COUNT: u8 = 10;
 pub const DATA_MANAGER_WARM_UP_PERIOD_CYCLES: u32 = 24;
 
 pub const BCAST_INTERVAL_SEC: u32 = 5;
+
+pub const UPDATE_MANAGER_POLL_INTERVAL_MS: u32 = 100;

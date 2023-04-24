@@ -25,6 +25,10 @@ pub(crate) unsafe fn get_logger() -> &'static mut dyn fmt::Write {
     &mut *LOGGER.as_mut_ptr()
 }
 
+pub(crate) unsafe fn flush_logger() {
+    log::Log::flush(&*LOGGER.as_ptr());
+}
+
 impl log::Log for Logger<USART6> {
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= log::max_level()
@@ -35,7 +39,7 @@ impl log::Log for Logger<USART6> {
             interrupt::free(|cs| {
                 writeln!(
                     self.0.borrow(cs).borrow_mut(),
-                    "{} {}\r",
+                    "{}{}\r",
                     level_marker(record.level()),
                     record.args()
                 )
@@ -63,10 +67,10 @@ impl fmt::Write for Logger<USART6> {
 const fn level_marker(level: log::Level) -> &'static str {
     use log::Level::*;
     match level {
-        Error => "[E]",
-        Warn => "[W]",
-        Info => "[I]",
-        Debug => "[D]",
-        Trace => "[T]",
+        Error => "[E] ",
+        Warn => "[W] ",
+        Info => "",
+        Debug => "[D] ",
+        Trace => "[T] ",
     }
 }

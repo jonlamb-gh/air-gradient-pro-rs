@@ -43,3 +43,17 @@ impl<const BL: usize> UdpSocketStorage<BL> {
         }
     }
 }
+
+pub struct TcpSocketStorage<const BL: usize> {
+    pub rx_buffer: [u8; BL],
+    pub tx_buffer: [u8; BL],
+}
+
+impl<const BL: usize> TcpSocketStorage<BL> {
+    pub const fn new() -> Self {
+        TcpSocketStorage {
+            rx_buffer: [0; BL],
+            tx_buffer: [0; BL],
+        }
+    }
+}

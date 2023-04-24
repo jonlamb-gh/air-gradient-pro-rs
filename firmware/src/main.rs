@@ -19,7 +19,7 @@ pub mod built_info {
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
     use crate::display::Display;
-    use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
+    use crate::net::{Eth, EthernetStorage, NetworkStorage, TcpSocketStorage, UdpSocketStorage};
     use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
     use crate::shared_i2c::I2cDevices;
     use crate::tasks::{
@@ -31,24 +31,32 @@ mod app {
         pms5003::TaskState as Pms5003TaskState,
         pms5003_task, s8lp_task,
         sgp41::{SpawnArg as Sgp41SpawnArg, TaskState as Sgp41TaskState},
-        sgp41_task, sht31_task, watchdog_task,
+        sgp41_task, sht31_task,
+        update_manager::TaskState as UpdateManagerTaskState,
+        update_manager_task, watchdog_task,
     };
     use crate::{config, util};
-    use log::{debug, info};
+    use bootloader_lib::{BootConfig, ResetReasonExt, UpdateConfigAndStatus};
+    use bootloader_support::ResetReason;
+    use log::{debug, error, info};
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
+        socket::tcp::{Socket as TcpSocket, SocketBuffer as TcpSocketBuffer},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
         wire::{EthernetAddress, Ipv4Address},
     };
     use stm32f4xx_hal::{
+        crc32::Crc32,
         gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
-        pac::{self, TIM10, TIM11, TIM3},
+        pac::{self, FLASH, TIM10, TIM11, TIM3},
         prelude::*,
+        rcc::Enable,
         spi::Spi,
         timer::counter::CounterHz,
         timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
         watchdog::IndependentWatchdog,
     };
+    use update_manager::DeviceInfo;
 
     type LedPin = PC13<Output<PushPull>>;
 
@@ -61,7 +69,9 @@ mod app {
         #[lock_free]
         sockets: SocketSet<'static>,
         #[lock_free]
-        udp_socket: SocketHandle,
+        bcast_socket: SocketHandle,
+        #[lock_free]
+        device_socket: SocketHandle,
         #[lock_free]
         i2c_devices: I2cDevices<DelayUs<TIM10>, DelayUs<TIM11>>,
     }
@@ -74,6 +84,8 @@ mod app {
         s8lp: S8Lp,
         led: LedPin,
         watchdog: IndependentWatchdog,
+        device_info: DeviceInfo,
+        flash: FLASH,
     }
 
     /// TIM2 is a 32-bit timer, defaults to having the highest interrupt priority
@@ -82,10 +94,13 @@ mod app {
 
     #[init(local = [
         eth_storage: EthernetStorage<{Eth::MTU}> = EthernetStorage::new(),
-        net_storage: NetworkStorage<1> = NetworkStorage::new(),
-        udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
+        net_storage: NetworkStorage<2> = NetworkStorage::new(),
+        udp_socket_storage: UdpSocketStorage<{config::BCAST_PROTO_SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
+        tcp_socket_storage: TcpSocketStorage<{config::DEVICE_PROTO_SOCKET_BUFFER_LEN}> = TcpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+        let reset_reason: ResetReason = ResetReason::read_and_clear(&mut ctx.device.RCC);
+
         let mut syscfg = ctx.device.SYSCFG.constrain();
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
@@ -111,6 +126,9 @@ mod app {
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
 
+        // Read and clear UCS flags
+        let update_pending = UpdateConfigAndStatus::update_pending();
+
         debug!("Watchdog: inerval {}", watchdog.interval());
 
         info!("############################################################");
@@ -121,9 +139,9 @@ mod app {
             crate::built_info::PROFILE
         );
         info!("Build date: {}", crate::built_info::BUILT_TIME_UTC);
-        info!("{}", crate::built_info::RUSTC_VERSION);
+        info!("Compiler: {}", crate::built_info::RUSTC_VERSION);
         if let Some(gc) = crate::built_info::GIT_COMMIT_HASH {
-            info!("git commit: {}", gc);
+            info!("Commit: {}", gc);
         }
         info!("Serial number: {:X}", util::read_device_serial_number());
         info!(
@@ -141,7 +159,25 @@ mod app {
             "Broadcast protocol address: {}",
             Ipv4Address(config::BROADCAST_ADDRESS)
         );
+        info!("Device protocol port: {}", config::DEVICE_PORT);
+        info!("Reset reason: {reset_reason}");
+        info!("Update pending: {update_pending}");
         info!("############################################################");
+
+        if update_pending && reset_reason != ResetReason::SoftwareReset {
+            error!("Aborting application update due to wrong reset reason");
+            UpdateConfigAndStatus::clear();
+            unsafe {
+                crate::logger::flush_logger();
+                let rcc = &(*pac::RCC::ptr());
+                pac::USART6::disable(rcc);
+            }
+            // Let the watchdog reset to indicate a failure to the bootloader
+            let _ = watchdog;
+            loop {
+                cortex_m::asm::nop();
+            }
+        }
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
 
@@ -156,6 +192,11 @@ mod app {
             }
         }
         watchdog.feed();
+
+        info!("Setup: boot config");
+        let flash = ctx.device.FLASH;
+        let mut crc = Crc32::new(ctx.device.CRC);
+        let boot_cfg = BootConfig::read(&flash, &mut crc).unwrap();
 
         info!("Setup: S8 LP");
         let tx = gpioa.pa9.into_alternate();
@@ -282,7 +323,12 @@ mod app {
             &mut ctx.local.udp_socket_storage.tx_buffer[..],
         );
         let udp_socket = UdpSocket::new(udp_rx_buf, udp_tx_buf);
-        let udp_handle = sockets.add(udp_socket);
+        let bcast_socket = sockets.add(udp_socket);
+
+        let tcp_rx_buf = TcpSocketBuffer::new(&mut ctx.local.tcp_socket_storage.rx_buffer[..]);
+        let tcp_tx_buf = TcpSocketBuffer::new(&mut ctx.local.tcp_socket_storage.tx_buffer[..]);
+        let tcp_socket = TcpSocket::new(tcp_rx_buf, tcp_tx_buf);
+        let device_socket = sockets.add(tcp_socket);
 
         info!("Setup: net clock timer");
         let mut net_clock_timer = ctx.core.SYST.counter_us(&clocks);
@@ -298,6 +344,26 @@ mod app {
         info!(">>> Initialized <<<");
         watchdog.feed();
 
+        // If we've made it this far, assume it's ok to mark this firmware image slot as
+        // valid
+        // NOTE: could move this to a task and perform the op later to give things a chance
+        // to gain more coverage
+        if update_pending && reset_reason == ResetReason::SoftwareReset {
+            info!("New application update checks out, marking for BC flash and reseting");
+            UpdateConfigAndStatus::set_update_pending();
+            UpdateConfigAndStatus::set_update_valid();
+            watchdog.feed();
+            unsafe {
+                crate::logger::flush_logger();
+                let rcc = &(*pac::RCC::ptr());
+                pac::USART6::disable(rcc);
+
+                bootloader_lib::sw_reset();
+            }
+        }
+
+        let device_info = util::device_info(boot_cfg.firmware_boot_slot(), reset_reason);
+
         watchdog_task::spawn().unwrap();
         display_task::spawn(DisplaySpawnArg::Startup).unwrap();
         sht31_task::spawn().unwrap();
@@ -311,12 +377,15 @@ mod app {
         )
         .unwrap();
 
+        update_manager_task::spawn_after(config::UPDATE_MANAGER_POLL_INTERVAL_MS.millis()).unwrap();
+
         (
             Shared {
                 eth,
                 net: eth_iface,
                 sockets,
-                udp_socket: udp_handle,
+                bcast_socket,
+                device_socket,
                 i2c_devices,
             },
             Local {
@@ -326,6 +395,8 @@ mod app {
                 s8lp,
                 led,
                 watchdog,
+                device_info,
+                flash,
             },
             init::Monotonics(mono),
         )
@@ -362,8 +433,16 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(local = [state: DataManagerTaskState = DataManagerTaskState::new()], shared = [sockets, udp_socket], capacity = 8)]
+        #[task(local = [state: DataManagerTaskState = DataManagerTaskState::new()], shared = [sockets, bcast_socket], capacity = 8)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: DataManagerSpawnArg);
+    }
+
+    extern "Rust" {
+        #[task(
+              local = [state: UpdateManagerTaskState = UpdateManagerTaskState::new(), device_info, flash],
+              shared = [sockets, device_socket])
+          ]
+        fn update_manager_task(ctx: update_manager_task::Context);
     }
 
     extern "Rust" {

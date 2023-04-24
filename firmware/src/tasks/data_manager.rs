@@ -52,7 +52,7 @@ impl TaskState {
 pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) {
     let state = ctx.local.state;
     let sockets = ctx.shared.sockets;
-    let udp_socket_handle = ctx.shared.udp_socket;
+    let udp_socket_handle = ctx.shared.bcast_socket;
 
     let socket = sockets.get_mut::<UdpSocket>(*udp_socket_handle);
 
