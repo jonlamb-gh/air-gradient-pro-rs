@@ -1,5 +1,7 @@
 # bootloader
 
+TODO - redo this README/docs/diagrams
+
 ## Goals 
 
 TODO
@@ -39,6 +41,6 @@ NOTE: K = KiBi = 1024 bytes
 
 ## Prototype Design
 
-![bootloader_startup](doc/bootloader_startup.png)
+![bootloader_startup](../doc/bootloader_startup.png)
 
-![application_update.png](doc/application_update.png)
+![application_update.png](../doc/application_update.png)

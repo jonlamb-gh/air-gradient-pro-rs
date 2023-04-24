@@ -1,5 +1,3 @@
-// TODO lints
-
 #![no_std]
 #![no_main]
 
@@ -64,7 +62,7 @@ fn main() -> ! {
             cfg
         }
         None => {
-            debug!("Invalid boot config, using default");
+            warn!("Invalid boot config, using default");
 
             // TODO clear the UCS RAM words too?
             UpdateConfigAndStatus::clear();
@@ -78,10 +76,11 @@ fn main() -> ! {
 
     debug!("Watchdog: inerval {}", watchdog.interval());
 
+    // Read and clear UCS flags
     let update_pending = UpdateConfigAndStatus::update_pending();
     let update_valid = UpdateConfigAndStatus::update_valid();
 
-    info!("############################################################");
+    info!("************************************************************");
     info!(
         "{} {} ({})",
         crate::built_info::PKG_NAME,
@@ -89,15 +88,15 @@ fn main() -> ! {
         crate::built_info::PROFILE
     );
     info!("Build date: {}", crate::built_info::BUILT_TIME_UTC);
-    info!("{}", crate::built_info::RUSTC_VERSION);
+    info!("Compiler: {}", crate::built_info::RUSTC_VERSION);
     if let Some(gc) = crate::built_info::GIT_COMMIT_HASH {
-        info!("git commit: {}", gc);
+        info!("Commit: {}", gc);
     }
     info!("Reset reason: {reset_reason}");
     info!("Boot config slot: {}", boot_cfg.firmware_boot_slot());
     info!("Update pending: {update_pending}");
     info!("Update valid: {update_valid}");
-    info!("############################################################");
+    info!("************************************************************");
 
     const NOT_PENDING: bool = false;
     const IS_PENDING: bool = true;

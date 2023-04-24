@@ -1,5 +1,4 @@
 #![no_std]
-// TODO lints/etc
 
 mod boot_config;
 mod reset_reason;
