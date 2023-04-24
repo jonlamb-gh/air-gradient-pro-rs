@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+addr=0x0800C000
+len=0x4000
+
+st-flash erase $addr $len
+
+echo "Erased boot config addr=$addr len=$len"
+
+exit 0

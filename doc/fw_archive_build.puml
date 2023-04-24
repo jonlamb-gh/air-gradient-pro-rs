@@ -1,0 +1,51 @@
+@startuml
+
+skinparam defaultTextAlignment center
+/'skinparam monochrome reverse'/
+
+title "Firmware Archive Build Process"
+
+start
+
+:Release Build;
+note right
+    cargo build --release
+end note
+
+group Link with agp-linker
+
+:Native link;
+note right
+    Do native linking with flip-link
+    using memory.x for local
+    development and flashing
+    with a debugger
+end note
+
+if (env(AGP_LINKER_NO_ARCHIVE) then (set)
+    stop
+else (unset)
+    fork
+        :flip-link agp_memory_slot_0.x;
+        :Write target/agp0.elf;
+    fork again
+        :flip-link agp_memory_slot_1.x;
+        :Write target/agp1.elf;
+    end fork
+endif
+
+:Archive agp0.elf and agp1.elf;
+
+:Write targe/agp_images.cpio;
+note right
+    The firmware update contains a copy
+    of the application (ELF) linked to
+    both slot0 and slot1 in FLASH.
+end note
+
+end group
+
+
+stop
+
+@enduml

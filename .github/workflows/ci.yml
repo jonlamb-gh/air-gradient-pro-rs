@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        library: [wire-protocols, env-config]
+        library: [wire-protocols, env-config, bootloader-support, update-manager]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -25,7 +25,7 @@ jobs:
 
       - name: Clippy
         working-directory: libraries/${{ matrix.library }}
-        run: cargo clippy --all-features --target x86_64-unknown-linux-gnu
+        run: cargo clippy --all-features --target x86_64-unknown-linux-gnu -- -W clippy::all -D warnings
 
       - name: Format
         working-directory: libraries/${{ matrix.library }}
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        library: [wire-protocols, env-config]
+        library: [wire-protocols, env-config, bootloader-support, update-manager]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -53,8 +53,11 @@ jobs:
         run: cargo test --target x86_64-unknown-linux-gnu
 
   lint_fw:
-    name: Lint Firmware
+    name: Lint Embedded
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -63,20 +66,27 @@ jobs:
         run: rustup component add rustfmt clippy
 
       - name: Check
+        working-directory: ${{ matrix.library }}
         run: cargo check --all-features
 
       - name: Clippy
-        run: cargo clippy --all-features
+        working-directory: ${{ matrix.library }}
+        run: cargo clippy --all-features -- -W clippy::all -D warnings
 
       - name: Format
+        working-directory: ${{ matrix.library }}
         run: cargo fmt --all -- --check
 
       - name: Doc Generation
+        working-directory: ${{ matrix.library }}
         run: cargo doc --workspace --bins --examples --all-features --no-deps
 
   build_fw:
-    name: Build Firmware
+    name: Build Embedded
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -85,15 +95,15 @@ jobs:
         run: rustup component add rustfmt clippy llvm-tools-preview
 
       - name: Install binutils, flip-link
+        working-directory: ${{ matrix.library }}
         run: cargo install cargo-binutils flip-link
 
-      - name: Build debug binary
-        run: cargo build
-
       - name: Build release binary
+        working-directory: ${{ matrix.library }}
         run: cargo build --release
 
       - name: Print firmware size
+        working-directory: ${{ matrix.library }}
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -112,10 +122,11 @@ jobs:
         run: rustup component add rustfmt clippy
 
       - name: Check
+        working-directory: host_tools/air-gradient-cli
         run: cargo check --all-features
 
       - name: Clippy
-        run: cargo clippy --all-features
+        run: cargo clippy --all-features -- -W clippy::all -D warnings
         working-directory: host_tools/air-gradient-cli
 
       - name: Format

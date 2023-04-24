@@ -1,0 +1,19 @@
+[package]
+name = "update-manager"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jon Lamb"]
+
+[dependencies]
+log = "0.4"
+
+[dependencies.smoltcp]
+version = "0.9"
+default-features = false
+features = ["medium-ethernet", "proto-ipv4", "socket-tcp"]
+
+[dependencies.wire-protocols]
+path = "../wire-protocols"
+
+[dependencies.bootloader-support]
+path = "../bootloader-support"

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OUTPUT="${OUTPUT:=bootloader.bin}"
+
+addr=0x08000000
+len=0xC000
+
+st-flash read "${OUTPUT}" $addr $len
+
+echo "Read firmware addr=$addr len=$len file=$OUTPUT"
+
+exit 0

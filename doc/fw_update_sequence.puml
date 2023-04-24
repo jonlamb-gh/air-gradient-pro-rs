@@ -1,0 +1,58 @@
+@startuml
+
+skinparam defaultTextAlignment center
+/'skinparam monochrome reverse'/
+
+title "Client/Firmware Update Sequence"
+
+actor "Client (CLI)" as client
+participant Firmware as fw
+
+== Device Info/Discovery ==
+client -> fw : Command::Info
+fw -> client : StatusCode::Success
+fw -> client : json(DeviceInfo)
+hnote over client
+    Firmware reports the active
+    boot slot
+endhnote
+
+== Erase Empty Firmware Slot ==
+client -> fw : Command::EraseMemory
+client -> fw : MemoryEraseRequest
+fw -> client : StatusCode::Success
+
+== Firmware Upload To Empty Slot ==
+client -> fw : Command::WriteMemory
+client -> fw : MemoryWriteRequest
+client -> fw : Data destined to empty slot in flash
+fw -> client : StatusCode::Success
+hnote over client
+    Memory writes are repeated
+    until entire update is uploaded
+    (1024 byte max chunk size)
+endhnote
+
+== Verify Firmware In Empty Slot ==
+client -> fw : Command::ReadMemory
+client -> fw : MemoryReadRequest
+fw -> client : StatusCode::Success
+fw -> client : Data from empty slot in flash
+hnote over client
+    Memory reads are repeated
+    until entire update is received
+    (1024 byte max chunk size)
+endhnote
+
+== Signal Update Ready and Reboot ==
+client -> fw : Command::CompleteAndReboot
+fw -> client : StatusCode::Success
+hnote over fw
+    Device sets flags in UCS words
+    and reboots.
+    Bootloader checks and updates
+    BC in flash, and boots the
+    newly updated firmware slot.
+endhnote
+
+@enduml

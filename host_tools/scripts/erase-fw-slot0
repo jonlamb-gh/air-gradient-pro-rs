@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+addr=0x08010000
+len=0x10000
+
+st-flash erase $addr $len
+echo "Erased slot0 addr=$addr len=$len"
+
+addr=0x08020000
+len=0x20000
+
+st-flash erase $addr $len
+echo "Erased slot0 addr=$addr len=$len"
+
+exit 0

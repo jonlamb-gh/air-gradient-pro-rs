@@ -24,14 +24,21 @@ on:
         description: 'Sets the build env var AIR_GRADIENT_BROADCAST_ADDRESS'
         type: string
         required: false
+      device_port:
+        description: 'Sets the build env var AIR_GRADIENT_DEVICE_PORT'
+        type: string
+        required: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build_fw:
-    name: Build Firmware
+    name: Build Embedded
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        binary: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -77,10 +84,19 @@ jobs:
           echo "AIR_GRADIENT_BROADCAST_ADDRESS=$AIR_GRADIENT_BROADCAST_ADDRESS"
           echo AIR_GRADIENT_BROADCAST_ADDRESS=${AIR_GRADIENT_BROADCAST_ADDRESS} >> $GITHUB_ENV
 
+      - name: Setup environment variable 'AIR_GRADIENT_DEVICE_PORT'
+        if: "${{ github.event.inputs.device_port != '' }}"
+        run: |
+          AIR_GRADIENT_DEVICE_PORT=${{ github.event.inputs.device_port }}
+          echo "AIR_GRADIENT_DEVICE_PORT=$AIR_GRADIENT_DEVICE_PORT"
+          echo AIR_GRADIENT_DEVICE_PORT=${AIR_GRADIENT_DEVICE_PORT} >> $GITHUB_ENV
+
       - name: Build release binary
+        working-directory: ${{ matrix.binary }}
         run: cargo build --release
 
       - name: Print firmware size
+        working-directory: ${{ matrix.binary }}
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -89,11 +105,19 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Prepare artifacts
+        if: "${{ matrix.binary == 'firmware' }}"
         run: |
           mkdir -p artifacts
-          cp target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+          cp firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+
+      - name: Prepare artifacts
+        if: "${{ matrix.binary == 'bootloader' }}"
+        run: |
+          mkdir -p artifacts
+          cp bootloader/target/thumbv7em-none-eabihf/release/bootloader artifacts/bootloader
 
       - name: Upload artifacts
+        if: "${{ matrix.binary == 'firmware' }}"
         uses: actions/upload-artifact@v3
         with:
           name: air-gradient-artifacts-${{ github.sha }}
@@ -101,6 +125,16 @@ jobs:
           retention-days: 2
           path: |
             artifacts/air-gradient-pro
+
+      - name: Upload artifacts
+        if: "${{ matrix.binary == 'bootloader' }}"
+        uses: actions/upload-artifact@v3
+        with:
+          name: air-gradient-artifacts-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 2
+          path: |
+            artifacts/bootloader
 
   build_cli:
     name: Build CLI

@@ -1,10 +1,10 @@
-#![deny(warnings, clippy::all)]
-
 use crate::{interruptor::Interruptor, opts::Command};
 use anyhow::Result;
 use clap::Parser;
 
+mod archive_util;
 mod command;
+mod device_util;
 mod interruptor;
 mod measurement;
 mod opts;
@@ -37,6 +37,8 @@ async fn main() -> Result<()> {
         match opts.command {
             Command::Listen(c) => command::listen(c, interruptor).await,
             Command::InfluxRelay(c) => command::influx_relay(c, interruptor).await,
+            Command::Device(c) => command::device(c, interruptor).await,
+            Command::ExtractArchive(c) => command::extract_archive(c, interruptor).await,
         }
     });
 
@@ -45,11 +47,12 @@ async fn main() -> Result<()> {
             tracing::debug!("User signaled shutdown");
         }
         res = &mut join_handle => {
-            let _res = res?;
+            let inner_res = res?;
+            inner_res?;
         }
     };
 
-    join_handle.await??;
+    // TODO - add shutdown signaling
 
     Ok(())
 }

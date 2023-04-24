@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+addr=0x08000000
+len=0xC000
+
+st-flash erase $addr $len
+
+echo "Erased bootloader slot addr=$addr len=$len"
+
+exit 0

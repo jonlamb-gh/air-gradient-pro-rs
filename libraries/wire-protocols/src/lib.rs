@@ -6,6 +6,7 @@ use bitfield::bitfield;
 use core::fmt;
 
 pub mod broadcast;
+pub mod device;
 
 // TODO - add error variants
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -23,6 +24,8 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum ProtocolIdentifier {
     /// Broadcast protocol ("BRDC")
     Broadcast,
+    /// Device protocol ("DEVC")
+    Device,
     /// Unknown
     Unknown(u32),
 }
@@ -31,6 +34,7 @@ impl fmt::Display for ProtocolIdentifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ProtocolIdentifier::Broadcast => "broadcast".fmt(f),
+            ProtocolIdentifier::Device => "device".fmt(f),
             ProtocolIdentifier::Unknown(p) => p.fmt(f),
         }
     }
@@ -41,6 +45,7 @@ impl From<u32> for ProtocolIdentifier {
         use ProtocolIdentifier::*;
         match value {
             0x43_44_52_42 => Broadcast,
+            0x43_56_45_44 => Device,
             _ => Unknown(value),
         }
     }
@@ -51,6 +56,7 @@ impl From<ProtocolIdentifier> for u32 {
         use ProtocolIdentifier::*;
         match value {
             Broadcast => 0x43_44_52_42,
+            Device => 0x43_56_45_44,
             Unknown(id) => id,
         }
     }

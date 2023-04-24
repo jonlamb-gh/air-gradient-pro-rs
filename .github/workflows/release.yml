@@ -45,9 +45,11 @@ jobs:
         run: cargo install cargo-binutils flip-link
 
       - name: Build release binary
+        working-directory: firmware
         run: cargo build --release
 
       - name: Print firmware size
+        working-directory: firmware
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -66,7 +68,7 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts
-          cp target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+          cp firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
           cp host_tools/air-gradient-cli/target/x86_64-unknown-linux-gnu/release/air-gradient artifacts/air-gradient-x86_64
           cp host_tools/air-gradient-cli/target/aarch64-unknown-linux-musl/release/air-gradient artifacts/air-gradient-aarch64
 

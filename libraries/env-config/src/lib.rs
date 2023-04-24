@@ -2,13 +2,14 @@
 
 use smoltcp::wire::EthernetAddress;
 use std::{env, fs, io::Write, net::Ipv4Addr, path::PathBuf};
-use wire_protocols::{broadcast, DeviceId};
+use wire_protocols::{broadcast, device, DeviceId};
 
 const DEFAULT_IP_ADDRESS: &str = "192.168.1.38";
 const DEFAULT_MAC_ADDRESS: &str = "02:00:04:03:07:02";
 const DEFAULT_DEVICE_ID: u16 = DeviceId::DEFAULT.0;
 const DEFAULT_BROADCAST_PORT: u16 = broadcast::DEFAULT_PORT;
 const DEFAULT_BROADCAST_ADDRESS: &str = "255.255.255.255";
+const DEFAULT_DEVICE_PORT: u16 = device::DEFAULT_PORT;
 
 pub fn generate_env_config_constants() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -91,6 +92,13 @@ pub fn generate_env_config_constants() {
     )
     .unwrap();
     println!("cargo:rerun-if-env-changed=AIR_GRADIENT_BROADCAST_ADDRESS");
+
+    let dev_port: u16 =
+        get_env_or_default("AIR_GRADIENT_DEVICE_PORT", DEFAULT_DEVICE_PORT.to_string())
+            .parse()
+            .unwrap();
+    writeln!(&mut config_file, "pub const DEVICE_PORT: u16 = {dev_port};").unwrap();
+    println!("cargo:rerun-if-env-changed=AIR_GRADIENT_DEVICE_PORT");
 }
 
 fn get_env_or_default<S: AsRef<str>>(var: &str, default: S) -> String {
