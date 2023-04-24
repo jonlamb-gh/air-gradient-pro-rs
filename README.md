@@ -37,10 +37,11 @@ The following environment variables can be set:
 * `AIR_GRADIENT_DEVICE_ID` : An arbitrary 16-bit identifier, default is `0xFFFF` (`DeviceId::DEFAULT`)
 * `AIR_GRADIENT_BROADCAST_PORT` : The port number to send the broadcast protocol data on, default is `32100`
 * `AIR_GRADIENT_BROADCAST_ADDRESS` : The IP address to send the broadcast protocol data to, default is `255.255.255.255`
+* `AIR_GRADIENT_DEVICE_PORT` : The port number the device protocol socket listens on, default is `32101`
 
 ## Flashing
 
-TODO
+TODO this needs re-written to talk about initial flashing and FOTA with the CLI
 TODO
 TODO
 TODO
@@ -77,30 +78,44 @@ or grab the latest release with the default configuration from the [Releases pag
 Log messages are available on pin PA11 (USART6 Tx), you should see output like the following:
 
 ```
-[I] ############################################################
-[I] air-gradient-pro-rs 0.1.0 (release)
-[I] Build date: Fri, 07 Apr 2023 10:00:13 +0000
-[I] rustc 1.68.2 (9eb3afe9e 2023-03-27)
-[I] git commit: 709ce69ea2a86585e58f07684f0def66e5f79010
-[I] Serial number: 303233313036517042018
-[I] Device ID: 0x1 (1)
-[I] IP address: 192.168.1.38
-[I] MAC address: 02-00-04-03-07-02
-[I] Broadcast protocol port: 32100
-[I] Broadcast protocol address: 255.255.255.255
-[I] ############################################################
-[I] Setup: startup delay 5 seconds
-[I] Setup: S8 LP
-[I] Setup: PMS5003
-[I] Setup: I2C2
-[I] Setup: SH1106
-[I] Setup: SHT31
-[I] Setup: SGP41
-[I] Setup: ETH
-[I] Setup: TCP/IP
-[I] Setup: net clock timer
-[I] Setup: net poll timer
-[I] >>> Initialized <<<
+************************************************************
+agp-bootloader 0.1.0 (release)
+Build date: Mon, 24 Apr 2023 14:28:38 +0000
+Compiler: rustc 1.69.0 (84c898d65 2023-04-16)
+Commit: 3023a001f2ab011406a3e58dd8e328cb4502737a
+Reset reason: Software reset
+Boot config slot: SLOT0
+Update pending: false
+Update valid: false
+************************************************************
+############################################################
+air-gradient-pro-rs 0.2.0 (release)
+Build date: Mon, 24 Apr 2023 14:35:08 +0000
+Compiler: rustc 1.69.0 (84c898d65 2023-04-16)
+Commit: 3023a001f2ab011406a3e58dd8e328cb4502737a
+Serial number: 303233313036517042018
+Device ID: 0x1 (1)
+IP address: 192.168.1.38
+MAC address: 02-00-04-03-07-02
+Broadcast protocol port: 32100
+Broadcast protocol address: 255.255.255.255
+Device protocol port: 32101
+Reset reason: Software reset
+Update pending: false
+############################################################
+Setup: startup delay 5 seconds
+Setup: boot config
+Setup: S8 LP
+Setup: PMS5003
+Setup: I2C2
+Setup: SH1106
+Setup: SHT31
+Setup: SGP41
+Setup: ETH
+Setup: TCP/IP
+Setup: net clock timer
+Setup: net poll timer
+>>> Initialized <<<
 ```
 
 ## Hardware
@@ -131,6 +146,8 @@ Log messages are available on pin PA11 (USART6 Tx), you should see output like t
 * Sensirion SGP41 (TVOC/NOx sensor)
   - [product page](https://sensirion.com/products/catalog/SGP41/)
   - [datasheet](https://www.mouser.com/datasheet/2/682/Sensirion_Gas_Sensors_Datasheet_SGP41-2604356.pdf)
+* AMS1117-3.3 regulator
+  - [Amazon link](https://www.amazon.com/gp/product/B07CP4P5XJ/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1)
 
 ### Pins
 
