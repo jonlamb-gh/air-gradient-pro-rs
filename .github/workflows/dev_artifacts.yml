@@ -109,6 +109,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cp firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
+          cp firmware/target/agp_images.cpio artifacts/agp_images.cpio
 
       - name: Prepare artifacts
         if: "${{ matrix.binary == 'bootloader' }}"
@@ -125,6 +126,7 @@ jobs:
           retention-days: 2
           path: |
             artifacts/air-gradient-pro
+            artifacts/agp_images.cpio
 
       - name: Upload artifacts
         if: "${{ matrix.binary == 'bootloader' }}"
