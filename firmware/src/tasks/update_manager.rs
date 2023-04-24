@@ -3,7 +3,12 @@ use bootloader_lib::UpdateConfigAndStatus;
 use bootloader_support::FLASH_BASE_ADDRESS;
 use log::{debug, warn};
 use smoltcp::socket::tcp::Socket as TcpSocket;
-use stm32f4xx_hal::{flash::FlashExt, pac::FLASH, prelude::*};
+use stm32f4xx_hal::{
+    flash::FlashExt,
+    pac::{self, FLASH},
+    prelude::*,
+    rcc::Enable,
+};
 use update_manager::{Device, DeviceInfo, StatusCodeResult, UpdateManager};
 use wire_protocols::device::{
     MemoryEraseRequest, MemoryReadRequest, MemoryWriteRequest, StatusCode,
@@ -56,13 +61,27 @@ impl<'a> Device for UmDevice<'a> {
 
     fn perform_reboot(&mut self) -> ! {
         warn!("Rebooting now");
-        unsafe { bootloader_lib::sw_reset() };
+        unsafe {
+            // TODO - this is common in several places, put into a fn (see main.rs)
+            crate::logger::flush_logger();
+            let rcc = &(*pac::RCC::ptr());
+            pac::USART6::disable(rcc);
+
+            bootloader_lib::sw_reset();
+        }
     }
 
     fn complete_update_and_perform_reboot(&mut self) -> ! {
         warn!("Update complete, rebooting now");
         UpdateConfigAndStatus::set_update_pending();
-        unsafe { bootloader_lib::sw_reset() };
+        unsafe {
+            // TODO - this is common in several places, put into a fn (see main.rs)
+            crate::logger::flush_logger();
+            let rcc = &(*pac::RCC::ptr());
+            pac::USART6::disable(rcc);
+
+            bootloader_lib::sw_reset();
+        }
     }
 
     fn read_memory(&mut self, req: MemoryReadRequest) -> StatusCodeResult<&[u8]> {
