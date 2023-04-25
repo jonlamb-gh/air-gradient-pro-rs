@@ -73,6 +73,9 @@ pub enum Device {
     /// Request and print device info
     Info(CommonDeviceOpts),
 
+    /// Reboot a device
+    Reboot(CommonDeviceOpts),
+
     /// Perform a firmware update
     Update(DeviceUpdate),
 }

@@ -107,6 +107,19 @@ DeviceInfo {
 }
 ```
 
+### device reboot
+
+Reboot a device
+
+```bash
+$ air-gradient device reboot --address 192.168.1.38
+```
+
+```
+Rebooting device 192.168.1.38:32101
+Status: Success
+```
+
 ### device update
 
 Perform a firmware update
