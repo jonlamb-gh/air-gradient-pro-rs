@@ -54,7 +54,7 @@ as part of the build process (`cargo build --release`).
   bootloader for more information on performing FOTA updates.
 * See the [Design](bootloader/README.md#design) section of the bootloader for more
   information on how the update protocol and failover mechanism works.
-* See the [Example Update Log](bootloader/README.md#example-update-log) section of the bootloader 
+* See the [Example Update Log](bootloader/README.md#example-update-log) section of the bootloader
   for example output from the bootloader and firmware throughout the update process.
 
 ```bash
@@ -194,3 +194,19 @@ Setup: net poll timer
 | PA8   | GPIO Input    | NC | ENC28J60 Eth INT |
 | PB1   | GPIO Output   | NC | ENC28J60 Eth RESET |
 | PC13  | GPIO Output   | NC | On-board LED |
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
