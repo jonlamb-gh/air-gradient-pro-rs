@@ -33,12 +33,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_fw:
+  build_embedded:
     name: Build Embedded
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        binary: [firmware, bootloader]
+        package: [firmware, bootloader]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -91,12 +91,12 @@ jobs:
           echo "AIR_GRADIENT_DEVICE_PORT=$AIR_GRADIENT_DEVICE_PORT"
           echo AIR_GRADIENT_DEVICE_PORT=${AIR_GRADIENT_DEVICE_PORT} >> $GITHUB_ENV
 
-      - name: Build release binary
-        working-directory: ${{ matrix.binary }}
+      - name: Build release package
+        working-directory: ${{ matrix.package }}
         run: cargo build --release
 
       - name: Print firmware size
-        working-directory: ${{ matrix.binary }}
+        working-directory: ${{ matrix.package }}
         run: |
           cargo size --release
           echo '## Firmware size' >> $GITHUB_STEP_SUMMARY
@@ -105,20 +105,20 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Prepare artifacts
-        if: "${{ matrix.binary == 'firmware' }}"
+        if: "${{ matrix.package == 'firmware' }}"
         run: |
           mkdir -p artifacts
           cp firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro artifacts/air-gradient-pro
           cp firmware/target/agp_images.cpio artifacts/agp_images.cpio
 
       - name: Prepare artifacts
-        if: "${{ matrix.binary == 'bootloader' }}"
+        if: "${{ matrix.package == 'bootloader' }}"
         run: |
           mkdir -p artifacts
           cp bootloader/target/thumbv7em-none-eabihf/release/bootloader artifacts/bootloader
 
       - name: Upload artifacts
-        if: "${{ matrix.binary == 'firmware' }}"
+        if: "${{ matrix.package == 'firmware' }}"
         uses: actions/upload-artifact@v3
         with:
           name: air-gradient-artifacts-${{ github.sha }}
@@ -129,7 +129,7 @@ jobs:
             artifacts/agp_images.cpio
 
       - name: Upload artifacts
-        if: "${{ matrix.binary == 'bootloader' }}"
+        if: "${{ matrix.package == 'bootloader' }}"
         uses: actions/upload-artifact@v3
         with:
           name: air-gradient-artifacts-${{ github.sha }}
@@ -158,12 +158,12 @@ jobs:
           echo CC_aarch64_unknown_linux_musl=/usr/local/bin/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc >> $GITHUB_ENV
 
       - name: Build release CLI for x86_64-unknown-linux-gnu
-        run: cargo build --release --target x86_64-unknown-linux-gnu --features "native-tls" --no-default-features
         working-directory: host_tools/air-gradient-cli
+        run: cargo build --release --target x86_64-unknown-linux-gnu --features "native-tls" --no-default-features
 
       - name: Build release CLI for aarch64-unknown-linux-musl
-        run: cargo build --release --target aarch64-unknown-linux-musl --features "rustls" --no-default-features
         working-directory: host_tools/air-gradient-cli
+        run: cargo build --release --target aarch64-unknown-linux-musl --features "rustls" --no-default-features
 
       - name: Prepare artifacts
         run: |

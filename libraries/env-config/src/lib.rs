@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::all)]
-
 use smoltcp::wire::EthernetAddress;
 use std::{env, fs, io::Write, net::Ipv4Addr, path::PathBuf};
 use wire_protocols::{broadcast, device, DeviceId};

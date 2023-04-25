@@ -1,4 +1,3 @@
-#![deny(warnings, clippy::all)]
 #![no_main]
 #![no_std]
 

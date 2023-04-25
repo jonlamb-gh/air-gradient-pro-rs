@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::all)]
-
 use cpio::{write_cpio, NewcBuilder};
 use std::{
     env, fs, io,

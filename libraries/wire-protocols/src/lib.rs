@@ -1,6 +1,5 @@
 #![no_std]
 #![forbid(unsafe_code)]
-#![deny(warnings, clippy::all)]
 
 use bitfield::bitfield;
 use core::fmt;

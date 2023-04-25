@@ -21,6 +21,7 @@ type EthSpi = Spi<SPI2, SpiPins>;
 
 type Drv = Enc28j60<EthSpi, CsPin, IntPin, ResetPin>;
 
+// TODO - add some rx/tx error counters
 /// An ENC28J60 connected to SPI2
 pub struct Eth<'buf> {
     drv: Drv,
