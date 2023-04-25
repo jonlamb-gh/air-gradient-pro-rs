@@ -22,6 +22,7 @@ Significant differences from stock:
 ## Features
 
 * Bootloader with firmware update and failover rollback mechanisms
+  - update manager task handles the update protocol in-application
   - see the [bootloader README](bootloader/README.md)
 * TCP/IP stack, comes with these protocols:
   - a lightweight [broadcast protocol](libraries/wire-protocols/src/broadcast.rs) for influx/etc integration
