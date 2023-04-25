@@ -36,7 +36,7 @@ The [build.rs](./build.rs) file handles generating build-time configuration valu
 on the github repository and host environment variables.
 
 The following environment variables can be set:
-* `AIR_GRADIENT_IP_ADDRESS` : The deivce's IP address, default is `192.168.1.38`
+* `AIR_GRADIENT_IP_ADDRESS` : The device's IP address, default is `192.168.1.38`
 * `AIR_GRADIENT_MAC_ADDRESS` : The device's MAC address, default is `02:00:04:03:07:02`
 * `AIR_GRADIENT_DEVICE_ID` : An arbitrary 16-bit identifier, default is `0xFFFF` (`DeviceId::DEFAULT`)
 * `AIR_GRADIENT_BROADCAST_PORT` : The port number to send the broadcast protocol data on, default is `32100`
@@ -66,7 +66,7 @@ air-gradient device update --address 192.168.1.38 path/to/agp_images.cpio
 Initial flashing of the bootloader and firmware onto the board is currently done via SWD and an st-link.
 
 The default [memory.x](memory.x) file is setup to use firmware slot 0 in flash, which is also
-the default slot picked by the bootloader on initail setup.
+the default slot picked by the bootloader on initial setup.
 
 You can use the [Development Artifacts](https://github.com/jonlamb-gh/air-gradient-pro-rs/actions/workflows/dev_artifacts.yml)
 github action to build a custom-configured bootloader and firmware image in CI (click "Run workflow" and set the configuration fields)

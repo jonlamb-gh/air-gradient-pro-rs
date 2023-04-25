@@ -4,8 +4,8 @@ Bootloader for the AirGradient Pro firmware
 
 ## Assumptions
 
-* bootloader will fit in sections 0..=2 (48K)
-* boot and application config will fit in section 3 (16K)
+* bootloader will fit in sectors 0..=2 (48K)
+* boot and application config will fit in sector 3 (16K)
 * application will fit in <= 194K 
   - sectors 4 + 5 == 194K, 6 + 7 = 256K
 
