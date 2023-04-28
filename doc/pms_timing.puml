@@ -1,0 +1,39 @@
+@startuml
+
+scale 5 as 10 pixels
+'scale 10 as 20 pixels
+'scale 300 as 600 pixels
+manual time-axis
+
+skinparam defaultTextAlignment center
+'skinparam monochrome reverse
+
+title "PMS5003 Timing"
+
+footer: Time (default seconds)
+
+robust "PMS5003 Task" as pms
+
+pms is STANDBY
+
+@0
+pms is WARMUP : 45s
+
+@+45
+pms is MEASURING : 10x1s
+
+@+10
+pms is STANDBY : 3m
+
+@+180
+pms is WARMUP : 45s
+
+@+45
+pms is MEASURING : 10x1s
+
+@+10
+pms is STANDBY
+
+highlight 0 to 55 : Startup in\nWARMUP state
+
+@enduml

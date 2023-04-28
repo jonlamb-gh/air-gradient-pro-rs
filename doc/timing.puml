@@ -1,0 +1,85 @@
+@startuml
+
+'scale 5 as 10 pixels
+'scale 10 as 20 pixels
+'scale 300 as 600 pixels
+'manual time-axis
+
+skinparam defaultTextAlignment center
+/'skinparam monochrome reverse'/
+
+title "Task Timing"
+caption *Excludes the network, IP stack, display and update manager tasks*
+footer: Time (default seconds)
+
+robust "Watchdog/LED Task" as watchdog
+robust "PMS5003 Task" as pms
+robust "S8 LP Task" as s8lp
+robust "SHT31 Task" as sht31
+robust "SGP41 Task" as sgp41
+concise "Data Manager Task" as dm
+
+pms is STANDBY
+s8lp is WAITING
+sht31 is WAITING
+sgp41 is WAITING
+dm is IDLE
+
+@0
+watchdog is OFF
+pms is WARMUP : 45s
+s8lp is MEASURING : 25ms
+sht31 is MEASURING : 25ms
+sgp41 is MEASURING : 25ms
+dm is RUNNING : Recieves data from other tasks
+
+@0.025
+s8lp is WAITING
+sht31 is WAITING
+sgp41 is WAITING
+
+@1
+watchdog is ON
+sgp41 is MEASURING
+
+@1.025
+sgp41 is WAITING
+
+@2
+watchdog is OFF
+sgp41 is MEASURING
+
+@2.025
+sgp41 is WAITING
+
+@2.5
+sht31 is MEASURING : 25ms
+
+@+0.025
+sht31 is WAITING
+
+@3
+watchdog is ON
+sgp41 is MEASURING
+
+@3.025
+sgp41 is WAITING
+
+@4
+watchdog is OFF
+sgp41 is MEASURING
+
+@4.025
+sgp41 is WAITING
+
+@5
+watchdog is ON
+s8lp is MEASURING : 25ms
+sgp41 is MEASURING
+dm is TX_BCAST
+
+@+0.025
+s8lp is WAITING
+sgp41 is WAITING
+
+@enduml

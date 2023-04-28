@@ -145,6 +145,14 @@ Setup: net poll timer
 >>> Initialized <<<
 ```
 
+## RTIC Task and System Timings
+
+NOTE: some of the measurement periods are inaccurate (like the S8 LP), need to read the docs again.
+
+![timing.png](doc/timing.png)
+
+![pms_timing.png](doc/pms_timing.png)
+
 ## Hardware
 
 * STM32F411 "black pill"
