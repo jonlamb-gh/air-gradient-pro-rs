@@ -148,6 +148,7 @@ Setup: net poll timer
 ## RTIC Task and System Timings
 
 NOTE: some of the measurement periods are inaccurate (like the S8 LP), need to read the docs again.
+Also, the relative start times are not accurate.
 
 ![timing.png](doc/timing.png)
 
