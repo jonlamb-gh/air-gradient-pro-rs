@@ -22,7 +22,7 @@ node "Network Tasks" {
 
 }
 
-node "Sensors" {
+node "Sensor Tasks" {
     component [PMS5003] as pms
     component [S8 LP] as s8lp
     component [SGP41] as sgp41
