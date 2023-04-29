@@ -1,0 +1,49 @@
+@startuml
+
+skinparam defaultTextAlignment center
+'skinparam monochrome reverse
+
+title "System Architecture"
+
+node "Network Tasks" {
+    component [TCP/IP Clock Timer] as net_timer
+    component [TCP/IP Poll] as ipstack_poll
+    component [TCP/IP Timer] as ipstack_poll_timer
+    component [ETH ISR] as eth_isr
+    
+    () "Global Network Clock" as g_net_clock
+    () "Socket Set" as sockets
+
+    eth_isr --> ipstack_poll
+    ipstack_poll_timer --> ipstack_poll
+    net_timer ..> g_net_clock
+    ipstack_poll <.. g_net_clock
+    sockets <..> ipstack_poll
+
+}
+
+node "Sensors" {
+    component [PMS5003] as pms
+    component [S8 LP] as s8lp
+    component [SGP41] as sgp41
+    component [SHT31] as sht31
+
+    sht31 --> sgp41 : Conditioning data
+}
+
+component [Data Manager] as dm
+component [Update Manager] as um
+component [Display] as display
+component [Watchdog/LED] as watchdog
+
+pms --> dm
+s8lp --> dm
+sgp41 --> dm
+sht31 --> dm
+
+dm --> display
+
+sockets <.. dm : Broadcast Protocol (UDP)
+sockets <....> um : Device Protocol (TCP)
+
+@enduml

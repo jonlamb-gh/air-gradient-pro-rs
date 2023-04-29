@@ -24,7 +24,7 @@ Significant differences from stock:
 * Bootloader with firmware update and failover rollback mechanisms
   - update manager task handles the update protocol in-application
   - see the [bootloader README](bootloader/README.md)
-* TCP/IP stack, comes with these protocols:
+* TCP/IP stack ([smoltcp](https://github.com/smoltcp-rs/smoltcp)), comes with these protocols:
   - a lightweight [broadcast protocol](libraries/wire-protocols/src/broadcast.rs) for influx/etc integration
   - a [device protocol](libraries/wire-protocols/src/device.rs) for FOTA updates, device info, and device control
 * CLI with command-line tools and InfluxDB relaying, see the [air-gradient-cli README](host_tools/air-gradient-cli/README.md)
@@ -144,6 +144,10 @@ Setup: net clock timer
 Setup: net poll timer
 >>> Initialized <<<
 ```
+
+## System Architecture
+
+![system_architecture.png](doc/system_architecture.png)
 
 ## RTIC Task and System Timings
 
