@@ -17,19 +17,18 @@ path = "src/lib.rs"
 [dependencies]
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
-cortex-m-rtic = "1.1"
 log = "0.4"
 static_assertions = "1.1"
 
 [dependencies.stm32f4xx-hal]
-version = "0.15"
+version = "0.17"
 features = ["rt", "stm32f411"]
 
 [dependencies.bootloader-support]
 path = "../libraries/bootloader-support"
 
 [build-dependencies.built]
-version = "0.5"
+version = "0.6"
 features = ["git2", "chrono"]
 
 [profile.release]
