@@ -59,7 +59,7 @@ git = "https://github.com/jonlamb-gh/enc28j60.git"
 branch = "cleanup"
 
 [dependencies.stm32f4xx-hal]
-version = "0.15"
+version = "0.17"
 features = ["rt", "stm32f411", "rtic"]
 
 [dependencies.smoltcp]
@@ -81,12 +81,12 @@ version = "0.7"
 default-features = false
 
 [dependencies.shared-bus]
-version = "0.2"
+version = "0.3"
 default-features = false
 features = ["cortex-m"]
 
 [build-dependencies.built]
-version = "0.5"
+version = "0.6"
 features = ["git2", "chrono"]
 
 [build-dependencies.env-config]

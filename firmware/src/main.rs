@@ -18,9 +18,12 @@ pub mod built_info {
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
     use crate::display::Display;
-    use crate::net::{Eth, EthernetStorage, NetworkStorage, TcpSocketStorage, UdpSocketStorage};
-    use crate::sensors::{Pms5003, S8Lp, Sgp41, Sht31};
-    use crate::shared_i2c::I2cDevices;
+    use crate::net::{
+        Eth, EthernetStorage, NetworkStorage, SpiPins as EthSpiPins, TcpSocketStorage,
+        UdpSocketStorage,
+    };
+    use crate::sensors::{Pms5003, Pms5003SerialPins, S8Lp, S8LpSerialPins, Sgp41, Sht31};
+    use crate::shared_i2c::{I2cDevices, I2cPins};
     use crate::tasks::{
         data_manager::{SpawnArg as DataManagerSpawnArg, TaskState as DataManagerTaskState},
         data_manager_task,
@@ -201,21 +204,15 @@ mod app {
         info!("Setup: S8 LP");
         let tx = gpioa.pa9.into_alternate();
         let rx = gpioa.pa10.into_alternate();
-        let s8_serial = ctx
-            .device
-            .USART1
-            .serial((tx, rx), 9600.bps(), &clocks)
-            .unwrap();
+        let pins: S8LpSerialPins = (tx, rx);
+        let s8_serial = ctx.device.USART1.serial(pins, 9600.bps(), &clocks).unwrap();
         let s8lp = S8Lp::new(s8_serial);
 
         info!("Setup: PMS5003");
         let tx = gpioa.pa2.into_alternate();
         let rx = gpioa.pa3.into_alternate();
-        let pms_serial = ctx
-            .device
-            .USART2
-            .serial((tx, rx), 9600.bps(), &clocks)
-            .unwrap();
+        let pins: Pms5003SerialPins = (tx, rx);
+        let pms_serial = ctx.device.USART2.serial(pins, 9600.bps(), &clocks).unwrap();
         let pms = Pms5003::new(pms_serial, &mut common_delay).unwrap();
 
         // Shared I2C2 bus
@@ -224,7 +221,8 @@ mod app {
             use crate::shared_i2c::I2c;
             let scl = gpiob.pb10.into_alternate().set_open_drain();
             let sda = gpiob.pb3.into_alternate().set_open_drain();
-            let i2c2 = ctx.device.I2C2.i2c((scl, sda), 100.kHz(), &clocks);
+            let pins: I2cPins = (scl, sda);
+            let i2c2 = ctx.device.I2C2.i2c(pins, 100.kHz(), &clocks);
             shared_bus::new_atomic_check!(I2c = i2c2).unwrap()
         };
 
@@ -257,15 +255,10 @@ mod app {
                 .into_alternate()
                 .speed(GpioSpeed::VeryHigh)
                 .internal_pull_up(true);
+            let pins: EthSpiPins = (sck, miso, mosi);
 
             // TODO 3 MHz
-            Spi::new(
-                ctx.device.SPI2,
-                (sck, miso, mosi),
-                enc28j60::MODE,
-                1.MHz(),
-                &clocks,
-            )
+            Spi::new(ctx.device.SPI2, pins, enc28j60::MODE, 1.MHz(), &clocks)
         };
         let mut eth = {
             let ncs = gpiob.pb12.into_push_pull_output_in_state(true.into());

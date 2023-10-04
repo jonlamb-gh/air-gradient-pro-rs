@@ -14,7 +14,8 @@ pub struct Measurement {
     pub pm2_5_atm: u16,
 }
 
-pub type DefaultPms5003Serial = Serial<USART2, (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>)>;
+pub type Pms5003SerialPins = (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>);
+pub type DefaultPms5003Serial = Serial<USART2>;
 
 pub struct Pms5003<Serial = DefaultPms5003Serial>
 where

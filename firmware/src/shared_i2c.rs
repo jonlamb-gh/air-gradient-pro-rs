@@ -9,10 +9,10 @@ use stm32f4xx_hal::{
 };
 
 pub type I2cPins = (PB10<AF4<OpenDrain>>, PB3<AF9<OpenDrain>>);
-pub type I2c<PINS = I2cPins> = stm32f4xx_hal::i2c::I2c<I2C2, PINS>;
+pub type I2c = stm32f4xx_hal::i2c::I2c<I2C2>;
 pub type I2cProxy<I2C> = shared_bus::I2cProxy<'static, AtomicCheckMutex<I2C>>;
 
-pub struct I2cDevices<D0, D1, I2C = I2c<I2cPins>>
+pub struct I2cDevices<D0, D1, I2C = I2c>
 where
     I2C: Write + 'static,
 {

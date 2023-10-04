@@ -13,11 +13,11 @@ type IntPin = PA8<Input>;
 //type ResetPin = PB1<Output<PushPull>>;
 type ResetPin = enc28j60::Unconnected;
 
-type SpiSckPin = PB13<AF5>;
-type SpiMisoPin = PB14<AF5>;
-type SpiMosiPin = PB15<AF5>;
-type SpiPins = (SpiSckPin, SpiMisoPin, SpiMosiPin);
-type EthSpi = Spi<SPI2, SpiPins>;
+pub type SpiSckPin = PB13<AF5>;
+pub type SpiMisoPin = PB14<AF5>;
+pub type SpiMosiPin = PB15<AF5>;
+pub type SpiPins = (SpiSckPin, SpiMisoPin, SpiMosiPin);
+pub type EthSpi = Spi<SPI2>;
 
 type Drv = Enc28j60<EthSpi, CsPin, IntPin, ResetPin>;
 

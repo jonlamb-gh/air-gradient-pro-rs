@@ -22,7 +22,8 @@ pub enum Error<E> {
     Serial(E),
 }
 
-pub type DefaultS8LpSerial = serial::Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>)>;
+pub type S8LpSerialPins = (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>);
+pub type DefaultS8LpSerial = serial::Serial<USART1>;
 
 pub struct S8Lp<Serial = DefaultS8LpSerial>
 where
