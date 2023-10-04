@@ -70,7 +70,9 @@ pub async fn influx_relay(cmd: InfluxRelay, intr: Interruptor) -> Result<()> {
         };
 
         let m = Measurement {
-            recv_time_utc_ns: recv_utc.timestamp_nanos(),
+            recv_time_utc_ns: recv_utc
+                .timestamp_nanos_opt()
+                .expect("timestamp_nanos_opt failed"),
             tags: MeasurementTags {
                 device_id: msg.device_id.to_string(),
                 device_serial_number: format!("{:X}", msg.device_serial_number),
