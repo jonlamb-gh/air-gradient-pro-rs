@@ -300,9 +300,8 @@ mod app {
 
         info!("Setup: TCP/IP");
         let mac = EthernetAddress::from_bytes(&config::MAC_ADDRESS);
-        let mut config = Config::new();
-        config.hardware_addr = Some(mac.into());
-        let mut eth_iface = Interface::new(config, &mut eth);
+        let config = Config::new(mac.into());
+        let mut eth_iface = Interface::new(config, &mut eth, smoltcp::time::Instant::ZERO);
         eth_iface.update_ip_addrs(|addr| {
             addr.push(config::IP_CIDR.into()).unwrap();
         });

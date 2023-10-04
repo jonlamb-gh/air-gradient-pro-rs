@@ -8,7 +8,7 @@ authors = ["Jon Lamb"]
 log = "0.4"
 
 [dependencies.smoltcp]
-version = "0.9"
+version = "0.10"
 default-features = false
 features = ["medium-ethernet", "proto-ipv4", "socket-tcp"]
 

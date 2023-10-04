@@ -63,7 +63,7 @@ version = "0.17"
 features = ["rt", "stm32f411", "rtic"]
 
 [dependencies.smoltcp]
-version = "0.9"
+version = "0.10"
 default-features = false
 features = [
     "medium-ethernet",

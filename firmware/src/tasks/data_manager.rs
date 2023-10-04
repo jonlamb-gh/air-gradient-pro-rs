@@ -7,7 +7,10 @@ use crate::{
     util,
 };
 use log::{debug, warn};
-use smoltcp::{socket::udp::Socket as UdpSocket, wire::Ipv4Address};
+use smoltcp::{
+    socket::udp::{Socket as UdpSocket, UdpMetadata},
+    wire::Ipv4Address,
+};
 use stm32f4xx_hal::prelude::*;
 use wire_protocols::{
     broadcast::{Message as WireMessage, Repr as Message},
@@ -125,14 +128,13 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
         }
 
         if socket.can_send() {
-            match socket.send(
-                state.msg.message_len(),
-                (
-                    Ipv4Address(config::BROADCAST_ADDRESS),
-                    config::BROADCAST_PORT,
-                )
-                    .into(),
-            ) {
+            let endpoint = (
+                Ipv4Address(config::BROADCAST_ADDRESS),
+                config::BROADCAST_PORT,
+            )
+                .into();
+            let meta = Default::default();
+            match socket.send(state.msg.message_len(), UdpMetadata { endpoint, meta }) {
                 Err(e) => warn!("Failed to send. {e:?}"),
                 Ok(buf) => {
                     let mut wire = WireMessage::new_unchecked(buf);
