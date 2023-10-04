@@ -87,6 +87,7 @@ mod app {
         flash: FLASH,
     }
 
+    // TODO use MonoTimer64Us with 64 bit timer
     /// TIM2 is a 32-bit timer, defaults to having the highest interrupt priority
     #[monotonic(binds = TIM2, default = true)]
     type MicrosecMono = MonoTimerUs<pac::TIM2>;
