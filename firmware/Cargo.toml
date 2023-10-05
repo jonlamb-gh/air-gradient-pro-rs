@@ -96,3 +96,85 @@ path = "../libraries/env-config"
 codegen-units = 1 # better optimizations
 debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
+
+[package.metadata.renode]
+machine-name = 'agp'
+using-sysbus = true
+renode = '${HOME}/repos/forks/renode-agp-dev/renode'
+variables = [
+    # bootloader ELF
+    '$bootloader_elf = @../bootloader/target/thumbv7em-none-eabihf/release/bootloader',
+    '$tap ?= "renode-tap0"',
+    # Set random board UNIQUE ID
+    '''
+    python "import _random"
+    python "rand = _random.Random()"
+
+    $id1 = `python "print rand.getrandbits(32)"`
+    $id2 = `python "print rand.getrandbits(32)"`
+    $id3 = `python "print rand.getrandbits(32)"`
+    ''',
+    # TODO - add support for these in renode-run
+    'include @../renode/peripherals/STM32_Timer.cs',
+    'include @../renode/peripherals/SH1106.cs',
+    'include @../renode/peripherals/SGP41.cs',
+    'include @../renode/peripherals/SHT31.cs',
+]
+platform-descriptions = [
+    '../renode/platform/stm32f411.repl',
+    'led: Miscellaneous.LED @ gpioPortC',
+    '''
+    gpioPortC:
+        13 -> led@0
+
+    ''',
+    '''
+    ethernet: Network.ENC28J60 @ spi2i2s2
+        -> gpioPortA@8
+    ''',
+    '''
+    sh1106 : Video.SH1106 @ i2c2 0x3C
+        FramesPerVirtualSecond: 10
+    ''',
+    '''
+    sgp41 : Sensors.SGP41 @ i2c2 0x59
+        VocTicks: 1024
+        NoxTicks: 2048
+    ''',
+    '''
+    sht31 : Sensors.SHT31 @ i2c2 0x44
+        Temperature: 40
+        Humidity: 85
+    ''',
+]
+pre-start-commands = [
+    'logFile @/tmp/agp_renode.log true',
+    'cpu PerformanceInMips 1',
+
+    # TODO - hack for the delay timer
+    'timer4 Frequency 1000000000',
+    #'timer4 Frequency 1000',
+    'logLevel -1 timer4',
+
+    'showAnalyzer sysbus.usart6',
+    'showAnalyzer i2c2.sh1106',
+
+    '''
+    sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
+    sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
+    ''',
+    #'machine StartGdbServer 3333',
+]
+#omit-start = true
+reset = '''
+sysbus LoadELF $bin
+
+sysbus LoadELF $bootloader_elf
+
+sysbus WriteDoubleWord 0x1FFF7A10 $id1
+sysbus WriteDoubleWord 0x1FFF7A14 $id2
+sysbus WriteDoubleWord 0x1FFF7A18 $id3
+
+# Flash size KB
+sysbus WriteDoubleWord 0x1FFF7A22 512
+'''

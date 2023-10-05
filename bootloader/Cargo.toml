@@ -35,3 +35,46 @@ features = ["git2", "chrono"]
 codegen-units = 1 # better optimizations
 debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
+
+[package.metadata.renode]
+machine-name = 'agp-bootloader'
+using-sysbus = true
+renode = '${HOME}/repos/forks/renode-agp-dev/renode'
+variables = [     
+    # Set random board UNIQUE ID
+    '''           
+    python "import _random"
+    python "rand = _random.Random()"
+                  
+    $id1 = `python "print rand.getrandbits(32)"`
+    $id2 = `python "print rand.getrandbits(32)"`
+    $id3 = `python "print rand.getrandbits(32)"`
+    ''',          
+]                 
+platform-descriptions = [
+    '../renode/platform/stm32f411.repl',
+    'led: Miscellaneous.LED @ gpioPortC',
+    '''
+    gpioPortC:
+        13 -> led@0
+    ''',
+]
+pre-start-commands = [
+    'logFile @/tmp/agp_bootloader_renode.log true',
+    'cpu PerformanceInMips 1',
+    'showAnalyzer sysbus.usart6',
+    '''
+    sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
+    sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
+    ''',
+]
+reset = '''
+sysbus LoadELF $bin
+
+sysbus WriteDoubleWord 0x1FFF7A10 $id1
+sysbus WriteDoubleWord 0x1FFF7A14 $id2
+sysbus WriteDoubleWord 0x1FFF7A18 $id3
+
+# Flash size KB
+sysbus WriteDoubleWord 0x1FFF7A22 512
+'''

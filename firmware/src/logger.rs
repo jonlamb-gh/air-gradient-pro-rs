@@ -17,7 +17,7 @@ static mut LOGGER: LoggerUsart6 = LoggerUsart6::uninit();
 pub(crate) unsafe fn init_logging(tx: Tx<USART6>) {
     LOGGER.write(Logger(Mutex::new(RefCell::new(tx))));
     log::set_logger(&*LOGGER.as_ptr())
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .map(|()| log::set_max_level(log::LevelFilter::Trace))
         .unwrap();
 }
 

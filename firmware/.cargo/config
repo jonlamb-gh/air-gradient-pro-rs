@@ -1,5 +1,6 @@
 [target.thumbv7em-none-eabihf]
-runner = 'probe-run --chip STM32F411CEUx'
+#runner = 'probe-run --chip STM32F411CEUx'
+runner = 'renode-run --output /tmp/agp_rr_cache'
 rustflags = [
     "-C", "linker=../host_tools/scripts/agp-linker-script",
     "-C", "link-arg=-Tlink.x",
