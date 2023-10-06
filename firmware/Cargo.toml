@@ -158,33 +158,36 @@ platform-descriptions = [
 ]
 pre-start-commands = [
     'logFile @/tmp/agp_renode.log true',
-    'cpu PerformanceInMips 1',
+    #'cpu PerformanceInMips 1',
     
     # Suppress most warnings
     'logLevel 3 sysbus',
-
-    # TODO - hack for the delay timer
-    'timer4 Frequency 2000000000',
-    #'timer4 Frequency 1000',
+    
+    # TIM2 monotonic us RTIC timer, 1 MHz
+    'timer2 Frequency 1000000',
+    # TIM3 IP stack timer, 25 Hz
+    'timer3 Frequency 25',
+    # TODO - delay timer impl still isn't right...
+    # TIM4 common ms delay timer, 1 KHz
+    'timer4 Frequency 1000',
+    # TIM10 SHT31 delay timer, 1 MHz
+    'timer10 Frequency 1000000',
+    # TIM11 SGP41 delay timer, 1 MHz
+    'timer11 Frequency 1000000',
+    
     'logLevel -1 timer4',
-    
-    'logLevel -1 usart2',
-    'logLevel -1 usart2.pms5003',
-    
-    # TODO - hack for the delay timer
-    'timer10 Frequency 2000000000',
-    'logLevel -1 i2c2.sht31',
-    
-    # TODO - hack for the delay timer
-    'timer11 Frequency 2000000000',
-    'logLevel -1 i2c2.sgp41',
 
-    'logLevel -1 spi2i2s2.ethernet',
+    #'logLevel -1 usart2',
+    #'logLevel -1 usart2.pms5003',
+    #'logLevel -1 i2c2.sht31',
+    #'logLevel -1 i2c2.sgp41',
+    #'logLevel -1 spi2i2s2.ethernet',
 
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
 
     '''
+    spi2i2s2.ethernet MAC "02:00:04:03:07:02"
     emulation CreateSwitch "switch"
     connector Connect spi2i2s2.ethernet switch
     ''',
