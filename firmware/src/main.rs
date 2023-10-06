@@ -271,7 +271,7 @@ mod app {
             let mut reset = gpiob.pb1.into_push_pull_output_in_state(true.into());
 
             // Perform a hard reset first, then let the driver
-            // perform a soft reset by provided enc28j60::Unconnected
+            // perform a soft reset by providing enc28j60::Unconnected
             // instead of the actual reset pin
             reset.set_low();
             common_delay.delay_ms(5_u8);

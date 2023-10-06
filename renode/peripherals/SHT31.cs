@@ -27,6 +27,7 @@ namespace Antmicro.Renode.Peripherals.Sensors
             commands.RegisterCommand(SoftReset, 0x30, 0xA2);
             commands.RegisterCommand(ClearStatus, 0x30, 0x41);
             commands.RegisterCommand(Status, 0xF3, 0x2D);
+            commands.RegisterCommand(ReadSerialNumber, 0x37, 0x80);
 
             Reset();
         }
@@ -102,6 +103,12 @@ namespace Antmicro.Renode.Peripherals.Sensors
             }
         }
 
+        public uint SerialNumber
+        {
+            get => serialNumber;
+            set => serialNumber = value.Clamp((uint) 0, (uint) 0xFFFF);
+        }
+
         // TODO - add all the variants
         // Repeatability
         // High: 0x00
@@ -141,6 +148,14 @@ namespace Antmicro.Renode.Peripherals.Sensors
             Enqueue2AndCrc(res);
         }
 
+        private void ReadSerialNumber(byte[] command)
+        {
+            // TODO - use the register type facilities for this?
+            this.Log(LogLevel.Noisy, "Reading serial number");
+            var res = new byte[] {(byte) (serialNumber >> 8), (byte) (serialNumber & 0xFF)};
+            Enqueue2AndCrc(res);
+        }
+
         private void Enqueue2AndCrc(byte[] data)
         {
             foreach(var b in data)
@@ -173,6 +188,7 @@ namespace Antmicro.Renode.Peripherals.Sensors
 
         private uint humidity = 0;
         private uint temperature = 0;
+        private uint serialNumber = 0;
 
         private readonly I2CCommandManager<Action<byte[]>> commands;
         private readonly Queue<byte> outputBuffer;

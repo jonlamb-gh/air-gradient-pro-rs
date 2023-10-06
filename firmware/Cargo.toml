@@ -116,9 +116,11 @@ variables = [
     ''',
     # TODO - add support for these in renode-run
     'include @../renode/peripherals/STM32_Timer.cs',
+    'include @../renode/peripherals/STM32_UART.cs',
     'include @../renode/peripherals/SH1106.cs',
     'include @../renode/peripherals/SGP41.cs',
     'include @../renode/peripherals/SHT31.cs',
+    'include @../renode/peripherals/PMS5003.cs',
 ]
 platform-descriptions = [
     '../renode/platform/stm32f411.repl',
@@ -138,25 +140,45 @@ platform-descriptions = [
     ''',
     '''
     sgp41 : Sensors.SGP41 @ i2c2 0x59
+        SerialNumber: 0xBBFF
         VocTicks: 1024
         NoxTicks: 2048
     ''',
     '''
     sht31 : Sensors.SHT31 @ i2c2 0x44
+        SerialNumber: 0xAABB
         Temperature: 40
         Humidity: 85
+    ''',
+    '''
+    pms5003 : UART.PMS5003 @ usart2
+        PM2_5_atm: 10
     ''',
 ]
 pre-start-commands = [
     'logFile @/tmp/agp_renode.log true',
     'cpu PerformanceInMips 1',
+    
+    # Suppress most warnings
+    'logLevel 3 sysbus',
 
     # TODO - hack for the delay timer
-    'timer4 Frequency 1000000000',
+    'timer4 Frequency 2000000000',
     #'timer4 Frequency 1000',
     'logLevel -1 timer4',
+    
+    'logLevel -1 usart2',
+    'logLevel -1 usart2.pms5003',
+    
+    # TODO - hack for the delay timer
+    'timer10 Frequency 2000000000',
+    'logLevel -1 i2c2.sht31',
+    
+    # TODO - hack for the delay timer
+    'timer11 Frequency 2000000000',
+    'logLevel -1 i2c2.sgp41',
 
-    'showAnalyzer sysbus.usart6',
+    'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
 
     '''
@@ -166,6 +188,8 @@ pre-start-commands = [
     #'machine StartGdbServer 3333',
 ]
 #omit-start = true
+# TODO - instead of loading the bootloader, just write default boot config to flash memory
+# use a top-level renode script for running with both bootloader and firmware
 reset = '''
 sysbus LoadELF $bin
 
