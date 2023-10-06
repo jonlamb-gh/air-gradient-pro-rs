@@ -117,6 +117,7 @@ variables = [
     # TODO - add support for these in renode-run
     'include @../renode/peripherals/STM32_Timer.cs',
     'include @../renode/peripherals/STM32_UART.cs',
+    'include @../renode/peripherals/ENC28J60.cs',
     'include @../renode/peripherals/SH1106.cs',
     'include @../renode/peripherals/SGP41.cs',
     'include @../renode/peripherals/SHT31.cs',
@@ -131,7 +132,7 @@ platform-descriptions = [
 
     ''',
     '''
-    ethernet: Network.ENC28J60 @ spi2i2s2
+    ethernet: Network.ENC28J60_CUSTOM @ spi2i2s2
         -> gpioPortA@8
     ''',
     '''
@@ -178,8 +179,17 @@ pre-start-commands = [
     'timer11 Frequency 2000000000',
     'logLevel -1 i2c2.sgp41',
 
+    'logLevel -1 spi2i2s2.ethernet',
+
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
+
+    '''
+    emulation CreateSwitch "switch"
+    connector Connect spi2i2s2.ethernet switch
+    ''',
+    #emulation CreateTap $tap "tap"
+    #connector Connect host.tap switch
 
     '''
     sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
