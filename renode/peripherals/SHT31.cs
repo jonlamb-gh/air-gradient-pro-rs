@@ -24,6 +24,7 @@ namespace Antmicro.Renode.Peripherals.Sensors
             outputBuffer = new Queue<byte>();
 
             commands.RegisterCommand(SingleShotMeasurement, 0x24); // 0x24 0xXX
+            commands.RegisterCommand(FetchData, 0xE0, 0x00);
             commands.RegisterCommand(SoftReset, 0x30, 0xA2);
             commands.RegisterCommand(ClearStatus, 0x30, 0x41);
             commands.RegisterCommand(Status, 0xF3, 0x2D);
@@ -117,6 +118,21 @@ namespace Antmicro.Renode.Peripherals.Sensors
         private void SingleShotMeasurement(byte[] command)
         {
             this.Log(LogLevel.Noisy, "Measuring single shot mode ClockStretch=false Repeatability=high");
+
+            // TODO check command data and len
+
+            var buf = new byte[2];
+            buf[0] = (byte) (temperature >> 8);
+            buf[1] = (byte) (temperature & 0xFF);
+            Enqueue2AndCrc(buf);
+            buf[0] = (byte) (humidity >> 8);
+            buf[1] = (byte) (humidity & 0xFF);
+            Enqueue2AndCrc(buf);
+        }
+        
+        private void FetchData(byte[] command)
+        {
+            this.Log(LogLevel.Noisy, "Fetch data");
 
             // TODO check command data and len
 
