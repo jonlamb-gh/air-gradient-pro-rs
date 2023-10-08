@@ -98,7 +98,7 @@ adc: Analog.STM32_ADC @ sysbus 0x40012000
 usart6: UART.STM32_UART @ sysbus <0x40011400, +0x400>
     -> nvic@71
 
-usart1: UART.STM32_UART @ sysbus <0x40011000, +0x400>
+usart1: UART.STM32_UART_CUSTOM @ sysbus <0x40011000, +0x400>
     -> nvic@37
 
 timer8: Timers.STM32_Timer_Custom @ sysbus <0x40010400, +0x400>
@@ -151,54 +151,39 @@ i2s2ext: SPI.STM32SPI @ sysbus 0x40003400
 iwdg: Timers.STM32_IndependentWatchdog @ sysbus 0x40003000
     frequency: 32000
     windowOption: false
-    defaultPrescaler: 0x4
+    defaultPrescaler: 0xFF
 
 rtc: Timers.STM32F4_RTC @ sysbus 0x40002800
     AlarmIRQ -> exti@17
 
-timer14: Timers.STM32_Timer_Custom @ sysbus <0x40002000, +0x400>
-    initialLimit: 0xffff
-    frequency: 50000000
-    -> nvic@45
-
-timer13: Timers.STM32_Timer_Custom @ sysbus <0x40001C00, +0x400>
-    initialLimit: 0xffff
-    frequency: 50000000
-    -> nvic@44
-
-timer12: Timers.STM32_Timer_Custom @ sysbus <0x40001800, +0x400>
-    initialLimit: 0xffff
-    frequency: 50000000
-    -> nvic@43
-
 timer7: Timers.STM32_Timer_Custom @ sysbus <0x40001400, +0x400>
     initialLimit: 0xffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@55
 
 timer6: Timers.STM32_Timer_Custom @ sysbus <0x40001000, +0x400>
     initialLimit: 0xffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@54
 
 timer5: Timers.STM32_Timer_Custom @ sysbus <0x40000C00, +0x400>
     initialLimit: 0xffffffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@50
 
 timer4: Timers.STM32_Timer_Custom @ sysbus <0x40000800, +0x400>
     initialLimit: 0xffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@30
 
 timer3: Timers.STM32_Timer_Custom @ sysbus <0x40000400, +0x400>
     initialLimit: 0xffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@29
 
 timer2: Timers.STM32_Timer_Custom @ sysbus <0x40000000, +0x400>
     initialLimit: 0xffffffff
-    frequency: 50000000
+    frequency: 100000000
     -> nvic@28
 
 sram: Memory.MappedMemory @ sysbus 0x20000000
