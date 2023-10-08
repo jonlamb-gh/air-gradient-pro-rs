@@ -22,6 +22,7 @@ namespace Antmicro.Renode.Peripherals.Timers
     {
         public STM32_Timer_Custom(IMachine machine, long frequency, uint initialLimit) : base(machine.ClockSource, frequency, limit: initialLimit,  direction: Direction.Ascending, enabled: false, autoUpdate: false)
         {
+            this.Log(LogLevel.Warning, "init frequency={0}, clk_src={1}", frequency, machine.ClockSource);
             this.machine = machine;
             IRQ = new GPIO();
             connections = Enumerable.Range(0, NumberOfCCChannels).ToDictionary(i => i, _ => (IGPIO)new GPIO());
@@ -31,6 +32,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             {
                 if(updateDisable.Value)
                 {
+                    this.NoisyLog("LimitReached but disabled");
                     return;
                 }
                 Limit = autoReloadValue;
@@ -114,6 +116,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                     {
                         enableRequested = val;
                         Enabled = enableRequested && autoReloadValue > 0;
+                        this.NoisyLog("CEN val={0}, Enabled={1}, autoReloadValue={2}",
+                                val, Enabled, autoReloadValue);
                     }, valueProviderCallback: _ => enableRequested, name: "Counter enable (CEN)")
                     .WithFlag(1, out updateDisable, name: "Update disable (UDIS)")
                     .WithFlag(2, out updateRequestSource, name: "Update request source (URS)")
@@ -343,6 +347,8 @@ namespace Antmicro.Renode.Peripherals.Timers
                     {
                         autoReloadValue = (uint)val;
                         Enabled = enableRequested && autoReloadValue > 0;
+                        this.NoisyLog("Set ARR val={0}, Enabled={1}, autoReloadPreloadEnable={2}",
+                                val, Enabled, autoReloadPreloadEnable.Value);
                         if(!autoReloadPreloadEnable.Value)
                         {
                             Limit = autoReloadValue;
