@@ -1,5 +1,6 @@
+use log::LevelFilter;
 use smoltcp::wire::EthernetAddress;
-use std::{env, fs, io::Write, net::Ipv4Addr, path::PathBuf};
+use std::{env, fs, io::Write, net::Ipv4Addr, path::PathBuf, str::FromStr};
 use wire_protocols::{broadcast, device, DeviceId};
 
 const DEFAULT_IP_ADDRESS: &str = "192.168.1.38";
@@ -8,6 +9,7 @@ const DEFAULT_DEVICE_ID: u16 = DeviceId::DEFAULT.0;
 const DEFAULT_BROADCAST_PORT: u16 = broadcast::DEFAULT_PORT;
 const DEFAULT_BROADCAST_ADDRESS: &str = "255.255.255.255";
 const DEFAULT_DEVICE_PORT: u16 = device::DEFAULT_PORT;
+const DEFAULT_LOG_LEVEL: &str = "INFO";
 
 pub fn generate_env_config_constants() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -15,6 +17,7 @@ pub fn generate_env_config_constants() {
     let config_file_path = out_dir.join("env_config.rs");
     let mut config_file = fs::File::create(config_file_path).unwrap();
 
+    writeln!(&mut config_file, "use log::LevelFilter;").unwrap();
     writeln!(
         &mut config_file,
         "use wire_protocols::{{DeviceId, FirmwareVersion}};"
@@ -97,6 +100,17 @@ pub fn generate_env_config_constants() {
             .unwrap();
     writeln!(&mut config_file, "pub const DEVICE_PORT: u16 = {dev_port};").unwrap();
     println!("cargo:rerun-if-env-changed=AIR_GRADIENT_DEVICE_PORT");
+
+    let max_log_level =
+        LevelFilter::from_str(get_env_or_default("AIR_GRADIENT_LOG", DEFAULT_LOG_LEVEL).as_str())
+            .unwrap();
+
+    writeln!(
+        &mut config_file,
+        "pub const MAX_LOG_LEVEL: LevelFilter = LevelFilter::{max_log_level:?};"
+    )
+    .unwrap();
+    println!("cargo:rerun-if-env-changed=AIR_GRADIENT_LOG");
 }
 
 fn get_env_or_default<S: AsRef<str>>(var: &str, default: S) -> String {

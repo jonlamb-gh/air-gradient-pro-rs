@@ -40,17 +40,20 @@ lto = true # better optimizations
 machine-name = 'agp-bootloader'
 using-sysbus = true
 renode = '${HOME}/repos/forks/renode-agp-dev/renode'
-variables = [     
+variables = [
     # Set random board UNIQUE ID
-    '''           
+    '''
     python "import _random"
     python "rand = _random.Random()"
-                  
+
     $id1 = `python "print rand.getrandbits(32)"`
     $id2 = `python "print rand.getrandbits(32)"`
     $id3 = `python "print rand.getrandbits(32)"`
-    ''',          
-]                 
+    ''',
+# TODO - add support for these in renode-run
+    'include @../renode/peripherals/STM32_Timer.cs',
+    'include @../renode/peripherals/STM32_UART.cs',
+]
 platform-descriptions = [
     '../renode/platform/stm32f411.repl',
     'led: Miscellaneous.LED @ gpioPortC',

@@ -22,7 +22,6 @@ namespace Antmicro.Renode.Peripherals.Timers
     {
         public STM32_Timer_Custom(IMachine machine, long frequency, uint initialLimit) : base(machine.ClockSource, frequency, limit: initialLimit,  direction: Direction.Ascending, enabled: false, autoUpdate: false)
         {
-            this.Log(LogLevel.Warning, "init frequency={0}, clk_src={1}", frequency, machine.ClockSource);
             this.machine = machine;
             IRQ = new GPIO();
             connections = Enumerable.Range(0, NumberOfCCChannels).ToDictionary(i => i, _ => (IGPIO)new GPIO());
@@ -334,6 +333,7 @@ namespace Antmicro.Renode.Peripherals.Timers
                     .WithValueField(0, 32, writeCallback: (_, val) => Divider = (int)val + 1, valueProviderCallback: _ => (uint)Divider - 1, name: "Prescaler value (PSC)")
                     .WithWriteCallback((_, __) =>
                     {
+                        this.NoisyLog("Set PSC Divider={0}", Divider);
                         for(var i = 0; i < NumberOfCCChannels; ++i)
                         {
                             ccTimers[i].Divider = Divider;

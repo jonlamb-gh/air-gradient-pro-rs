@@ -102,8 +102,6 @@ machine-name = 'agp'
 using-sysbus = true
 renode = '${HOME}/repos/forks/renode-agp-dev/renode'
 variables = [
-    # bootloader ELF
-    '$bootloader_elf = @../bootloader/target/thumbv7em-none-eabihf/release/bootloader',
     '$tap ?= "renode-tap0"',
     # Set random board UNIQUE ID
     '''
@@ -169,30 +167,37 @@ pre-start-commands = [
     
     # Suppress most warnings
     'logLevel 3 sysbus',
-    
-    # TIM2 monotonic us RTIC timer, 1 MHz
-    'timer2 Frequency 1000000',
-    # TIM3 IP stack timer, 25 Hz
-    'timer3 Frequency 25',
-    # TODO - delay timer impl still isn't right...
-    # TIM4 common ms delay timer, 1 KHz
-    'timer4 Frequency 1000',
-    # TIM10 SHT31 delay timer, 1 MHz
-    'timer10 Frequency 1000000',
-    # TIM11 SGP41 delay timer, 1 MHz
-    'timer11 Frequency 1000000',
 
-    # TODO - hack, just to get past the slow timer delays...
-    # TODO - need to adjust iwdg Frequency
-    # delay timers also need re-configured on reset
-    '''
-    timer10 Frequency 1000000000
-    timer11 Frequency 1000000000
-    timer4 Frequency 1000000000
-    timer2 Frequency 10000000
-    ''',
+    'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
     
-    #'logLevel -1 timer4',
+# TODO - do this in the repl or in the reset method(s) so it works after wdt resets
+
+    # Setup the timer frequencies to match the systick frequency, so that
+    # the HAL RCC/Timer config routines work, they use timclk1 which is set
+    # to systick (64 MHz) based on the NVIC systickFrequency in stm32f411.repl
+    #
+    # TIM2 monotonic us RTIC timer, 1 MHz
+    'timer2 Frequency 64000000',
+    #'timer2 Frequency 1000000',
+    # TIM3 IP stack timer, 25 Hz
+    'timer3 Frequency 64000000',
+    # TIM4 common ms delay timer, 1 KHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    # they slow down virtual time a lot
+    'timer4 Frequency 640000000',
+    # TIM10 SHT31 delay timer, 1 MHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    'timer10 Frequency 640000000',
+    # TIM11 SGP41 delay timer, 1 MHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    'timer11 Frequency 640000000',
+    
+    # Ignore set-freq-difference warnings
+    'logLevel 3 timer2',
+    'logLevel 3 timer3',
+    'logLevel 3 timer4',
+    'logLevel 3 timer10',
+    'logLevel 3 timer11',
 
     #'logLevel -1 usart2.pms5003',
     #'logLevel -1 usart1.s8lp',
@@ -218,16 +223,19 @@ pre-start-commands = [
     #'machine StartGdbServer 3333',
 ]
 #omit-start = true
-# TODO - instead of loading the bootloader, just write default boot config to flash memory
-# use a top-level renode script for running with both bootloader and firmware
 reset = '''
 sysbus LoadELF $bin
-
-sysbus LoadELF $bootloader_elf
 
 sysbus WriteDoubleWord 0x1FFF7A10 $id1
 sysbus WriteDoubleWord 0x1FFF7A14 $id2
 sysbus WriteDoubleWord 0x1FFF7A18 $id3
+
+# Default boot config in flash
+sysbus.flash ZeroRange 0xC000 16
+sysbus.flash WriteByte 0xC000 0xDE
+sysbus.flash WriteByte 0xC001 0xC0      
+sysbus.flash WriteByte 0xC002 0xED      
+sysbus.flash WriteByte 0xC003 0xFE
 
 # Flash size KB
 sysbus WriteDoubleWord 0x1FFF7A22 512

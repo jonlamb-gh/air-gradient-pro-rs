@@ -43,6 +43,7 @@ The following environment variables can be set:
 * `AIR_GRADIENT_BROADCAST_PORT` : The port number to send the broadcast protocol data on, default is `32100`
 * `AIR_GRADIENT_BROADCAST_ADDRESS` : The IP address to send the broadcast protocol data to, default is `255.255.255.255`
 * `AIR_GRADIENT_DEVICE_PORT` : The port number the device protocol socket listens on, default is `32101`
+* `AIR_GRADIENT_LOG` : The max log level filter to use, default is `Info`
 
 ## FOTA Updating
 

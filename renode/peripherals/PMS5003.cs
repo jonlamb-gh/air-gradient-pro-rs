@@ -56,7 +56,7 @@ namespace Antmicro.Renode.Peripherals.UART
                 buf[i] = (byte) character;
             }
 
-            this.NoisyLog("Received : [{0:X}]", BitConverter.ToString(buf));
+            this.NoisyLog("Received : [{0:X}], Count={1}", BitConverter.ToString(buf), Count);
 
             if(buf[0] != 0x42 || buf[1] != 0x4D)
             {
@@ -74,7 +74,12 @@ namespace Antmicro.Renode.Peripherals.UART
                     }
                     else
                     {
-                        SendOutput();
+                        if(!is_init)
+                        {
+                            // TODO - see notes in fw
+                            is_init = true;
+                            SendOutput();
+                        }
                     }
                     return;
                 case 0xE1: // passive/active mode
@@ -86,6 +91,9 @@ namespace Antmicro.Renode.Peripherals.UART
                     {
                         SendActiveModeResponse();
                     }
+                    return;
+                case 0xE2: // request data in passive mode
+                    SendOutput();
                     return;
                 default:
                     this.WarningLog("Unknown command {0:X}", cmd);
@@ -181,6 +189,7 @@ namespace Antmicro.Renode.Peripherals.UART
         }
 
         private uint pm2_5_atm = 0;
+        private bool is_init = false;
     }
 }
 

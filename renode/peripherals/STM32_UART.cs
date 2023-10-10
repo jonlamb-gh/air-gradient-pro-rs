@@ -104,9 +104,6 @@ namespace Antmicro.Renode.Peripherals.UART
 
         public long Size => 0x400;
 
-        [field: Transient]
-        public event Action<byte> CharReceived;
-
         private void DefineRegisters()
         {
             Registers.Status.Define(RegistersCollection, 0xC0, name: "USART_SR")
@@ -140,7 +137,6 @@ namespace Antmicro.Renode.Peripherals.UART
                             this.Log(LogLevel.Warning, "Trying to transmit a character, but the transmitter is not enabled. dropping.");
                             return;
                         }
-                        //CharReceived?.Invoke((byte)value);
                         this.TransmitCharacter((byte)value);
                         transmissionComplete.Value = true;
                         Update();
