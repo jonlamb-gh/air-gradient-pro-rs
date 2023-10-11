@@ -53,6 +53,7 @@ where
         Ok(())
     }
 
+    // NOTE: the sensor wakes up from sleep in active mode
     pub fn enter_active_mode(&mut self) -> Result<(), Error> {
         self.drv.wake()?;
         Ok(())
