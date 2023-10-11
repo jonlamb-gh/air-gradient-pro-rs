@@ -17,18 +17,21 @@ pub struct Measurement {
 pub type Pms5003SerialPins = (PA2<AF7<PushPull>>, PA3<AF7<PushPull>>);
 pub type DefaultPms5003Serial = Serial<USART2>;
 
-pub struct Pms5003<Serial = DefaultPms5003Serial>
+pub struct Pms5003<D, Serial = DefaultPms5003Serial>
 where
+    D: DelayMs<u8>,
     Serial: Read<u8> + Write<u8>,
 {
     drv: Pms7003Sensor<Serial>,
+    delay: D,
 }
 
-impl<Serial> Pms5003<Serial>
+impl<D, Serial> Pms5003<D, Serial>
 where
+    D: DelayMs<u8>,
     Serial: Read<u8> + Write<u8>,
 {
-    pub fn new<D: DelayMs<u8>>(serial: Serial, delay: &mut D) -> Result<Self, Error> {
+    pub fn new(serial: Serial, mut delay: D) -> Result<Self, Error> {
         let mut drv = Pms7003Sensor::new(serial);
         // Default mode after power up is active mode
         // Wake up and read to flush the line before
@@ -37,29 +40,33 @@ where
         // the pms_7003 lib only works this way currently
         drv.wake()?;
         delay.delay_ms(100_u8);
-        let _ = drv.read()?;
+
+        let _ = drv.read();
+        drv.passive()?;
 
         log::debug!("PMS5003: entering standby mode");
-        drv.passive()?;
-        delay.delay_ms(100_u8);
-        let mut pms = Self { drv };
+        let mut pms = Self { drv, delay };
         pms.enter_standby_mode()?;
 
         Ok(pms)
     }
 
     pub fn enter_standby_mode(&mut self) -> Result<(), Error> {
+        self.delay.delay_ms(100_u8);
         self.drv.sleep()?;
         Ok(())
     }
 
     // NOTE: the sensor wakes up from sleep in active mode
-    pub fn enter_active_mode(&mut self) -> Result<(), Error> {
+    pub fn enter_ready_mode(&mut self) -> Result<(), Error> {
         self.drv.wake()?;
+        let _ = self.drv.read();
+        self.drv.passive()?;
         Ok(())
     }
 
     pub fn measure(&mut self) -> Result<Measurement, Error> {
+        self.drv.request()?;
         let f = self.drv.read()?;
         Ok(Measurement {
             pm2_5_atm: f.pm2_5_atm,

@@ -7,10 +7,12 @@
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Logging;
 using Antmicro.Renode.Peripherals.Bus;
+using Antmicro.Renode.Peripherals.Timers;
 using System.Collections.Generic;
 using Antmicro.Renode.Core.Structure;
 using System;
 using Antmicro.Renode.Exceptions;
+using Antmicro.Renode.Time;
 using Antmicro.Renode.Utilities;
 
 namespace Antmicro.Renode.Peripherals.UART
@@ -19,6 +21,37 @@ namespace Antmicro.Renode.Peripherals.UART
     {
         public PMS5003(IMachine machine) : base(machine)
         {
+            // TODO - constructor config
+            var frequency = 1;
+            outputTimer = new LimitTimer(
+                    machine.ClockSource,
+                    frequency,
+                    this,
+                    "PMS5003_DATA",
+                    limit: 5,
+                    //limit: 2,
+                    workMode: WorkMode.Periodic,
+                    enabled: false,
+                    eventEnabled: true,
+                    autoUpdate: true,
+                    divider: 1);
+            outputTimer.LimitReached += TimerLimitReachedCallback;
+        }
+
+        public override void Reset()
+        {
+            base.Reset();
+            outputTimer.Reset();
+            // TODO - manage is_init/modes
+        }
+
+        private void TimerLimitReachedCallback()
+        {
+            this.Log(LogLevel.Noisy, "Timer reached");
+            if(deviceMode == DeviceMode.Wake && outputMode == OutputMode.Active)
+            {
+                SendOutput();
+            }
         }
 
         protected override void CharWritten()
@@ -35,19 +68,19 @@ namespace Antmicro.Renode.Peripherals.UART
             //this.NoisyLog("Queue empty.");
         }
 
-        // TODO 
+        // TODO
         // - clean this up
         // - add checksum handling
         // - add state for awake/asleep
         private void HandleCommand()
         {
-            this.NoisyLog("Handling command");
             if(Count < 7)
             {
+                this.WarningLog("Invalid command length {0}", Count);
                 return;
             }
             var buf = new byte[7];
-            for (int i = 0; i < 7; i = i + 1) 
+            for (int i = 0; i < 7; i = i + 1)
             {
                 if(!TryGetCharacter(out var character))
                 {
@@ -65,34 +98,65 @@ namespace Antmicro.Renode.Peripherals.UART
             }
 
             var cmd = buf[2];
+            var data = buf[4];
+            this.NoisyLog("Handling command 0x{0:X} data=0x{1:X}", cmd, data);
+
             switch(cmd)
             {
                 case 0xE4: // wake/sleep
-                    if(buf[4] == 0)
+                    if(data == 0)
                     {
+                        deviceMode = DeviceMode.Sleep;
+                        outputMode = OutputMode.Passive;
+                        this.NoisyLog("Device is now in sleep+passive mode");
+                        outputTimer.Enabled = false;
                         SendSleepResponse();
                     }
                     else
                     {
+                        deviceMode = DeviceMode.Wake;
+                        outputMode = OutputMode.Active;
+                        this.NoisyLog("Device is now in wake+active mode");
+                        outputTimer.Enabled = true;
                         if(!is_init)
                         {
-                            // TODO - see notes in fw
                             is_init = true;
                             SendOutput();
                         }
                     }
                     return;
-                case 0xE1: // passive/active mode
-                    if(buf[4] == 0)
+                case 0xE1: // change-mode
+                    if(deviceMode != DeviceMode.Wake)
                     {
+                        this.WarningLog("Cannot change output mode while device is asleep");
+                        return;
+                    }
+
+                    if(data == 0)
+                    {
+                        outputMode = OutputMode.Passive;
                         SendPasiveModeResponse();
+                        outputTimer.Enabled = false;
                     }
                     else
                     {
+                        outputMode = OutputMode.Active;
                         SendActiveModeResponse();
+                        outputTimer.Enabled = true;
                     }
                     return;
                 case 0xE2: // request data in passive mode
+                    if(deviceMode != DeviceMode.Wake)
+                    {
+                        this.WarningLog("Cannot request data while device is asleep");
+                        return;
+                    }
+                    if(outputMode == OutputMode.Active)
+                    {
+                        this.WarningLog("Requesting data while in active mode");
+                        return;
+                    }
+
                     SendOutput();
                     return;
                 default:
@@ -139,7 +203,7 @@ namespace Antmicro.Renode.Peripherals.UART
             this.NoisyLog("Sending output data");
             SendResponse(data);
         }
-        
+
         private void SendResponse(byte[] data)
         {
             foreach(var b in data)
@@ -168,8 +232,8 @@ namespace Antmicro.Renode.Peripherals.UART
 
         public override Bits StopBits
         {
-            get 
-            { 
+            get
+            {
                 return Bits.One;
             }
         }
@@ -190,6 +254,22 @@ namespace Antmicro.Renode.Peripherals.UART
 
         private uint pm2_5_atm = 0;
         private bool is_init = false;
+        private DeviceMode deviceMode = DeviceMode.Wake;
+        private OutputMode outputMode = OutputMode.Active;
+
+        private readonly LimitTimer outputTimer;
+
+        enum DeviceMode : uint
+        {
+            Sleep = 0,
+            Wake = 1,
+        }
+
+        enum OutputMode : uint
+        {
+            Passive = 0,
+            Active = 1,
+        }
     }
 }
 

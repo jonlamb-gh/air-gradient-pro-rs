@@ -32,16 +32,16 @@ type MeasurementsUntilStandby = u8;
 enum State {
     /// The sensor is in standby mode.
     /// Starts at WAKE_INTERVAL_TICKS, decrements until zero, then
-    /// the sensor enters active mode to warm up.
+    /// the sensor enters ready mode to warm up.
     StandbyMode(TicksUntilWakeUp),
 
-    /// The sensor is in active mode and warming up.
+    /// The sensor is in ready mode and warming up.
     /// Once woken up, starts at WARM_UP_PERIOD_TICKS, decrements until
     /// zero, then the tasks starts requesting measurements from the
     /// sensor.
     WarmingUp(TicksUntilMeasurement),
 
-    /// The sensor is in active mode and requesting a measurement
+    /// The sensor is in ready mode and requesting a measurement
     /// each task iteration. Once warmed up, starts at PMS5003_MEASUREMENT_COUNT,
     /// decrements until zero, then the sensor goes back into standby mode.
     Measuring(MeasurementsUntilStandby),
@@ -75,8 +75,8 @@ pub(crate) fn pms5003_task(ctx: pms5003_task::Context) {
         State::StandbyMode(ticks_until_wake_up) => {
             *ticks_until_wake_up = ticks_until_wake_up.saturating_sub(1);
             if *ticks_until_wake_up == 0 {
-                log::debug!("PMS5003: entering active mode");
-                sensor.enter_active_mode().unwrap();
+                log::debug!("PMS5003: entering ready mode");
+                sensor.enter_ready_mode().unwrap();
                 *state = State::WarmingUp(WARM_UP_PERIOD_TICKS);
             }
         }

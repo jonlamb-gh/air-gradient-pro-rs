@@ -186,6 +186,10 @@ pre-start-commands = [
     # NOTE: scaled up to speed up the polling impls the HAL uses
     # they slow down virtual time a lot
     'timer4 Frequency 640000000',
+    # TIM5 PMS5003 ms delay timer, 1 KHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    # they slow down virtual time a lot
+    'timer5 Frequency 640000000',
     # TIM10 SHT31 delay timer, 1 MHz
     # NOTE: scaled up to speed up the polling impls the HAL uses
     'timer10 Frequency 640000000',
