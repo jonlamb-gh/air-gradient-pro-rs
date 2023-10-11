@@ -16,6 +16,7 @@ pub struct DeviceInfo {
     pub firmware_version: String,
     pub device_id: u16,
     pub device_serial_number: String,
+    pub mac_address: [u8; 6],
     #[serde_as(as = "DisplayFromStr")]
     pub active_boot_slot: BootSlot,
     pub reset_reason: String,

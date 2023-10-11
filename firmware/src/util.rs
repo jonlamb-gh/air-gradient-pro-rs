@@ -18,6 +18,7 @@ pub(crate) fn device_info(active_boot_slot: BootSlot, reset_reason: ResetReason)
         firmware_version: config::FIRMWARE_VERSION,
         device_id: config::DEVICE_ID,
         device_serial_number: read_device_serial_number(),
+        mac_address: config::MAC_ADDRESS,
         active_boot_slot,
         reset_reason,
         built_time_utc: built_info::BUILT_TIME_UTC,

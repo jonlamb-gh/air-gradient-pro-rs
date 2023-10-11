@@ -43,6 +43,7 @@ pub struct DeviceInfo {
     pub firmware_version: FirmwareVersion,
     pub device_id: DeviceId,
     pub device_serial_number: DeviceSerialNumber,
+    pub mac_address: [u8; 6],
     pub active_boot_slot: BootSlot,
     pub reset_reason: ResetReason,
     pub built_time_utc: &'static str,
@@ -192,11 +193,12 @@ impl UpdateManager {
             Command::Info => {
                 let dev_info = device.info();
                 self.send_status(StatusCode::Success, socket)?;
-                writeln!(socket, "{{\"protocol_version\": \"{}\", \"firmware_version\": \"{}\", \"device_id\": {}, \"device_serial_number\": \"{:X}\", \"active_boot_slot\": \"{}\", \"reset_reason\": \"{}\", \"built_time_utc\": \"{}\", \"git_commit\": \"{}\"}}",
+                writeln!(socket, "{{\"protocol_version\": \"{}\", \"firmware_version\": \"{}\", \"device_id\": {}, \"device_serial_number\": \"{:X}\", \"mac_address\": {:?}, \"active_boot_slot\": \"{}\", \"reset_reason\": \"{}\", \"built_time_utc\": \"{}\", \"git_commit\": \"{}\"}}",
                     dev_info.protocol_version,
                     dev_info.firmware_version,
                     dev_info.device_id,
                     dev_info.device_serial_number,
+                    dev_info.mac_address,
                     dev_info.active_boot_slot,
                     dev_info.reset_reason,
                     dev_info.built_time_utc,
