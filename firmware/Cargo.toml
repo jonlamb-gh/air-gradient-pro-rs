@@ -215,9 +215,6 @@ pre-start-commands = [
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
 
-    # TODO
-    # export AIR_GRADIENT_MAC_ADDRESS=02:00:04:03:07:04
-    # export AIR_GRADIENT_IP_ADDRESS=192.0.2.80
     '''
     spi2i2s2.ethernet MAC "02:00:04:03:07:04"
     emulation CreateSwitch "switch"
