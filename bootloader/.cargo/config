@@ -1,6 +1,6 @@
 [target.thumbv7em-none-eabihf]
 #runner = 'probe-run --chip STM32F411CEUx'
-runner = 'renode-run --output /tmp/agp_bootloader_rr_cache'
+runner = 'renode-run'
 rustflags = [
     "-C", "linker=flip-link",
     "-C", "link-arg=-Tlink.x",

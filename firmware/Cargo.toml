@@ -100,8 +100,9 @@ lto = true # better optimizations
 [package.metadata.renode]
 machine-name = 'agp'
 using-sysbus = true
-# TODO
-renode = '${HOME}/repos/forks/renode-agp-dev/renode'
+# NOTE: currently requires nightly build until next release, using 1.14.0+20231008gitebcb1b6b
+# https://builds.renode.io/renode-latest.linux-portable.tar.gz
+# renode = '/opt/renode_1.14.0+20231008gitebcb1b6b_portable/renode'
 init-commands = [
     'include @../renode/peripherals/STM32_Timer.cs',
     'include @../renode/peripherals/STM32_UART.cs',
@@ -166,17 +167,12 @@ platform-descriptions = [
 ]
 pre-start-commands = [
     'logFile @/tmp/agp_renode.log true',
-    #'cpu PerformanceInMips 125',
     'cpu PerformanceInMips 1',
-    #'emulation SetGlobalQuantum "0.10000"',
 
     # Suppress most warnings
     'logLevel 3 sysbus',
 
-    'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
-
-# TODO - do this in the repl or in the reset method(s) so it works after wdt resets
-
+    # TODO - timers need to be reset on startup, the delay timer TIM4 doesn't progress after watchdog resets
     # Setup the timer frequencies to match the systick frequency, so that
     # the HAL RCC/Timer config routines work, they use timclk1 which is set
     # to systick (64 MHz) based on the NVIC systickFrequency in stm32f411.repl
@@ -210,12 +206,14 @@ pre-start-commands = [
     #'logLevel -1 i2c2.sgp41',
     #'logLevel -1 spi2i2s2.ethernet',
 
+    #'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
+
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
 
     # TODO
-# export AIR_GRADIENT_MAC_ADDRESS=02:00:04:03:07:04
-# export AIR_GRADIENT_IP_ADDRESS=192.0.2.80
+    # export AIR_GRADIENT_MAC_ADDRESS=02:00:04:03:07:04
+    # export AIR_GRADIENT_IP_ADDRESS=192.0.2.80
     '''
     spi2i2s2.ethernet MAC "02:00:04:03:07:04"
     emulation CreateSwitch "switch"
@@ -231,9 +229,7 @@ pre-start-commands = [
     sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
     sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
     ''',
-    #'machine StartGdbServer 3333',
 ]
-#omit-start = true
 reset = '''
 sysbus LoadELF $bin
 

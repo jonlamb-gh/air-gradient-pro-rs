@@ -37,10 +37,11 @@ debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
 
 [package.metadata.renode]
+# NOTE: currently requires nightly build until next release, using 1.14.0+20231008gitebcb1b6b
+# https://builds.renode.io/renode-latest.linux-portable.tar.gz
+# renode = '/opt/renode_1.14.0+20231008gitebcb1b6b_portable/renode'
 machine-name = 'agp-bootloader'
 using-sysbus = true
-# TODO
-renode = '${HOME}/repos/forks/renode-agp-dev/renode'
 init-commands = [
     'include @../renode/peripherals/STM32_Timer.cs',
     'include @../renode/peripherals/STM32_UART.cs',
@@ -65,7 +66,7 @@ platform-descriptions = [
     ''',
 ]
 pre-start-commands = [
-    'logFile @/tmp/agp_bootloader_renode.log true',
+    #'logFile @/tmp/agp_bootloader_renode.log true',
     'cpu PerformanceInMips 1',
     'showAnalyzer sysbus.usart6',
     '''
