@@ -100,7 +100,18 @@ lto = true # better optimizations
 [package.metadata.renode]
 machine-name = 'agp'
 using-sysbus = true
+# TODO
 renode = '${HOME}/repos/forks/renode-agp-dev/renode'
+init-commands = [
+    'include @../renode/peripherals/STM32_Timer.cs',
+    'include @../renode/peripherals/STM32_UART.cs',
+    'include @../renode/peripherals/ENC28J60.cs',
+    'include @../renode/peripherals/SH1106.cs',
+    'include @../renode/peripherals/SGP41.cs',
+    'include @../renode/peripherals/SHT31.cs',
+    'include @../renode/peripherals/PMS5003.cs',
+    'include @../renode/peripherals/S8LP.cs',
+]
 variables = [
     '$tap ?= "renode-tap0"',
     # Set random board UNIQUE ID
@@ -112,15 +123,6 @@ variables = [
     $id2 = `python "print rand.getrandbits(32)"`
     $id3 = `python "print rand.getrandbits(32)"`
     ''',
-    # TODO - add support for these in renode-run
-    'include @../renode/peripherals/STM32_Timer.cs',
-    'include @../renode/peripherals/STM32_UART.cs',
-    'include @../renode/peripherals/ENC28J60.cs',
-    'include @../renode/peripherals/SH1106.cs',
-    'include @../renode/peripherals/SGP41.cs',
-    'include @../renode/peripherals/SHT31.cs',
-    'include @../renode/peripherals/PMS5003.cs',
-    'include @../renode/peripherals/S8LP.cs',
 ]
 platform-descriptions = [
     '../renode/platform/stm32f411.repl',
