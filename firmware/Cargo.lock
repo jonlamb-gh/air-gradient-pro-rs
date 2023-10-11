@@ -383,6 +383,7 @@ dependencies = [
 name = "env-config"
 version = "0.1.0"
 dependencies = [
+ "log",
  "smoltcp",
  "wire-protocols",
 ]

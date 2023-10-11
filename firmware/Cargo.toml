@@ -96,3 +96,155 @@ path = "../libraries/env-config"
 codegen-units = 1 # better optimizations
 debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
+
+[package.metadata.renode]
+machine-name = 'agp'
+using-sysbus = true
+# NOTE: currently requires nightly build until next release, using 1.14.0+20231008gitebcb1b6b
+# https://builds.renode.io/renode-latest.linux-portable.tar.gz
+# renode = '/opt/renode_1.14.0+20231008gitebcb1b6b_portable/renode'
+init-commands = [
+    'include @../renode/peripherals/STM32_Timer.cs',
+    'include @../renode/peripherals/STM32_UART.cs',
+    'include @../renode/peripherals/ENC28J60.cs',
+    'include @../renode/peripherals/SH1106.cs',
+    'include @../renode/peripherals/SGP41.cs',
+    'include @../renode/peripherals/SHT31.cs',
+    'include @../renode/peripherals/PMS5003.cs',
+    'include @../renode/peripherals/S8LP.cs',
+]
+variables = [
+    '$tap ?= "renode-tap0"',
+    # Set random board UNIQUE ID
+    '''
+    python "import _random"
+    python "rand = _random.Random()"
+
+    $id1 = `python "print rand.getrandbits(32)"`
+    $id2 = `python "print rand.getrandbits(32)"`
+    $id3 = `python "print rand.getrandbits(32)"`
+    ''',
+]
+platform-descriptions = [
+    '../renode/platform/stm32f411.repl',
+    'led: Miscellaneous.LED @ gpioPortC',
+    '''
+    gpioPortC:
+        13 -> led@0
+    ''',
+    '''
+    ethernet: Network.ENC28J60_CUSTOM @ spi2i2s2
+        -> gpioPortA@8
+    ''',
+    '''
+    gpioPortB:
+        12 -> ethernet@0
+    ''',
+    '''
+    sh1106 : Video.SH1106 @ i2c2 0x3C
+        FramesPerVirtualSecond: 10
+    ''',
+    '''
+    sgp41 : Sensors.SGP41 @ i2c2 0x59
+        SerialNumber: 0xBBFF
+        VocTicks: 1024
+        NoxTicks: 2048
+    ''',
+    '''
+    sht31 : Sensors.SHT31 @ i2c2 0x44
+        SerialNumber: 0xAABB
+        Temperature: 40
+        Humidity: 85
+    ''',
+    '''
+    pms5003 : UART.PMS5003 @ usart2
+        PM2_5_atm: 10
+    ''',
+    '''
+    s8lp : UART.S8LP @ usart1
+        Co2: 20
+    ''',
+]
+pre-start-commands = [
+    'logFile @/tmp/agp_renode.log true',
+    'cpu PerformanceInMips 1',
+
+    # Suppress most warnings
+    'logLevel 3 sysbus',
+
+    # TODO - timers need to be reset on startup, the delay timer TIM4 doesn't progress after watchdog resets
+    # Setup the timer frequencies to match the systick frequency, so that
+    # the HAL RCC/Timer config routines work, they use timclk1 which is set
+    # to systick (64 MHz) based on the NVIC systickFrequency in stm32f411.repl
+    #
+    # TIM2 monotonic us RTIC timer, 1 MHz
+    'timer2 Frequency 64000000',
+    #'timer2 Frequency 1000000',
+    # TIM3 IP stack timer, 25 Hz
+    'timer3 Frequency 64000000',
+    # TIM4 common ms delay timer, 1 KHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    # they slow down virtual time a lot
+    'timer4 Frequency 640000000',
+    # TIM5 PMS5003 ms delay timer, 1 KHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    # they slow down virtual time a lot
+    'timer5 Frequency 640000000',
+    # TIM10 SHT31 delay timer, 1 MHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    'timer10 Frequency 640000000',
+    # TIM11 SGP41 delay timer, 1 MHz
+    # NOTE: scaled up to speed up the polling impls the HAL uses
+    'timer11 Frequency 640000000',
+
+    # Ignore set-freq-difference warnings
+    'logLevel 3 timer2',
+    'logLevel 3 timer3',
+    'logLevel 3 timer4',
+    'logLevel 3 timer10',
+    'logLevel 3 timer11',
+
+    #'logLevel -1 usart2.pms5003',
+    #'logLevel -1 usart1.s8lp',
+    #'logLevel -1 i2c2.sht31',
+    #'logLevel -1 i2c2.sgp41',
+    #'logLevel -1 spi2i2s2.ethernet',
+
+    #'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
+
+    'showAnalyzer usart6',
+    'showAnalyzer i2c2.sh1106',
+
+    '''
+    spi2i2s2.ethernet MAC "02:00:04:03:07:04"
+    emulation CreateSwitch "switch"
+    connector Connect spi2i2s2.ethernet switch
+    ''',
+
+    '''
+    emulation CreateTap $tap "tap"
+    connector Connect host.tap switch
+    ''',
+
+    '''
+    sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
+    sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
+    ''',
+]
+reset = '''
+sysbus LoadELF $bin
+
+sysbus WriteDoubleWord 0x1FFF7A10 $id1
+sysbus WriteDoubleWord 0x1FFF7A14 $id2
+sysbus WriteDoubleWord 0x1FFF7A18 $id3
+
+# Default boot config in flash
+sysbus.flash ZeroRange 0xC000 16
+sysbus.flash WriteByte 0xC000 0xDE
+sysbus.flash WriteByte 0xC001 0xC0
+sysbus.flash WriteByte 0xC002 0xED
+sysbus.flash WriteByte 0xC003 0xFE
+
+# Flash size KB
+sysbus WriteDoubleWord 0x1FFF7A22 512
+'''

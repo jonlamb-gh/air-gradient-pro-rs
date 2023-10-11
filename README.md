@@ -9,6 +9,7 @@ The firmware is written in Rust and uses the [RTIC](https://rtic.rs/1/book/en/) 
 ![startup](resources/startup.jpg)
 ![display.jpg](resources/display.jpg)
 ![prototype.jpg](resources/prototype.jpg)
+![agp_renode.png](resources/agp_renode.png)
 
 ## Overview
 
@@ -30,6 +31,7 @@ Significant differences from stock:
 * CLI with command-line tools and InfluxDB relaying, see the [air-gradient-cli README](host_tools/air-gradient-cli/README.md)
 * Configuration for network and device settings
 * OLED display
+* Emulation support via [Renode](https://renode.io/)
 
 ## Configuration
 
@@ -43,6 +45,7 @@ The following environment variables can be set:
 * `AIR_GRADIENT_BROADCAST_PORT` : The port number to send the broadcast protocol data on, default is `32100`
 * `AIR_GRADIENT_BROADCAST_ADDRESS` : The IP address to send the broadcast protocol data to, default is `255.255.255.255`
 * `AIR_GRADIENT_DEVICE_PORT` : The port number the device protocol socket listens on, default is `32101`
+* `AIR_GRADIENT_LOG` : The max log level filter to use, default is `Info`
 
 ## FOTA Updating
 
@@ -144,6 +147,34 @@ Setup: net clock timer
 Setup: net poll timer
 >>> Initialized <<<
 ```
+
+## Renode Emulation
+
+The default Cargo runner for the bootloader and firmware is set to
+[`renode-run`](https://crates.io/crates/renode-run).
+
+1. Install [Renode](https://renode.io/) (currently requires nightly, tested against `1.14.0+20231008gitebcb1b6b`)
+2. Install [renode-run](https://crates.io/crates/renode-run)
+  ```bash
+  cargo install renode-run
+  ```
+3. Setup TAP device and networking on the host (requires root)
+  ```bash
+  sudo ./renode/setup-network.sh
+  ```
+4. Configure the environment per the [configuration section](#configuration).
+   `AIR_GRADIENT_MAC_ADDRESS` is required to match
+   the renode-run configuration in [Cargo.toml](firmware/Cargo.toml)
+  ```bash
+  export AIR_GRADIENT_MAC_ADDRESS=02:00:04:03:07:04
+  export AIR_GRADIENT_IP_ADDRESS=192.0.2.80
+  ```
+5. Run the bootloader or the firmware
+  ```bash
+  cd firmware/
+  cargo run --release
+  ```
+6. Use the [air-gradient CLI](host_tools/air-gradient-cli/README.md) to interact with the system
 
 ## System Architecture
 

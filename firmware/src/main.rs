@@ -50,12 +50,12 @@ mod app {
     use stm32f4xx_hal::{
         crc32::Crc32,
         gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
-        pac::{self, FLASH, TIM10, TIM11, TIM3},
+        pac::{self, FLASH, TIM10, TIM11, TIM3, TIM5},
         prelude::*,
         rcc::Enable,
         spi::Spi,
         timer::counter::CounterHz,
-        timer::{DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
+        timer::{DelayMs, DelayUs, Event, MonoTimerUs, SysCounterUs, SysEvent},
         watchdog::IndependentWatchdog,
     };
     use update_manager::DeviceInfo;
@@ -82,7 +82,7 @@ mod app {
     struct Local {
         net_clock_timer: SysCounterUs,
         ipstack_poll_timer: CounterHz<TIM3>,
-        pms: Pms5003,
+        pms: Pms5003<DelayMs<TIM5>>,
         s8lp: S8Lp,
         led: LedPin,
         watchdog: IndependentWatchdog,
@@ -209,11 +209,12 @@ mod app {
         let s8lp = S8Lp::new(s8_serial);
 
         info!("Setup: PMS5003");
+        let pms_delay = ctx.device.TIM5.delay_ms(&clocks);
         let tx = gpioa.pa2.into_alternate();
         let rx = gpioa.pa3.into_alternate();
         let pins: Pms5003SerialPins = (tx, rx);
         let pms_serial = ctx.device.USART2.serial(pins, 9600.bps(), &clocks).unwrap();
-        let pms = Pms5003::new(pms_serial, &mut common_delay).unwrap();
+        let pms = Pms5003::new(pms_serial, pms_delay).unwrap();
 
         // Shared I2C2 bus
         info!("Setup: I2C2");
@@ -271,7 +272,7 @@ mod app {
             let mut reset = gpiob.pb1.into_push_pull_output_in_state(true.into());
 
             // Perform a hard reset first, then let the driver
-            // perform a soft reset by provided enc28j60::Unconnected
+            // perform a soft reset by providing enc28j60::Unconnected
             // instead of the actual reset pin
             reset.set_low();
             common_delay.delay_ms(5_u8);
