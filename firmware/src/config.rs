@@ -35,8 +35,7 @@ pub const PMS5003_MEASUREMENT_COUNT: u8 = 10;
 
 /// Number of BCAST_INTERVAL_SEC cycles to wait before starting to send
 /// broadcast protocol messages
-pub const DATA_MANAGER_WARM_UP_PERIOD_CYCLES: u32 = 2;
-//pub const DATA_MANAGER_WARM_UP_PERIOD_CYCLES: u32 = 24;
+pub const DATA_MANAGER_WARM_UP_PERIOD_CYCLES: u32 = 24;
 
 pub const BCAST_INTERVAL_SEC: u32 = 5;
 
