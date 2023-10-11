@@ -128,11 +128,14 @@ platform-descriptions = [
     '''
     gpioPortC:
         13 -> led@0
-
     ''',
     '''
     ethernet: Network.ENC28J60_CUSTOM @ spi2i2s2
         -> gpioPortA@8
+    ''',
+    '''
+    gpioPortB:
+        12 -> ethernet@0
     ''',
     '''
     sh1106 : Video.SH1106 @ i2c2 0x3C
@@ -164,12 +167,12 @@ pre-start-commands = [
     #'cpu PerformanceInMips 125',
     'cpu PerformanceInMips 1',
     #'emulation SetGlobalQuantum "0.10000"',
-    
+
     # Suppress most warnings
     'logLevel 3 sysbus',
 
     'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
-    
+
 # TODO - do this in the repl or in the reset method(s) so it works after wdt resets
 
     # Setup the timer frequencies to match the systick frequency, so that
@@ -191,7 +194,7 @@ pre-start-commands = [
     # TIM11 SGP41 delay timer, 1 MHz
     # NOTE: scaled up to speed up the polling impls the HAL uses
     'timer11 Frequency 640000000',
-    
+
     # Ignore set-freq-difference warnings
     'logLevel 3 timer2',
     'logLevel 3 timer3',
@@ -208,13 +211,19 @@ pre-start-commands = [
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',
 
+    # TODO
+# export AIR_GRADIENT_MAC_ADDRESS=02:00:04:03:07:04
+# export AIR_GRADIENT_IP_ADDRESS=192.0.2.80
     '''
-    spi2i2s2.ethernet MAC "02:00:04:03:07:02"
+    spi2i2s2.ethernet MAC "02:00:04:03:07:04"
     emulation CreateSwitch "switch"
     connector Connect spi2i2s2.ethernet switch
     ''',
-    #emulation CreateTap $tap "tap"
-    #connector Connect host.tap switch
+
+    '''
+    emulation CreateTap $tap "tap"
+    connector Connect host.tap switch
+    ''',
 
     '''
     sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
@@ -233,8 +242,8 @@ sysbus WriteDoubleWord 0x1FFF7A18 $id3
 # Default boot config in flash
 sysbus.flash ZeroRange 0xC000 16
 sysbus.flash WriteByte 0xC000 0xDE
-sysbus.flash WriteByte 0xC001 0xC0      
-sysbus.flash WriteByte 0xC002 0xED      
+sysbus.flash WriteByte 0xC001 0xC0
+sysbus.flash WriteByte 0xC002 0xED
 sysbus.flash WriteByte 0xC003 0xFE
 
 # Flash size KB

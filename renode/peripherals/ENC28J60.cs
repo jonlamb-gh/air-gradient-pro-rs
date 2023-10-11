@@ -17,7 +17,7 @@ using Antmicro.Renode.Utilities;
 
 namespace Antmicro.Renode.Peripherals.Network
 {
-    public class ENC28J60_CUSTOM : ISPIPeripheral, IMACInterface
+    public class ENC28J60_CUSTOM : ISPIPeripheral, IMACInterface, IGPIOReceiver
     {
         public ENC28J60_CUSTOM()
         {
@@ -211,6 +211,8 @@ namespace Antmicro.Renode.Peripherals.Network
         {
             lock(sync)
             {
+                //this.Log(LogLevel.Noisy, "ReceiveFrame macReceiveEnabled={0} ethernetReceiveEnabled={1}",
+                //        macReceiveEnabled.Value, ethernetReceiveEnabled.Value);
                 if(!macReceiveEnabled.Value || !ethernetReceiveEnabled.Value)
                 {
                     return;
@@ -234,6 +236,7 @@ namespace Antmicro.Renode.Peripherals.Network
                 phyRegisters.Reset();
                 waitingPacketCount = 0;
                 currentMode = Mode.Normal;
+                chipSelected = false;
                 RefreshInterruptStatus();
             }
         }
@@ -242,6 +245,12 @@ namespace Antmicro.Renode.Peripherals.Network
         {
             lock(sync)
             {
+                if(!chipSelected)
+                {
+                    this.Log(LogLevel.Warning, "Received transmission, but CS pin is not selected");
+                    return 0;
+                }
+
                 switch(currentMode)
                 {
                 case Mode.Normal:
@@ -275,8 +284,26 @@ namespace Antmicro.Renode.Peripherals.Network
         {
             lock(sync)
             {
+                //this.Log(LogLevel.Noisy, "FinishTransmission {0} -> Mode.Normal", currentMode);
                 currentMode = Mode.Normal;
             }
+        }
+
+        public void OnGPIO(int number, bool value)
+        {
+            //this.Log(LogLevel.Noisy, "OnGPIO number={0}, value={1}", number, value);
+            if(number != 0)
+            {
+                this.Log(LogLevel.Warning, "This model supports only CS on pin 0, but got signal on pin {0}", number);
+                return;
+            }
+
+            // value is the negated CS
+            if(chipSelected && value)
+            {
+                FinishTransmission();
+            }
+            chipSelected = !value;
         }
 
         public GPIO IRQ { get; private set; }
@@ -370,6 +397,7 @@ namespace Antmicro.Renode.Peripherals.Network
 
         private void HandleWriteBufferMemory(byte value)
         {
+            //this.Log(LogLevel.Debug, "Writing buffer memory");
             this.Log(LogLevel.Debug, "Writing buffer memory at 0x{0:X}, value 0x{1:X}.", bufferWritePointer, value);
             ethernetBuffer[bufferWritePointer] = value;
             if(autoIncrement.Value)
@@ -560,6 +588,8 @@ namespace Antmicro.Renode.Peripherals.Network
         private IFlagRegisterField autoIncrement;
         private int waitingPacketCount;
         private IFlagRegisterField crcEnabled;
+
+        private bool chipSelected;
 
         private readonly WordRegisterCollection phyRegisters;
         private readonly ByteRegisterCollection[] registers;
