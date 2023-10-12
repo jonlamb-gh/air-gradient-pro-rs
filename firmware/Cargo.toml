@@ -215,8 +215,8 @@ pre-start-commands = [
     #'logLevel -1 i2c2.sgp41',
     #'logLevel -1 spi2i2s2.ethernet',
 
-    'logFile @/tmp/agp_renode.log true',
-    'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
+    #'logFile @/tmp/agp_renode.log true',
+    #'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
 
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',

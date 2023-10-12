@@ -50,7 +50,6 @@ impl TaskState {
 }
 
 // TODO - state management, rtc, status bits, timeout/invalidate, etc
-// add a warm up period before starting the broadcast protocol
 // make SystemStatus msg sn Option to indicate it on display too
 pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) {
     let state = ctx.local.state;
