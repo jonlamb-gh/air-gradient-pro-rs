@@ -166,11 +166,16 @@ platform-descriptions = [
     ''',
 ]
 pre-start-commands = [
-    'logFile @/tmp/agp_renode.log true',
     'cpu PerformanceInMips 1',
 
     # Suppress most warnings
     'logLevel 3 sysbus',
+    'logLevel 3 flash_controller',
+    'logLevel 3 rcc',
+    'logLevel 3 usart6',
+    'logLevel 3 usart1',
+    'logLevel 3 usart2',
+    'logLevel 3 gpioPortB',
 
     # TODO - timers need to be reset on startup, the delay timer TIM4 doesn't progress after watchdog resets
     # Setup the timer frequencies to match the systick frequency, so that
@@ -210,7 +215,8 @@ pre-start-commands = [
     #'logLevel -1 i2c2.sgp41',
     #'logLevel -1 spi2i2s2.ethernet',
 
-    #'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
+    'logFile @/tmp/agp_renode.log true',
+    'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
 
     'showAnalyzer usart6',
     'showAnalyzer i2c2.sh1106',

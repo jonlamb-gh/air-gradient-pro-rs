@@ -110,6 +110,8 @@ impl UpdateManager {
         }
     }
 
+    // TODO - doing this means we drop the tx queue, so error/status will never
+    // reach the client, they just see a dropped connection
     fn abort_in_progress(&mut self, socket: &mut TcpSocket) {
         if self.write_in_progress.is_some() {
             warn!("In-progress write will be aborted");
@@ -166,8 +168,12 @@ impl UpdateManager {
     }
 
     fn recv_cmd(&mut self, socket: &mut TcpSocket) -> Result<Option<Command>> {
-        if socket.can_recv() && socket.recv_queue() >= 4 {
-            let mut buf = [0_u8; 4];
+        // Peek to inspect command, and wait for a MemoryRegion worth of
+        // data if the command has one following
+        let expected_queue_size = self.peek_for_expected_recv_queue_size(socket)?;
+
+        if socket.can_recv() && socket.recv_queue() >= expected_queue_size {
+            let mut buf = [0_u8; Command::WIRE_SIZE];
             let bytes_recvd = socket.recv_slice(&mut buf)?;
             if bytes_recvd < 4 {
                 warn!("Invalid command bytes recvd, aborting");
@@ -180,6 +186,23 @@ impl UpdateManager {
         } else {
             Ok(None)
         }
+    }
+
+    /// Returns the expected recv queue size based on the Command, if not then
+    /// defaults to Command::WIRE_SIZE (4)
+    fn peek_for_expected_recv_queue_size(&mut self, socket: &mut TcpSocket) -> Result<usize> {
+        const CMD_AND_REGION_SIZE: usize = Command::WIRE_SIZE + MemoryRegion::WIRE_SIZE;
+
+        if socket.can_recv() && socket.recv_queue() >= Command::WIRE_SIZE {
+            let peeked_data = socket.peek(Command::WIRE_SIZE)?;
+            match Command::from_le_bytes(peeked_data) {
+                Some(Command::ReadMemory) => return Ok(CMD_AND_REGION_SIZE),
+                Some(Command::WriteMemory) => return Ok(CMD_AND_REGION_SIZE),
+                _ => (),
+            }
+        }
+
+        Ok(Command::WIRE_SIZE)
     }
 
     fn process_cmd<D: Device>(
@@ -325,7 +348,12 @@ impl UpdateManager {
 
                 self.write_in_progress = Some(partial_region_remaining);
 
-                (buf.len(), device.write_memory(partial_region_to_write, buf))
+                if buf.is_empty() {
+                    // Keep the write in-progess, nothing to write yet
+                    (0, Ok(()))
+                } else {
+                    (buf.len(), device.write_memory(partial_region_to_write, buf))
+                }
             }
         };
 

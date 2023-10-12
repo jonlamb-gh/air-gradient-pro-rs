@@ -50,6 +50,8 @@ pub enum Command {
 }
 
 impl Command {
+    pub const WIRE_SIZE: usize = 4;
+
     pub fn from_le_bytes_unchecked(value: &[u8]) -> Self {
         Command::from(LittleEndian::read_u32(value))
     }
@@ -107,6 +109,7 @@ pub struct MemoryRegion {
 }
 
 impl MemoryRegion {
+    pub const WIRE_SIZE: usize = 8;
     pub const MAX_CHUCK_SIZE: usize = 1024;
 
     pub fn new_unchecked(address: u32, length: u32) -> Self {

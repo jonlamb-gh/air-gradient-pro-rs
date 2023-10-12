@@ -285,7 +285,8 @@ mod app {
                 int,
                 enc28j60::Unconnected,
                 &mut common_delay,
-                7168,
+                6 * 1024, // 8KB buffer: 6 rx packets 2 tx packet
+                //7 * 1024, // 8KB buffer: 7 rx packets 1 tx packet
                 config::MAC_ADDRESS,
             )
             .unwrap();

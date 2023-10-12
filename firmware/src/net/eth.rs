@@ -33,20 +33,31 @@ impl<'buf> Eth<'buf> {
     pub const MTU: usize = 1514;
 
     pub fn new(drv: Drv, rx_buffer: &'buf mut [u8], tx_buffer: &'buf mut [u8]) -> Self {
-        debug!(
-            "ENC28J60: buffer length, rx {}, tx {}",
-            rx_buffer.len(),
-            tx_buffer.len()
-        );
-        Eth {
+        let eth = Eth {
             drv,
             rx_buffer,
             tx_buffer,
-        }
+        };
+        debug!(
+            "ENC28J60: buffer length, rx {}, tx {}, mtu {}",
+            eth.rx_buffer.len(),
+            eth.tx_buffer.len(),
+            eth.mtu(),
+        );
+        eth
     }
 
     pub fn driver(&mut self) -> &mut Drv {
         &mut self.drv
+    }
+
+    fn mtu(&self) -> usize {
+        // TODO - fixup the MTU logic
+        // 1514, the maximum frame length allowed by the interface
+        // 1024, buffer sizes
+        let min_buf = core::cmp::min(self.rx_buffer.len(), self.tx_buffer.len());
+        let min_iface = core::cmp::min(self.drv.mtu() as usize, Self::MTU);
+        core::cmp::min(min_buf, min_iface)
     }
 }
 
@@ -93,14 +104,10 @@ impl<'buf> Device for Eth<'buf> {
         })
     }
 
+    // TODO - double check CRC behavior, it's done in the hw
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        // TODO - fixup the MTU logic
-        // 1514, the maximum frame length allowed by the interface
-        // 1024, buffer sizes
-        let min_buf = core::cmp::min(self.rx_buffer.len(), self.tx_buffer.len());
-        let min_iface = core::cmp::min(self.drv.mtu() as usize, Self::MTU);
-        caps.max_transmission_unit = core::cmp::min(min_buf, min_iface);
+        caps.max_transmission_unit = self.mtu();
         caps.max_burst_size = Some(1);
         caps.medium = Medium::Ethernet;
         caps
