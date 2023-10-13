@@ -5,7 +5,7 @@ use crate::{
 };
 use log::debug;
 
-const DEFAULT_IGNORE: usize = 4;
+const DEFAULT_IGNORE: usize = 6;
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum SpawnArg {

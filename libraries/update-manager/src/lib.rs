@@ -130,12 +130,17 @@ impl UpdateManager {
         if self.write_in_progress.is_some() {
             warn!("In-progress write will be aborted");
         }
-        if self.update_in_progress {
+
+        if self.update_in_progress && !self.update_complete {
             warn!("In-progress update will be aborted");
+
+            self.ticks_until_reboot = None;
+            self.update_complete = false;
 
             // TODO - need to refactor this to have access to Device for this to work
             //device.update_progress_changed(FirmwareUpdateStatus::Aborted, self.bytes_written);
         }
+
         debug!(
             "Aborting socket, send_queue {} ({}), recv_queue {} ({})",
             socket.send_queue(),
@@ -145,7 +150,9 @@ impl UpdateManager {
         );
         self.update_in_progress = false;
         self.write_in_progress = None;
-        self.update_complete = false;
+        // Don't clear update_complete, it's needed by manage_reboot_schedule
+        // in case the connection drops after all is done, that's ok
+        //self.update_complete = false;
         self.bytes_written = 0;
         self.last_cmd = None;
         socket.abort();
