@@ -291,6 +291,8 @@ mod app {
             )
             .unwrap();
 
+            debug!("ENC28J60: EREVID {:#08b}", enc.erevid().unwrap());
+
             enc.listen(enc28j60::Event::Pkt).unwrap();
 
             Eth::new(

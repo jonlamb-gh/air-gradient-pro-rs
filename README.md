@@ -199,6 +199,7 @@ Also, the relative start times are not accurate.
 * ENC28J60 Ethernet board
   - [Waveshare wiki](https://www.waveshare.com/wiki/ENC28J60_Ethernet_Board)
   - [datasheet](https://www.waveshare.com/w/upload/7/7f/ENC28J60.pdf)
+  - [errata](https://ww1.microchip.com/downloads/en/DeviceDoc/80349b.pdf)
 * AirGradient PRO V3.7 kit
   - [kit page](https://www.airgradient.com/open-airgradient/instructions/diy-pro-v37/)
   - [schematic](https://www.airgradient.com/images/diy/schematicpro37.png)

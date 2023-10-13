@@ -66,6 +66,10 @@ impl<'buf> Device for Eth<'buf> {
     type TxToken<'a> = TxToken<'a> where Self: 'a;
 
     fn receive(&mut self, _timestamp: Instant) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
+        // TODO - reading EIR and/or ESTAT appears to resolve rx occasionally not firing?
+        let _estat = self.drv.estat().ok();
+        let _eir = self.drv.eir().ok();
+
         match self.drv.next_packet() {
             Ok(Some(packet)) => {
                 if packet.len() as usize > self.rx_buffer.len() {

@@ -174,7 +174,7 @@ namespace Antmicro.Renode.Peripherals.Network
                 { 0x0A, new ByteRegister(this).WithFlag(0, FieldMode.Read, name: "BUSY") }, // we're never busy
 
                 // EREVID
-                { 0x12, new ByteRegister(this).WithValueField(0, 4, FieldMode.Read, valueProviderCallback: _ => 1) }
+                { 0x12, new ByteRegister(this).WithValueField(0, 4, FieldMode.Read, valueProviderCallback: _ => 0b000110) }
             };
 
             var maps = new[] { bank0Map, bank1Map, bank2Map, bank3Map };

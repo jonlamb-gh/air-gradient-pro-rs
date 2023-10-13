@@ -55,6 +55,11 @@ pub(crate) fn ipstack_poll_timer_task(ctx: ipstack_poll_timer_task::Context) {
 
 pub(crate) fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context) {
     let eth = ctx.shared.eth;
+
+    // TODO - reading EIR and/or ESTAT appears to resolve rx occasionally not firing?
+    let _estat = eth.driver().estat().ok();
+    let _eir = eth.driver().eir().ok();
+
     if eth.driver().interrupt_pending() {
         eth.driver().int_pin().clear_interrupt_pending_bit();
         ipstack_poll_task::spawn().ok();

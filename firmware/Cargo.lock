@@ -370,7 +370,7 @@ checksum = "723dce4e9f25b6e6c5f35628e144794e5b459216ed7da97b7c4b66cdb3fa82ca"
 [[package]]
 name = "enc28j60"
 version = "0.3.0"
-source = "git+https://github.com/jonlamb-gh/enc28j60.git?branch=cleanup#b0066357a852b96a891d7afd1997c9cb51f0f3bf"
+source = "git+https://github.com/jonlamb-gh/enc28j60.git?branch=cleanup#67f7018fd6c0a2c048f8291e2341cd512eedc745"
 dependencies = [
  "as-slice",
  "byteorder",
