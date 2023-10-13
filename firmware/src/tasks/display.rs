@@ -1,19 +1,25 @@
 use crate::{
     app::display_task,
-    display::{SystemInfo, SystemStatus},
+    display::{FirmwareUpdateInfo, SystemInfo, SystemStatus},
     util,
 };
 use log::debug;
+
+const DEFAULT_IGNORE: usize = 4;
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum SpawnArg {
     Startup,
     SystemStatus(SystemStatus),
+    FirmwareUpdateInfo(FirmwareUpdateInfo),
 }
 
 pub struct TaskState {
     sys_info: SystemInfo,
     sys_status: SystemStatus,
+    /// Number of non-fw-update requests to ignore while fw update
+    /// is in-progress
+    requests_to_ignore_while_updating: usize,
 }
 
 impl TaskState {
@@ -21,6 +27,7 @@ impl TaskState {
         Self {
             sys_info: SystemInfo::new(),
             sys_status: SystemStatus::new(),
+            requests_to_ignore_while_updating: 0,
         }
     }
 }
@@ -28,6 +35,9 @@ impl TaskState {
 pub(crate) fn display_task(ctx: display_task::Context, arg: SpawnArg) {
     let state = ctx.local.state;
     let display = &mut ctx.shared.i2c_devices.display;
+
+    state.requests_to_ignore_while_updating =
+        state.requests_to_ignore_while_updating.saturating_sub(1);
 
     match arg {
         SpawnArg::Startup => {
@@ -39,7 +49,13 @@ pub(crate) fn display_task(ctx: display_task::Context, arg: SpawnArg) {
         }
         SpawnArg::SystemStatus(status) => {
             state.sys_status = status;
-            display.render_system_status(&state.sys_status).unwrap();
+            if state.requests_to_ignore_while_updating == 0 {
+                display.render_system_status(&state.sys_status).unwrap();
+            }
+        }
+        SpawnArg::FirmwareUpdateInfo(info) => {
+            state.requests_to_ignore_while_updating = DEFAULT_IGNORE;
+            display.render_firmware_update_info(&info).unwrap();
         }
     }
 }

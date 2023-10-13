@@ -17,6 +17,7 @@ pub trait Device {
     fn info(&self) -> &DeviceInfo;
     fn perform_reboot(&mut self) -> !;
     fn complete_update_and_perform_reboot(&mut self) -> !;
+    fn update_progress_changed(&mut self, _status: FirmwareUpdateStatus, _bytes_written: usize) {}
     // TODO
     // StatusCode has Success... use a different error type
     fn read_memory(&mut self, req: MemoryReadRequest) -> StatusCodeResult<&[u8]>;
@@ -50,6 +51,14 @@ pub struct DeviceInfo {
     pub git_commit: &'static str,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum FirmwareUpdateStatus {
+    InProgress,
+    Complete,
+    Verifying,
+    Aborted,
+}
+
 pub const UPDATE_TICKS_TO_REBOOT: usize = 10;
 pub const UPDATE_TICKS_TO_CLOSE: usize = UPDATE_TICKS_TO_REBOOT / 2;
 
@@ -60,6 +69,9 @@ pub struct UpdateManager {
     update_complete: bool,
     update_in_progress: bool,
     write_in_progress: Option<RemainingMemoryWriteRegion>,
+    bytes_written: usize,
+    // Only used to send a progress update callback on write->read/verify state change
+    last_cmd: Option<Command>,
     ticks_until_reboot: Option<usize>,
 }
 
@@ -70,6 +82,8 @@ impl UpdateManager {
             update_complete: false,
             update_in_progress: false,
             write_in_progress: None,
+            bytes_written: 0,
+            last_cmd: None,
             ticks_until_reboot: None,
         }
     }
@@ -118,6 +132,9 @@ impl UpdateManager {
         }
         if self.update_in_progress {
             warn!("In-progress update will be aborted");
+
+            // TODO - need to refactor this to have access to Device for this to work
+            //device.update_progress_changed(FirmwareUpdateStatus::Aborted, self.bytes_written);
         }
         debug!(
             "Aborting socket, send_queue {} ({}), recv_queue {} ({})",
@@ -129,11 +146,17 @@ impl UpdateManager {
         self.update_in_progress = false;
         self.write_in_progress = None;
         self.update_complete = false;
+        self.bytes_written = 0;
+        self.last_cmd = None;
         socket.abort();
     }
 
     fn manage_socket(&mut self, socket: &mut TcpSocket) -> Result<()> {
         if !socket.is_open() {
+            if self.update_in_progress || self.write_in_progress.is_some() {
+                self.abort_in_progress(socket);
+            }
+
             debug!("UM: listening on port {}", self.port);
             socket.listen(self.port)?;
         }
@@ -231,6 +254,8 @@ impl UpdateManager {
                 socket.close();
 
                 if self.update_in_progress || self.write_in_progress.is_some() {
+                    device
+                        .update_progress_changed(FirmwareUpdateStatus::Aborted, self.bytes_written);
                     self.abort_in_progress(socket);
                 }
             }
@@ -285,15 +310,34 @@ impl UpdateManager {
                 );
 
                 // TODO - update the protocol to indicate this
-                self.update_complete = true;
+                if self.update_in_progress {
+                    self.update_complete = true;
+                }
 
                 self.send_status(StatusCode::Success, socket)?;
                 self.ticks_until_reboot = Some(UPDATE_TICKS_TO_REBOOT);
+
+                if self.update_in_progress {
+                    device.update_progress_changed(
+                        FirmwareUpdateStatus::Complete,
+                        self.bytes_written,
+                    );
+                }
             }
             Command::Unknown(_c) => {
                 self.send_status(StatusCode::UnknownCommand, socket)?;
             }
         }
+
+        if self.update_in_progress
+            && matches!(self.last_cmd, Some(Command::WriteMemory))
+            && matches!(cmd, Command::ReadMemory)
+        {
+            device.update_progress_changed(FirmwareUpdateStatus::Verifying, self.bytes_written);
+        }
+
+        self.last_cmd = Some(cmd);
+
         Ok(())
     }
 
@@ -328,6 +372,10 @@ impl UpdateManager {
         let mut recv_handler = |buf: &[u8]| {
             let region_size = mem_region.length as usize;
             if buf.len() >= region_size {
+                self.bytes_written = self
+                    .bytes_written
+                    .saturating_add(mem_region.length as usize);
+
                 // Can fulfil the entire write
                 (
                     region_size,
@@ -336,7 +384,6 @@ impl UpdateManager {
             } else {
                 // Write what's available, read the rest as it comes in
                 // TODO may need to enforce 4-byte len
-                debug!("Partial write of {} (total {})", buf.len(), region_size);
                 let partial_region_to_write = MemoryRegion {
                     address: mem_region.address,
                     length: buf.len() as u32,
@@ -346,12 +393,15 @@ impl UpdateManager {
                     length: mem_region.length - partial_region_to_write.length,
                 };
 
+                self.bytes_written = self.bytes_written.saturating_add(buf.len());
+
                 self.write_in_progress = Some(partial_region_remaining);
 
                 if buf.is_empty() {
                     // Keep the write in-progess, nothing to write yet
                     (0, Ok(()))
                 } else {
+                    debug!("Partial write of {} (total {})", buf.len(), region_size);
                     (buf.len(), device.write_memory(partial_region_to_write, buf))
                 }
             }
@@ -365,6 +415,9 @@ impl UpdateManager {
                 if self.write_in_progress.is_none() {
                     self.send_status(StatusCode::Success, socket)?;
                 }
+
+                device
+                    .update_progress_changed(FirmwareUpdateStatus::InProgress, self.bytes_written);
             }
             Ok(Err(code)) => {
                 warn!("Device returned status {code}");
@@ -408,5 +461,16 @@ impl From<tcp::SendError> for Error {
 impl From<fmt::Error> for Error {
     fn from(_value: fmt::Error) -> Self {
         Error::Fmt
+    }
+}
+
+impl fmt::Display for FirmwareUpdateStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FirmwareUpdateStatus::InProgress => f.write_str("in-prog"),
+            FirmwareUpdateStatus::Complete => f.write_str("done"),
+            FirmwareUpdateStatus::Verifying => f.write_str("verif"),
+            FirmwareUpdateStatus::Aborted => f.write_str("aborted"),
+        }
     }
 }

@@ -1,4 +1,9 @@
-use crate::{app::update_manager_task, config};
+use crate::{
+    app::{display_task, update_manager_task},
+    config,
+    display::FirmwareUpdateInfo,
+    tasks::display::SpawnArg as DisplaySpawnArg,
+};
 use bootloader_lib::UpdateConfigAndStatus;
 use bootloader_support::FLASH_BASE_ADDRESS;
 use log::{debug, warn};
@@ -9,7 +14,7 @@ use stm32f4xx_hal::{
     prelude::*,
     rcc::Enable,
 };
-use update_manager::{Device, DeviceInfo, StatusCodeResult, UpdateManager};
+use update_manager::{Device, DeviceInfo, FirmwareUpdateStatus, StatusCodeResult, UpdateManager};
 use wire_protocols::device::{
     MemoryEraseRequest, MemoryReadRequest, MemoryWriteRequest, StatusCode,
 };
@@ -81,6 +86,23 @@ impl<'a> Device for UmDevice<'a> {
             pac::USART6::disable(rcc);
 
             bootloader_lib::sw_reset();
+        }
+    }
+
+    fn update_progress_changed(&mut self, status: FirmwareUpdateStatus, bytes_written: usize) {
+        let info = FirmwareUpdateInfo {
+            slot: self.info.active_boot_slot.other(),
+            bytes_written,
+            status,
+        };
+
+        // This can slow down emulation a lot, so only update periodically, or on state chang
+        let update_display = !matches!(status, FirmwareUpdateStatus::InProgress)
+            || bytes_written == 1024
+            || (bytes_written % (1024 * 10)) == 0;
+
+        if update_display {
+            display_task::spawn(DisplaySpawnArg::FirmwareUpdateInfo(info)).unwrap();
         }
     }
 

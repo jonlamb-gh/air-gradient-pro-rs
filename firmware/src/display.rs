@@ -1,4 +1,5 @@
 use crate::config;
+use bootloader_support::BootSlot;
 use core::fmt::{self, Write as FmtWrite};
 use embedded_graphics::{
     mono_font::{MonoFont, MonoTextStyleBuilder},
@@ -10,6 +11,7 @@ use heapless::String;
 use sh1106::{prelude::*, Builder};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f4xx_hal::hal::blocking::i2c::Write;
+use update_manager::FirmwareUpdateStatus;
 use wire_protocols::{DeviceId, DeviceSerialNumber, FirmwareVersion};
 
 const DH: i32 = 64 / 4;
@@ -100,6 +102,16 @@ impl SystemStatus {
             .map(f32::from)
             .map(|centi_rh| centi_rh / 100.0)
     }
+}
+
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+pub struct FirmwareUpdateInfo {
+    /// Slot being written to
+    pub slot: BootSlot,
+    pub bytes_written: usize,
+    pub status: FirmwareUpdateStatus,
+    // TODO protocol needs updated to support this
+    //pub progress_percent: u8,
 }
 
 pub struct Display<I2C>
@@ -274,6 +286,60 @@ where
 
         self.line_buf.clear();
         write!(&mut self.line_buf, "MSG: {}", view.msg_seqnum)?;
+        Text::with_baseline(
+            self.line_buf.as_str(),
+            Point::new(X_C0, Y_R3),
+            text_style,
+            Baseline::Top,
+        )
+        .draw(&mut self.drv)?;
+
+        self.drv.flush()?;
+
+        Ok(())
+    }
+
+    pub fn render_firmware_update_info(
+        &mut self,
+        view: &FirmwareUpdateInfo,
+    ) -> Result<(), Error<E>> {
+        let text_style = MonoTextStyleBuilder::new()
+            .font(&STATUS_FONT)
+            .text_color(BinaryColor::On)
+            .build();
+
+        self.drv.clear();
+
+        Text::with_baseline(
+            " Updating Firmware",
+            Point::new(X_C0, Y_R0),
+            text_style,
+            Baseline::Top,
+        )
+        .draw(&mut self.drv)?;
+
+        self.line_buf.clear();
+        write!(&mut self.line_buf, "Slot: {}", view.slot)?;
+        Text::with_baseline(
+            self.line_buf.as_str(),
+            Point::new(X_C0, Y_R1),
+            text_style,
+            Baseline::Top,
+        )
+        .draw(&mut self.drv)?;
+
+        self.line_buf.clear();
+        write!(&mut self.line_buf, "KB: {}", view.bytes_written / 1024)?;
+        Text::with_baseline(
+            self.line_buf.as_str(),
+            Point::new(X_C0, Y_R2),
+            text_style,
+            Baseline::Top,
+        )
+        .draw(&mut self.drv)?;
+
+        self.line_buf.clear();
+        write!(&mut self.line_buf, "Status: {}", view.status,)?;
         Text::with_baseline(
             self.line_buf.as_str(),
             Point::new(X_C0, Y_R3),
