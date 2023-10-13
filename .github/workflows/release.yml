@@ -101,7 +101,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          draft: true
+          draft: false
           prerelease: false
           name: Release ${{ env.RELEASE_VERSION }}
           body_path: release_notes.md
