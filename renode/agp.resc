@@ -1,0 +1,109 @@
+:name: agp-system
+:description: Emulates the air-gradient-pro bootloader and firmware
+
+#path add @/tmp/agp_rr_cache
+
+using sysbus
+
+mach create "agp"
+
+include @renode/peripherals/STM32_Timer.cs
+include @renode/peripherals/STM32_UART.cs
+include @renode/peripherals/ENC28J60.cs
+include @renode/peripherals/SH1106.cs
+include @renode/peripherals/SGP41.cs
+include @renode/peripherals/SHT31.cs
+include @renode/peripherals/PMS5003.cs
+include @renode/peripherals/S8LP.cs
+
+$firmware_bin = @firmware/target/thumbv7em-none-eabihf/release/air-gradient-pro
+$bootloader_bin = @bootloader/target/thumbv7em-none-eabihf/release/bootloader
+$tap ?= "renode-tap0"
+
+python "import _random"
+python "rand = _random.Random()"
+
+$id1 = `python "print rand.getrandbits(32)"`
+$id2 = `python "print rand.getrandbits(32)"`
+$id3 = `python "print rand.getrandbits(32)"`
+
+machine LoadPlatformDescription @renode/platform/stm32f411.repl
+
+machine LoadPlatformDescriptionFromString
+"""
+led: Miscellaneous.LED @ gpioPortC
+gpioPortC:
+    13 -> led@0
+ethernet: Network.ENC28J60_CUSTOM @ spi2i2s2
+    -> gpioPortA@8
+gpioPortB:
+    12 -> ethernet@0
+sh1106 : Video.SH1106 @ i2c2 0x3C
+    FramesPerVirtualSecond: 10
+sgp41 : Sensors.SGP41 @ i2c2 0x59
+    SerialNumber: 0xBBFF
+    VocTicks: 1024
+    NoxTicks: 2048
+sht31 : Sensors.SHT31 @ i2c2 0x44
+    SerialNumber: 0xAABB
+    Temperature: 40
+    Humidity: 85
+pms5003 : UART.PMS5003 @ usart2
+    PM2_5_atm: 10
+s8lp : UART.S8LP @ usart1
+    Co2: 20
+"""
+
+cpu PerformanceInMips 1
+
+logLevel 3 sysbus
+logLevel 3 flash_controller
+logLevel 3 rcc
+logLevel 3 usart6
+logLevel 3 usart1
+logLevel 3 usart2
+logLevel 3 gpioPortB
+
+timer2 Frequency 64000000
+timer3 Frequency 64000000
+timer4 Frequency 640000000
+timer5 Frequency 640000000
+timer10 Frequency 640000000
+timer11 Frequency 640000000
+
+logLevel 3 timer2
+logLevel 3 timer3
+logLevel 3 timer4
+logLevel 3 timer10
+logLevel 3 timer11
+
+showAnalyzer usart6
+showAnalyzer i2c2.sh1106
+
+spi2i2s2.ethernet MAC "02:00:04:03:07:04"
+emulation CreateSwitch "switch"
+connector Connect spi2i2s2.ethernet switch
+
+emulation CreateTap $tap "tap"
+connector Connect host.tap switch
+
+sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
+sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
+
+macro reset
+"""
+    sysbus LoadELF $firmware_bin
+    sysbus LoadELF $bootloader_bin
+
+    sysbus WriteDoubleWord 0x1FFF7A10 $id1
+    sysbus WriteDoubleWord 0x1FFF7A14 $id2
+    sysbus WriteDoubleWord 0x1FFF7A18 $id3
+
+    # Flash size KB
+    sysbus WriteDoubleWord 0x1FFF7A22 512
+"""
+
+runMacro $reset
+
+start
+

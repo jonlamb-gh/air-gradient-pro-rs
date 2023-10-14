@@ -176,6 +176,14 @@ The default Cargo runner for the bootloader and firmware is set to
   ```
 6. Use the [air-gradient CLI](host_tools/air-gradient-cli/README.md) to interact with the system
 
+Alternatively, there's also a [agp.resc](renode/agp.resc) script that can be used to emulate the full system
+with the bootloader and the firmware, which can be used to test the firmware update procedure.
+
+```bash
+# Assumes the bootloader and firmware ELF files have already been built
+renode renode/agp.resc
+```
+
 ## System Architecture
 
 ![system_architecture.png](doc/system_architecture.png)
