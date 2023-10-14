@@ -1,7 +1,7 @@
 [package]
 name = "air-gradient-pro-rs"
 description = "Rust firmware for the AirGradient Pro"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Jon Lamb"]
 build = "build.rs"
@@ -86,7 +86,7 @@ default-features = false
 features = ["cortex-m"]
 
 [build-dependencies.built]
-version = "0.6"
+version = "0.7"
 features = ["git2", "chrono"]
 
 [build-dependencies.env-config]
