@@ -182,7 +182,28 @@ with the bootloader and the firmware, which can be used to test the firmware upd
 ```bash
 # Assumes the bootloader and firmware ELF files have already been built
 renode renode/agp.resc
+
+# Run the 'start' command in the renode console
 ```
+
+## Robot Framework Tests
+
+The system-level integration tests are written in [Robot Framework](https://robotframework.org) and
+use [Renode's integration](https://renode.readthedocs.io/en/latest/introduction/testing.html) to drive it.
+
+1. Install [Renode](https://renode.io/) (currently requires nightly, tested against `1.14.0+20231008gitebcb1b6b`)
+2. Install [Robot Framework](https://robotframework.org)
+  ```bash
+  pip install robotframework==6.0.2
+  ```
+3. Setup TAP device and networking on the host (requires root)
+  ```bash
+  sudo ./renode/setup-network.sh
+  ```
+4. Run the tests
+  ```bash
+  renode-test agp.robot
+  ```
 
 ## System Architecture
 
