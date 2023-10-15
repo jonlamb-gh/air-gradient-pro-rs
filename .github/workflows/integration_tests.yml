@@ -1,0 +1,54 @@
+name: Integration Tests
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+  RENODE_CI_MODE: YES
+
+jobs:
+  robo_tests:
+    name: Roboot Framework Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install renode
+        run: |
+          cd /opt
+          sudo wget --quiet --output-document renode.tar.gz https://builds.renode.io/renode-1.14.0+20231008gitebcb1b6b.linux-portable.tar.gz
+          sudo mkdir renode
+          sudo tar xf renode.tar.gz -C renode --strip-components 1
+          sudo pip install -r /opt/renode/tests/requirements.txt
+          sudo apt-get install -y bridge-utils
+          echo "PATH=/opt/renode:${PATH}" >> $GITHUB_ENV
+
+      - name: Print renode version
+        run: renode --version
+
+      - name: Install toolchain and components
+        run: rustup component add rustfmt clippy llvm-tools-preview
+
+      - name: Install binutils, flip-link
+        run: cargo install cargo-binutils flip-link
+
+      - name: Build bootloader
+        working-directory: bootloader
+        run: cargo build --release
+
+      - name: Build firmware
+        working-directory: firmware
+        run: cargo build --release
+
+      - name: Build CLI
+        working-directory: host_tools/air-gradient-cli
+        run: cargo build --release --all-features
+
+      - name: Setup networking for tests
+        run: |
+          sudo ./renode/setup-network.sh &
+          sleep 2
+
+      - name: Run tests
+        run: renode-test agp.robot
