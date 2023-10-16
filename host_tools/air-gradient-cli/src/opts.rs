@@ -71,7 +71,7 @@ pub struct InfluxRelay {
 #[derive(Parser, Debug, Clone)]
 pub enum Device {
     /// Request and print device info
-    Info(CommonDeviceOpts),
+    Info(DeviceInfo),
 
     /// Reboot a device
     Reboot(CommonDeviceOpts),
@@ -95,7 +95,22 @@ pub struct DeviceUpdate {
 }
 
 #[derive(Parser, Debug, Clone)]
+pub struct DeviceInfo {
+    #[clap(flatten)]
+    pub common: CommonDeviceOpts,
+
+    /// Print the given field name rather than the entire info object.
+    /// Can be supplied multiple times.
+    #[arg(long = "field-name", short = 'F')]
+    pub field_names: Vec<String>,
+}
+
+#[derive(Parser, Debug, Clone)]
 pub struct CommonDeviceOpts {
+    /// Verbose
+    #[arg(long, short = 'v')]
+    pub verbose: bool,
+
     /// Address
     #[arg(long, short = 'a')]
     pub address: String,
