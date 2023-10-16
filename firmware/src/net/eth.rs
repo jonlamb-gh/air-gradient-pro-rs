@@ -42,7 +42,7 @@ impl<'buf> Eth<'buf> {
             "ENC28J60: buffer length, rx {}, tx {}, mtu {}",
             eth.rx_buffer.len(),
             eth.tx_buffer.len(),
-            eth.mtu(),
+            Self::MTU
         );
         eth
     }
