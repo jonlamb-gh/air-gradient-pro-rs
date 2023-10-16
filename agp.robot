@@ -23,21 +23,27 @@ Build Firmware
     Set environment variable    AIR_GRADIENT_DEVICE_ID      ${AIR_GRADIENT_DEVICE_ID}
     Set environment variable    AIR_GRADIENT_LOG            ${AIR_GRADIENT_LOG}
     ${result}=  Run Process     cargo build --release       cwd=firmware  shell=true
-    #Log To Console              ${result.stdout} console=yes
-    #Log To Console              ${result.stderr} console=yes
+    IF                          ${result.rc} != 0
+        Log To Console          ${result.stdout}  console=yes
+        Log To Console          ${result.stderr}  console=yes
+    END
     Should Be Equal As Integers  ${result.rc}               0
 
 Build Bootloader
     Set environment variable    AIR_GRADIENT_LOG            ${AIR_GRADIENT_LOG}
     ${result}=  Run Process     cargo build --release       cwd=bootloader  shell=true
-    #Log To Console              ${result.stdout} console=yes
-    #Log To Console              ${result.stderr} console=yes
+    IF                          ${result.rc} != 0
+        Log To Console          ${result.stdout}  console=yes
+        Log To Console          ${result.stderr}  console=yes
+    END
     Should Be Equal As Integers  ${result.rc}               0
 
 Build CLI
     ${result}=  Run Process     cargo build --release       cwd=host_tools/air-gradient-cli  shell=true
-    #Log To Console              ${result.stdout} console=yes
-    #Log To Console              ${result.stderr} console=yes
+    IF                          ${result.rc} != 0
+        Log To Console          ${result.stdout}  console=yes
+        Log To Console          ${result.stderr}  console=yes
+    END
     Should Be Equal As Integers  ${result.rc}               0
 
 Build System
@@ -48,6 +54,19 @@ Build System
 Prepare Machine
     Execute Command             path add @${CURDIR}
     Execute Script              ${AGP_RESC}
+
+Run Command
+    [Arguments]                 ${cmd_and_args}
+    Log To Console              ${cmd_and_args}
+    ${result}=                  Run Process                 ${cmd_and_args}     shell=true
+    IF                          ${result.rc} != 0
+        Log To Console          ${result.stdout}  console=yes
+        Log To Console          ${result.stderr}  console=yes
+    END
+
+    Should Be Equal As Integers  ${result.rc}               0
+
+    RETURN                      ${result}
 
 *** Test Cases ***
 Boot the System
@@ -73,8 +92,22 @@ Responds to Ping
     Set Test Variable           ${PING_CMD}     ping -w ${PING_TIMEOUT} -W 1 ${AIR_GRADIENT_IP_ADDRESS}
 
     Wait For Line On Uart       [D] UM: listening on port 32101
+
     ${result}=                  Run Process     ${PING_CMD}  shell=true
     Should Be Equal As Integers  ${result.rc}               0
+
+    Provides                    running-system
+
+Responds with Device Info
+    [Documentation]             Device responds to info request
+    [Tags]                      firmware  bootloader  network  device-protocol cli
+    Requires                    running-system
+
+    Set Test Variable           ${CLI_CMD}      ${CLI} device info -a ${AIR_GRADIENT_IP_ADDRESS} -F device_id
+
+    ${result}                   Run Command     ${CLI_CMD}
+
+    Should Be Equal As Integers  ${result.stdout}       ${AIR_GRADIENT_DEVICE_ID}
 
 # TODO
 # - tests for fota related
