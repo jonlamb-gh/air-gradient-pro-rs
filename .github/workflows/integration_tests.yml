@@ -14,6 +14,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      # TODO - use https://github.com/antmicro/renode-test-action
       - name: Install renode
         run: |
           cd /opt
@@ -52,3 +53,13 @@ jobs:
 
       - name: Run tests
         run: renode-test agp.robot
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+            name: test-results
+            path: |
+                report.html
+                log.html
+                robot_output.xml
