@@ -50,15 +50,6 @@ impl<'buf> Eth<'buf> {
     pub fn driver(&mut self) -> &mut Drv {
         &mut self.drv
     }
-
-    fn mtu(&self) -> usize {
-        // TODO - fixup the MTU logic
-        // 1514, the maximum frame length allowed by the interface
-        // 1024, buffer sizes
-        let min_buf = core::cmp::min(self.rx_buffer.len(), self.tx_buffer.len());
-        let min_iface = core::cmp::min(self.drv.mtu() as usize, Self::MTU);
-        core::cmp::min(min_buf, min_iface)
-    }
 }
 
 impl<'buf> Device for Eth<'buf> {
@@ -111,7 +102,7 @@ impl<'buf> Device for Eth<'buf> {
     // TODO - double check CRC behavior, it's done in the hw
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        caps.max_transmission_unit = self.mtu();
+        caps.max_transmission_unit = Self::MTU;
         caps.max_burst_size = Some(1);
         caps.medium = Medium::Ethernet;
         caps

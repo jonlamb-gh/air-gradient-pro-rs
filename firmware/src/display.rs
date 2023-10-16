@@ -311,7 +311,7 @@ where
         self.drv.clear();
 
         Text::with_baseline(
-            " Updating Firmware",
+            "Updating Firmware",
             Point::new(X_C0, Y_R0),
             text_style,
             Baseline::Top,
