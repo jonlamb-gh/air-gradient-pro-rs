@@ -63,10 +63,11 @@ impl<'buf> Device for Eth<'buf> {
 
         match self.drv.next_packet() {
             Ok(Some(packet)) => {
-                if packet.len() as usize > self.rx_buffer.len() {
+                let pkt_len = packet.len() as usize;
+                if pkt_len > self.rx_buffer.len() {
                     warn!(
                         "Dropping rx packet, too big, len {}, cap {}",
-                        packet.len(),
+                        pkt_len,
                         self.rx_buffer.len()
                     );
                     packet.ignore().unwrap();
@@ -76,7 +77,7 @@ impl<'buf> Device for Eth<'buf> {
                     None
                 } else {
                     Some((
-                        RxToken(&mut self.rx_buffer[..]),
+                        RxToken(&mut self.rx_buffer[..pkt_len]),
                         TxToken {
                             phy: &mut self.drv,
                             buf: self.tx_buffer,
