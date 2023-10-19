@@ -415,6 +415,7 @@ namespace Antmicro.Renode.Peripherals.Timers
             Limit = initialLimit;
             repetitionsLeft = 0;
             updateInterruptFlag = false;
+            EventEnabled = true;
             for(var i = 0; i < NumberOfCCChannels; ++i)
             {
                 ccTimers[i].Reset();

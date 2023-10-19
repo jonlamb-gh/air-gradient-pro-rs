@@ -55,12 +55,12 @@ spi5i2s5: SPI.STM32SPI @ sysbus 0x40015000
 
 timer11: Timers.STM32_Timer_Custom @ sysbus <0x40014800, +0x400>
     initialLimit: 0xffff
-    frequency: 100000000
+    frequency: 640000000
     -> nvic@26
 
 timer10: Timers.STM32_Timer_Custom @ sysbus <0x40014400, +0x400>
     initialLimit: 0xffff
-    frequency: 100000000
+    frequency: 640000000
     -> nvic@25
 
 timer9: Timers.STM32_Timer_Custom @ sysbus <0x40014000, +0x400>
@@ -168,22 +168,22 @@ timer6: Timers.STM32_Timer_Custom @ sysbus <0x40001000, +0x400>
 
 timer5: Timers.STM32_Timer_Custom @ sysbus <0x40000C00, +0x400>
     initialLimit: 0xffffffff
-    frequency: 100000000
+    frequency: 640000000
     -> nvic@50
 
 timer4: Timers.STM32_Timer_Custom @ sysbus <0x40000800, +0x400>
     initialLimit: 0xffff
-    frequency: 100000000
+    frequency: 640000000
     -> nvic@30
 
 timer3: Timers.STM32_Timer_Custom @ sysbus <0x40000400, +0x400>
     initialLimit: 0xffff
-    frequency: 100000000
+    frequency: 64000000
     -> nvic@29
 
 timer2: Timers.STM32_Timer_Custom @ sysbus <0x40000000, +0x400>
     initialLimit: 0xffffffff
-    frequency: 100000000
+    frequency: 64000000
     -> nvic@28
 
 sram: Memory.MappedMemory @ sysbus 0x20000000

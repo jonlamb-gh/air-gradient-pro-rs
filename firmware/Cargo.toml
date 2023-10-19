@@ -178,7 +178,8 @@ pre-start-commands = [
     'logLevel 3 usart2',
     'logLevel 3 gpioPortB',
 
-    # TODO - timers need to be reset on startup, the delay timer TIM4 doesn't progress after watchdog resets
+    # NOTE: these frequencies are the default in stm32f411.repl so they get picked up after machine
+    # resets.
     # Setup the timer frequencies to match the systick frequency, so that
     # the HAL RCC/Timer config routines work, they use timclk1 which is set
     # to systick (64 MHz) based on the NVIC systickFrequency in stm32f411.repl
@@ -217,6 +218,7 @@ pre-start-commands = [
     #'logLevel -1 spi2i2s2.ethernet',
 
     #'logFile @/tmp/agp_renode.log true',
+    #'logLevel -1 file',
     #'usart6 CreateFileBackend @/tmp/agp_uart.txt true',
 
     'showAnalyzer usart6',
