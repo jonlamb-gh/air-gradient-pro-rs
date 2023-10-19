@@ -104,6 +104,7 @@ using-sysbus = true
 # https://builds.renode.io/renode-latest.linux-portable.tar.gz
 # renode = '/opt/renode_1.14.0+20231008gitebcb1b6b_portable/renode'
 init-commands = [
+    'include @../renode/peripherals/STM32F4_RCC.cs',
     'include @../renode/peripherals/STM32_Timer.cs',
     'include @../renode/peripherals/STM32_UART.cs',
     'include @../renode/peripherals/ENC28J60.cs',
@@ -232,7 +233,18 @@ pre-start-commands = [
     connector Connect host.tap switch
     ''',
 
+    # Reset reason: power-on reset RCC.CSR.PORRSTF
+    'rcc resetReason PowerOnReset',
+
+    # When we see a write of 0x5fa0004 to SCB.AIRCR (0xE000ED0C)
+    # then set the SFTRSTF bit (bit 28) in reset-reset RCC.CSR (0x40023874)
     '''
+    sysbus AddWatchpointHook 0xE000ED0C DoubleWord Write "if value == 0x5fa0004: self.NoisyLog('sw triggered reset'); self.Machine['sysbus.rcc'].SetResetReasonSoftwareReset()"
+    ''',
+
+    # TODO - check that these are working...
+    '''
+    sysbus.usart2 AddLineHook "Reset reason: Could not determine the cause" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
     sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
     sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
     ''',
@@ -240,6 +252,7 @@ pre-start-commands = [
 reset = '''
 sysbus LoadELF $bin
 
+# Device ID
 sysbus WriteDoubleWord 0x1FFF7A10 $id1
 sysbus WriteDoubleWord 0x1FFF7A14 $id2
 sysbus WriteDoubleWord 0x1FFF7A18 $id3

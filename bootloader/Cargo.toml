@@ -43,6 +43,7 @@ lto = true # better optimizations
 machine-name = 'agp-bootloader'
 using-sysbus = true
 init-commands = [
+    'include @../renode/peripherals/STM32F4_RCC.cs',
     'include @../renode/peripherals/STM32_Timer.cs',
     'include @../renode/peripherals/STM32_UART.cs',
 ]
@@ -69,6 +70,7 @@ pre-start-commands = [
     #'logFile @/tmp/agp_bootloader_renode.log true',
     'cpu PerformanceInMips 1',
     'showAnalyzer sysbus.usart6',
+    'rcc resetReason PowerOnReset',
     '''
     sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
     sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"

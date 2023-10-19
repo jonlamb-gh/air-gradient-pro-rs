@@ -7,6 +7,7 @@ using sysbus
 
 mach create "agp"
 
+include @renode/peripherals/STM32F4_RCC.cs
 include @renode/peripherals/STM32_Timer.cs
 include @renode/peripherals/STM32_UART.cs
 include @renode/peripherals/ENC28J60.cs
@@ -86,6 +87,10 @@ connector Connect spi2i2s2.ethernet switch
 
 emulation CreateTap $tap "tap"
 connector Connect host.tap switch
+
+rcc resetReason PowerOnReset
+
+sysbus AddWatchpointHook 0xE000ED0C DoubleWord Write "if value == 0x5fa0004: self.NoisyLog('sw triggered reset'); self.Machine['sysbus.rcc'].SetResetReasonSoftwareReset()"
 
 sysbus.usart2 AddLineHook "PANIC" "Antmicro.Renode.Logging.Logger.Log(LogLevel.Error, line)"
 sysbus.usart2 AddLineHook "test result: ok" "Antmicro.Renode.Emulator.Exit()"
