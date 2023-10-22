@@ -1,0 +1,7 @@
+# robot framework
+agp_logs/
+log.html
+report.html
+results-agp.robot.xml
+robot_output.xml
+snapshots

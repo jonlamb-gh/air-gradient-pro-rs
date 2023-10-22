@@ -52,6 +52,7 @@ jobs:
           sleep 2
 
       - name: Run tests
+        timeout-minutes: 10
         run: renode-test agp.robot
 
       - name: Archive test results
@@ -63,3 +64,4 @@ jobs:
                 report.html
                 log.html
                 robot_output.xml
+                agp_logs/

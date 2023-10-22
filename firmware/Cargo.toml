@@ -253,6 +253,7 @@ pre-start-commands = [
 ]
 reset = '''
 sysbus LoadELF $bin
+sysbus.cpu VectorTableOffset 0x8000000
 
 # Device ID
 sysbus WriteDoubleWord 0x1FFF7A10 $id1

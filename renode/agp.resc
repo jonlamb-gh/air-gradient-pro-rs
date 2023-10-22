@@ -99,6 +99,7 @@ macro reset
 """
     sysbus LoadELF $firmware_bin
     sysbus LoadELF $bootloader_bin
+    sysbus.cpu VectorTableOffset 0x8000000
 
     sysbus WriteDoubleWord 0x1FFF7A10 $id1
     sysbus WriteDoubleWord 0x1FFF7A14 $id2
